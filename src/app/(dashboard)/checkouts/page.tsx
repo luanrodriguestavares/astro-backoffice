@@ -1,0 +1,6 @@
+import { CheckoutManager, type CheckoutCatalogOption } from "@/components/checkout-builder/checkout-manager";
+import { PageHeader } from "@/components/ui/page-header";
+import { apiFetch } from "@/lib/api/server";
+import type { Checkout, Price, Product } from "@/lib/api/types";
+
+export default async function CheckoutsPage() { const [checkouts, products] = await Promise.all([apiFetch<Checkout[]>("/api/v1/checkouts"), apiFetch<Product[]>("/api/v1/products?limit=100")]); const priceEntries = await Promise.all(products.map(async (product) => ({ product, prices: await apiFetch<Price[]>(`/api/v1/products/${product.id}/prices`) }))); const catalog: CheckoutCatalogOption[] = priceEntries.flatMap(({ product, prices }) => prices.filter((price) => product.status === "active" && price.status === "active").map((price) => ({ productId: product.id, priceId: price.id, productName: product.name, priceName: price.name, amountMinor: price.amountMinor, currency: price.currency, pricingType: price.pricingType, active: true }))); return <><PageHeader eyebrow="Conversão" title="Checkouts" description="Crie páginas de venda com componentes visuais e pagamento protegido pelo Astro." /><CheckoutManager checkouts={checkouts} catalog={catalog} /></>; }
