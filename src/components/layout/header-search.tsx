@@ -21,27 +21,15 @@ const destinations: {
     keywords: "início dashboard",
   },
   { label: "Produtos", group: "Vendas", href: "/products", icon: "box" },
-  {
-    label: "Preços e planos",
-    group: "Vendas",
-    href: "/products?view=plans",
-    icon: "tag",
-    keywords: "valores recorrência",
-  },
   { label: "Checkouts", group: "Vendas", href: "/checkouts", icon: "layout" },
-  {
-    label: "Links de pagamento",
-    group: "Vendas",
-    href: "/checkouts?view=links",
-    icon: "link",
-  },
+  { label: "Cupons", group: "Vendas", href: "/coupons", icon: "tag" },
   {
     label: "Pedidos",
     group: "Vendas",
-    href: "/payments",
+    href: "/orders",
     icon: "cart",
-    keywords: "pagamentos vendas",
   },
+  { label: "Pagamentos", group: "Vendas", href: "/payments", icon: "card" },
   {
     label: "Assinaturas",
     group: "Vendas",
@@ -49,26 +37,29 @@ const destinations: {
     icon: "repeat",
   },
   { label: "Clientes", group: "Vendas", href: "/customers", icon: "users" },
+  { label: "Estoque", group: "Vendas", href: "/inventory", icon: "box" },
+  { label: "Frete", group: "Vendas", href: "/shipping", icon: "link" },
   {
-    label: "Analytics",
+    label: "Faturas",
     group: "Financeiro",
-    href: "/dashboard?view=analytics",
-    icon: "chart",
-    keywords: "relatórios métricas",
+    href: "/invoices",
+    icon: "card",
   },
   {
     label: "Reembolsos",
     group: "Financeiro",
-    href: "/payments?view=refunds",
+    href: "/refunds",
     icon: "refund",
   },
   { label: "Gateways", group: "Integrações", href: "/gateways", icon: "plug" },
   {
     label: "Webhooks",
     group: "Integrações",
-    href: "/gateways?view=webhooks",
+    href: "/webhooks",
     icon: "webhook",
   },
+  { label: "API", group: "Integrações", href: "/developer", icon: "code" },
+  { label: "Arquivos", group: "Integrações", href: "/files", icon: "layout" },
   { label: "Equipe", group: "Configurações", href: "/team", icon: "team" },
   {
     label: "Conta",
@@ -76,13 +67,6 @@ const destinations: {
     href: "/settings",
     icon: "user",
     keywords: "perfil organização",
-  },
-  {
-    label: "API",
-    group: "Configurações",
-    href: "/settings?view=api",
-    icon: "code",
-    keywords: "chaves integração",
   },
 ];
 
@@ -180,7 +164,7 @@ export function HeaderSearch() {
       className="relative hidden w-full max-w-[400px] md:block"
     >
       <div
-        className={`glass-panel-soft flex h-11 items-center gap-2.5 rounded-2xl px-4 transition ${open ? "border-brand/20 bg-white/80 shadow-[0_16px_42px_rgba(55,48,105,.12)]" : "hover:bg-white/75"}`}
+        className={`global-search glass-panel-soft flex h-11 items-center gap-2.5 rounded-2xl px-4 transition ${open ? "border-brand/70 bg-white shadow-[0_0_0_3px_rgba(109,93,244,.16)]" : "hover:bg-white/75"}`}
       >
         <Icon name="search" className="size-4 shrink-0 text-[#77758d]" />
         <input

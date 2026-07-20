@@ -28,7 +28,8 @@ export type IconName =
   | "bolt"
   | "edit"
   | "trash"
-  | "clock";
+  | "clock"
+  | "image";
 
 const paths: Record<IconName, React.ReactNode> = {
   home: (
@@ -211,6 +212,13 @@ const paths: Record<IconName, React.ReactNode> = {
     <>
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 2" />
+    </>
+  ),
+  image: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-5-5L5 20" />
     </>
   ),
 };

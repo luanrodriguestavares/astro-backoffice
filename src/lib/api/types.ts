@@ -68,6 +68,7 @@ export interface Product {
   slug: string;
   shortDescription: string | null;
   description: string | null;
+  imageFileId: string | null;
   status: "draft" | "active" | "inactive";
   inventoryMode: string;
   deliveryMode: string;

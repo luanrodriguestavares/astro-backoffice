@@ -42,7 +42,7 @@ export function RevenueAreaChart({
               type="button"
               aria-pressed={period === option}
               onClick={() => setPeriod(option)}
-              className={`rounded-lg px-3 py-1.5 text-[10px] font-semibold transition-all ${period === option ? "bg-[#ebe7ff] text-brand-strong shadow-[0_5px_16px_rgba(100,80,220,.12)]" : "text-muted hover:text-foreground"}`}
+              className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-all ${period === option ? "bg-[#ebe7ff] text-brand-strong shadow-[0_5px_16px_rgba(100,80,220,.12)]" : "text-muted hover:text-foreground"}`}
             >
               {option}
             </button>
@@ -124,10 +124,10 @@ export function RevenueAreaChart({
         {empty && (
           <div className="pointer-events-none absolute bottom-6 left-10 right-2 top-0 z-10 grid place-items-center">
             <div className="rounded-2xl border border-white/80 bg-white/62 px-5 py-3 text-center shadow-sm backdrop-blur-xl">
-              <p className="text-xs font-semibold text-foreground">
+              <p className="text-[13px] font-semibold text-foreground">
                 Sem receita no período
               </p>
-              <p className="mt-1 text-[10px] text-muted">
+              <p className="mt-1 text-[12px] text-muted">
                 As vendas aprovadas aparecerão aqui.
               </p>
             </div>
@@ -158,7 +158,7 @@ function RevenueTooltip({
   const variation = previous ? ((value - previous) / previous) * 100 : null;
   return (
     <div className="rounded-2xl border border-white/85 bg-white/78 px-4 py-3 shadow-[0_18px_50px_rgba(45,39,91,.14)] backdrop-blur-2xl">
-      <p className="text-[10px] font-medium text-muted">
+      <p className="text-[12px] font-medium text-muted">
         {payload[0].payload?.date ?? label}
       </p>
       <p className="mt-1 text-sm font-bold tracking-[-0.02em] text-foreground">
@@ -166,7 +166,7 @@ function RevenueTooltip({
       </p>
       {variation !== null && (
         <p
-          className={`mt-1 text-[10px] font-semibold ${variation >= 0 ? "text-success" : "text-danger"}`}
+          className={`mt-1 text-[12px] font-semibold ${variation >= 0 ? "text-success" : "text-danger"}`}
         >
           {variation >= 0 ? "↗" : "↘"} {Math.abs(variation).toFixed(1)}% vs.
           período anterior
@@ -233,7 +233,7 @@ export function GatewayDonut({
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
           <div>
-            <p className="text-[10px] text-muted">Total</p>
+            <p className="text-[12px] text-muted">Total</p>
             <p className="mt-1 text-lg font-bold tracking-[-0.04em] text-foreground">
               {compactMoney(total, currency)}
             </p>
@@ -248,7 +248,7 @@ export function GatewayDonut({
               className="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-white/40"
             >
               <span
-                className="grid size-7 shrink-0 place-items-center rounded-lg text-[10px] font-bold text-white shadow-sm"
+                className="grid size-7 shrink-0 place-items-center rounded-lg text-[12px] font-bold text-white shadow-sm"
                 style={{
                   background: gatewayColors[index % gatewayColors.length],
                 }}
@@ -256,20 +256,20 @@ export function GatewayDonut({
                 {gatewayInitial(item.provider)}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[11px] font-semibold text-foreground">
+                <p className="truncate text-[12px] font-semibold text-foreground">
                   {item.name}
                 </p>
-                <p className="mt-0.5 text-[9px] text-muted">
+                <p className="mt-0.5 text-[12px] text-muted">
                   {money(item.value, currency)}
                 </p>
               </div>
-              <span className="text-[10px] font-semibold text-foreground">
+              <span className="text-[12px] font-semibold text-foreground">
                 {total ? ((item.value / total) * 100).toFixed(1) : "0.0"}%
               </span>
             </div>
           ))
         ) : (
-          <p className="rounded-xl bg-white/30 px-3 py-4 text-center text-[10px] leading-4 text-muted">
+          <p className="rounded-xl bg-white/30 px-3 py-4 text-center text-[12px] leading-4 text-muted">
             As vendas serão distribuídas por gateway aqui.
           </p>
         )}
@@ -293,10 +293,10 @@ function GatewayTooltip({
   const value = Number(payload[0].value ?? 0);
   return (
     <div className="rounded-xl border border-white/85 bg-white/80 px-3 py-2 shadow-xl backdrop-blur-2xl">
-      <p className="text-[10px] font-semibold text-foreground">
+      <p className="text-[12px] font-semibold text-foreground">
         {payload[0].name}
       </p>
-      <p className="mt-0.5 text-[9px] text-muted">
+      <p className="mt-0.5 text-[12px] text-muted">
         {money(value, currency)} ·{" "}
         {total ? ((value / total) * 100).toFixed(1) : 0}%
       </p>

@@ -1,5 +1,20 @@
 import type { CheckoutDocument } from "@/lib/api/types";
 
+export const blankCheckoutDocument: CheckoutDocument = {
+  schemaVersion: 1,
+  theme: {
+    backgroundColor: "#f7f7fb",
+    surfaceColor: "#ffffff",
+    textColor: "#202235",
+    accentColor: "#7065e8",
+    radius: 16,
+  },
+  layout: { maxWidth: 1120 },
+  sections: [],
+  settings: { showPoweredBy: true },
+  seo: { title: "", description: "" },
+};
+
 export const defaultCheckoutDocument: CheckoutDocument = {
   schemaVersion: 1,
   theme: { backgroundColor: "#f7f7fb", surfaceColor: "#ffffff", textColor: "#202235", accentColor: "#7065e8", radius: 16 },

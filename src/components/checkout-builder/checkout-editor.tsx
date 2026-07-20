@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 
 import { checkoutBuilderConfig, type BuilderData } from "@/components/checkout-builder/config";
+import { Icon } from "@/components/ui/icon";
 import { documentToPuck, puckToDocument } from "@/lib/checkout/puck-data";
 import type { Checkout, CheckoutDocument, CheckoutDraft } from "@/lib/api/types";
 
@@ -40,9 +41,9 @@ export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft:
     setState("published"); setMessage("Checkout publicado com sucesso.");
   }
 
-  return <div className="-mx-4 -mb-4 sm:-mx-6 sm:-mb-6 lg:-mx-8 lg:-mb-8">
-    <div className="flex flex-wrap items-center gap-3 border-y bg-white px-4 py-3 sm:px-6"><Link href="/checkouts" className="text-sm font-semibold text-muted hover:text-foreground">← Checkouts</Link><span className="h-5 w-px bg-[#e4e4eb]" /><div><p className="text-sm font-bold">{checkout.name}</p><p className="text-[11px] text-muted">/{checkout.slug}</p></div><span className={`ml-auto rounded-full px-2.5 py-1 text-[11px] font-semibold ${state === "error" ? "bg-[#fff2f4] text-danger" : state === "published" ? "bg-[#e8f7f1] text-success" : "bg-surface-muted text-muted"}`}>{statusLabel(state)}</span>{message && <span className="hidden text-xs text-muted md:inline">{message}</span>}</div>
-    <Puck config={checkoutBuilderConfig} data={initialData} height="calc(100dvh - 145px)" headerTitle="Editor do checkout" headerPath={`/${checkout.slug}`} viewports={[{ width: 390, height: "auto", label: "Celular", icon: "Smartphone" }, { width: 768, height: "auto", label: "Tablet", icon: "Tablet" }, { width: 1440, height: "auto", label: "Desktop", icon: "Monitor" }]} iframe={{ enabled: true, syncHostStyles: false }} onChange={(data) => { current.current = data as BuilderData; setState("changed"); setMessage(undefined); }} onPublish={publish} renderHeaderActions={() => <button type="button" disabled={state === "saving"} onClick={() => void save()} style={{ border: "1px solid #dedee7", borderRadius: 6, background: "white", padding: "7px 12px", fontSize: 13, fontWeight: 650, cursor: "pointer" }}>Salvar rascunho</button>} />
+  return <div className="astro-checkout-editor min-h-screen overflow-hidden bg-white">
+    <div className="flex min-h-16 flex-wrap items-center gap-3 border-b border-[#e7e7ee] bg-white px-4 py-3 sm:px-6"><Link href="/checkouts" className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-muted transition hover:bg-[#f4f2ff] hover:text-brand-strong"><Icon name="arrow-right" className="size-3.5 rotate-180" />Voltar</Link><span className="h-5 w-px bg-[#e4e4eb]" /><div><p className="text-sm font-bold">{checkout.name}</p><p className="text-[11px] text-muted">/{checkout.slug}</p></div><span className={`ml-auto rounded-full px-2.5 py-1 text-[11px] font-semibold ${state === "error" ? "bg-[#fff2f4] text-danger" : state === "published" ? "bg-[#e8f7f1] text-success" : "bg-surface-muted text-muted"}`}>{statusLabel(state)}</span>{message && <span className="hidden text-xs text-muted md:inline">{message}</span>}</div>
+    <Puck config={checkoutBuilderConfig} data={initialData} height="calc(100dvh - 64px)" headerTitle="Editor do checkout" headerPath={`/${checkout.slug}`} viewports={[{ width: 390, height: "auto", label: "Celular", icon: "Smartphone" }, { width: 768, height: "auto", label: "Tablet", icon: "Tablet" }, { width: 1440, height: "auto", label: "Desktop", icon: "Monitor" }]} iframe={{ enabled: true, syncHostStyles: false }} onChange={(data) => { current.current = data as BuilderData; setState("changed"); setMessage(undefined); }} onPublish={publish} renderHeaderActions={() => <button type="button" disabled={state === "saving"} onClick={() => void save()} style={{ border: "1px solid #dedee7", borderRadius: 6, background: "white", padding: "7px 12px", fontSize: 13, fontWeight: 650, cursor: "pointer" }}>Salvar rascunho</button>} />
   </div>;
 }
 

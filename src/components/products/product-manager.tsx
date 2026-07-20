@@ -1,10 +1,12 @@
 "use client";
 
-import { type FormEvent, useMemo, useState } from "react";
+import { Children, type FormEvent, isValidElement, type ReactElement, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
 import { Icon, type IconName } from "@/components/ui/icon";
+import { CustomSelect, type SelectOption } from "@/components/ui/custom-select";
+import { useEscapeClose } from "@/hooks/use-escape-close";
 import type { Price, Product } from "@/lib/api/types";
 
 type StatusFilter = "all" | Product["status"];
@@ -47,6 +49,13 @@ export function ProductManager({
     const form = new FormData(event.currentTarget);
     const name = String(form.get("name") ?? "").trim();
     const shortDescription = String(form.get("shortDescription") ?? "").trim();
+    const image = form.get("image");
+    let imageFileId: string | undefined;
+    if (image instanceof File && image.size > 0) {
+      const upload = await uploadProductImage(image);
+      if (!upload.id) { setLoading(false); setError(upload.detail ?? "Não foi possível enviar a imagem."); return; }
+      imageFileId = upload.id;
+    }
     const productPayload = {
       type: form.get("type"),
       name,
@@ -56,6 +65,7 @@ export function ProductManager({
         : shortDescription || undefined,
       status: form.get("status"),
       deliveryMode: form.get("type") === "digital" ? "digital" : "none",
+      ...(imageFileId ? { imageFileId } : {}),
     };
 
     if (editing) {
@@ -103,7 +113,7 @@ export function ProductManager({
         body: JSON.stringify({
           name: recurring ? "Plano principal" : "Preço principal",
           pricingType,
-          amountMinor: Math.round(Number(form.get("amount")) * 100),
+          amountMinor: Number(form.get("amountMinor")),
           currency: "BRL",
           ...(recurring
             ? {
@@ -169,17 +179,22 @@ export function ProductManager({
     setError(undefined);
   }
 
+  useEscapeClose(open || Boolean(deleteTarget), () => {
+    if (deleteTarget && !deleting) setDeleteTarget(undefined);
+    else closeForm();
+  });
+
   return (
     <>
-      <section className="glass-panel-soft mb-4 flex flex-col gap-3 rounded-[22px] p-2.5 sm:flex-row sm:items-center sm:justify-between">
+      <section className="glass-panel mb-4 flex flex-col gap-3 rounded-[22px] p-2.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-          <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/80 bg-white/42 px-3 sm:max-w-[310px]">
+          <label className="filter-control flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#d9d7e8] bg-white/70 px-3.5 transition focus-within:border-brand/70 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(109,93,244,.16)] sm:max-w-[310px]">
             <Icon name="search" className="size-3.5 shrink-0 text-muted" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Buscar produto..."
-              className="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-muted"
+              className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted"
             />
             {query && (
               <button
@@ -206,7 +221,7 @@ export function ProductManager({
                 key={value}
                 type="button"
                 onClick={() => setStatus(value)}
-                className={`shrink-0 rounded-lg px-3 py-1.5 text-[10px] font-semibold transition ${status === value ? "bg-white/80 text-brand-strong shadow-sm" : "text-muted hover:text-foreground"}`}
+                className={`shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${status === value ? "bg-white/80 text-brand-strong shadow-sm" : "text-muted hover:text-foreground"}`}
               >
                 {label}
               </button>
@@ -217,7 +232,7 @@ export function ProductManager({
         <button
           type="button"
           onClick={openCreate}
-          className="glass-interactive group inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7665f5] to-[#5a42e3] px-4 text-xs font-semibold text-white shadow-[0_10px_26px_rgba(91,69,223,.2)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(91,69,223,.27)]"
+          className="glass-interactive group inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7665f5] to-[#5a42e3] px-4 text-[13px] font-semibold text-white shadow-[0_10px_26px_rgba(91,69,223,.2)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(91,69,223,.27)]"
         >
           <Icon name="plus" className="size-3.5" />
           Criar produto
@@ -225,7 +240,7 @@ export function ProductManager({
       </section>
 
       {error && !open && (
-        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-[#f7d8de] bg-[#fff7f8]/80 p-4 text-xs text-danger shadow-sm backdrop-blur-xl">
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-[#f7d8de] bg-[#fff7f8]/80 p-4 text-[13px] text-danger shadow-sm backdrop-blur-xl">
           <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#ffe8ec] font-bold">
             !
           </span>
@@ -254,17 +269,17 @@ export function ProductManager({
           <div className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 backdrop-blur-sm">
             <form
               onSubmit={submit}
-              className="glass-panel my-6 w-full max-w-2xl overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
+              className="modal-surface glass-panel my-6 w-full max-w-2xl overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
             >
               <div className="flex items-start justify-between gap-5">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-strong">
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-strong">
                     Catálogo
                   </p>
                   <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
                     {editing ? "Editar produto" : "Novo produto"}
                   </h2>
-                  <p className="mt-1.5 text-xs leading-5 text-muted">
+                  <p className="mt-1.5 text-[13px] leading-5 text-muted">
                     {editing
                       ? "Atualize os dados comerciais e a disponibilidade do produto."
                       : "Cadastre os dados comerciais e o primeiro preço."}
@@ -313,7 +328,7 @@ export function ProductManager({
                   <option value="draft">Rascunho</option>
                   <option value="inactive">Inativo</option>
                 </SelectField>
-                <label className="text-xs font-semibold sm:col-span-2">
+                <label className="text-[13px] font-semibold sm:col-span-2">
                   Descrição curta
                   <textarea
                     name="shortDescription"
@@ -333,15 +348,7 @@ export function ProductManager({
                       <option value="one_time">Pagamento único</option>
                       <option value="recurring">Recorrente</option>
                     </SelectField>
-                    <Field
-                      name="amount"
-                      label="Valor (R$)"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0,00"
-                      required
-                    />
+                    <MoneyField name="amountMinor" label="Valor" />
                   </>
                 )}
                 {!editing && pricingType === "recurring" && (
@@ -355,10 +362,18 @@ export function ProductManager({
                     <option value="week">Semanal</option>
                   </SelectField>
                 )}
+                <label className="text-[13px] font-semibold sm:col-span-2">
+                  Imagem do produto
+                  <span className="mt-2 flex min-h-20 items-center gap-3 rounded-2xl border border-dashed border-[#cfcbe6] bg-white/55 p-3.5 transition focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_rgba(109,93,244,.14)]">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand"><Icon name="image" className="size-4" /></span>
+                    <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Selecionar imagem</span><span className="mt-1 block text-[11px] font-normal text-muted">JPEG, PNG ou WebP. {editing?.imageFileId ? "Uma imagem já está vinculada." : "Até 5 MB."}</span></span>
+                    <input name="image" type="file" accept="image/jpeg,image/png,image/webp" className="max-w-[220px] text-[11px] font-normal text-muted file:mr-2 file:rounded-lg file:border-0 file:bg-brand-soft file:px-3 file:py-2 file:font-semibold file:text-brand-strong" />
+                  </span>
+                </label>
               </div>
 
               {error && (
-                <p className="mt-5 rounded-2xl border border-[#f7d8de] bg-[#fff5f7]/75 p-3 text-xs text-danger">
+                <p className="mt-5 rounded-2xl border border-[#f7d8de] bg-[#fff5f7]/75 p-3 text-[13px] text-danger">
                   {error}
                 </p>
               )}
@@ -367,13 +382,13 @@ export function ProductManager({
                 <button
                   type="button"
                   onClick={closeForm}
-                  className="h-11 rounded-xl border border-white/85 bg-white/42 px-5 text-xs font-semibold text-muted transition hover:bg-white/70 hover:text-foreground"
+                  className="h-11 rounded-xl border border-white/85 bg-white/42 px-5 text-[13px] font-semibold text-muted transition hover:bg-white/70 hover:text-foreground"
                 >
                   Cancelar
                 </button>
                 <button
                   disabled={loading}
-                  className="glass-interactive h-11 rounded-xl bg-brand px-6 text-xs font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-55"
+                  className="glass-interactive h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-55"
                 >
                   {loading
                     ? editing
@@ -425,14 +440,14 @@ function ProductTable({
           <h2 className="text-sm font-semibold tracking-[-0.02em]">
             Catálogo de produtos
           </h2>
-          <p className="mt-1 text-[10px] text-muted">
+          <p className="mt-1 text-[12px] text-muted">
             {products.length}{" "}
             {products.length === 1
               ? "produto encontrado"
               : "produtos encontrados"}
           </p>
         </div>
-        <span className="hidden rounded-full border border-white/80 bg-white/42 px-3 py-1.5 text-[10px] font-medium text-muted sm:inline-flex">
+        <span className="hidden rounded-full border border-white/80 bg-white/42 px-3 py-1.5 text-[12px] font-medium text-muted sm:inline-flex">
           Valores em BRL
         </span>
       </div>
@@ -443,14 +458,14 @@ function ProductTable({
             <Icon name="search" className="size-4" />
           </span>
           <h3 className="mt-3 text-sm font-semibold">Nenhum resultado</h3>
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-[13px] text-muted">
             Ajuste a busca ou os filtros utilizados.
           </p>
           {hasFilters && (
             <button
               type="button"
               onClick={onClear}
-              className="mt-4 text-xs font-semibold text-brand-strong hover:underline"
+              className="mt-4 text-[13px] font-semibold text-brand-strong hover:underline"
             >
               Limpar filtros
             </button>
@@ -459,7 +474,7 @@ function ProductTable({
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[920px] text-left">
-            <thead className="bg-white/24 text-[10px] uppercase tracking-[0.09em] text-muted">
+            <thead className="bg-white/24 text-[12px] uppercase tracking-[0.09em] text-muted">
               <tr>
                 <th className="px-6 py-3.5 font-semibold">Produto</th>
                 <th className="px-5 py-3.5 font-semibold">Tipo</th>
@@ -479,7 +494,7 @@ function ProductTable({
                 return (
                   <tr
                     key={product.id}
-                    className="group text-xs transition hover:bg-white/34"
+                    className="group text-[13px] transition hover:bg-white/34"
                   >
                     <td className="px-6 py-4">
                       <div className="flex min-w-0 items-center gap-3">
@@ -493,7 +508,7 @@ function ProductTable({
                           <p className="max-w-[260px] truncate font-semibold text-foreground">
                             {product.name}
                           </p>
-                          <p className="mt-1 max-w-[260px] truncate text-[10px] text-muted">
+                          <p className="mt-1 max-w-[260px] truncate text-[12px] text-muted">
                             {product.shortDescription || `/${product.slug}`}
                           </p>
                         </div>
@@ -512,14 +527,14 @@ function ProductTable({
                             )}
                           </p>
                           {productPrices.length > 1 && (
-                            <p className="mt-1 text-[9px] text-muted">
+                            <p className="mt-1 text-[12px] text-muted">
                               +{productPrices.length - 1}{" "}
                               {productPrices.length === 2 ? "preço" : "preços"}
                             </p>
                           )}
                         </div>
                       ) : (
-                        <span className="text-[10px] font-medium text-warning">
+                        <span className="text-[12px] font-medium text-warning">
                           Não configurado
                         </span>
                       )}
@@ -530,7 +545,7 @@ function ProductTable({
                     <td className="px-5 py-4">
                       <StatusBadge status={product.status} />
                     </td>
-                    <td className="px-5 py-4 text-[10px] text-muted">
+                    <td className="px-5 py-4 text-[12px] text-muted">
                       <time dateTime={product.updatedAt}>
                         {shortDate(product.updatedAt)}
                       </time>
@@ -584,7 +599,7 @@ function ActionButton({
       </button>
       <span
         role="tooltip"
-        className="pointer-events-none absolute bottom-[calc(100%+7px)] right-0 z-20 whitespace-nowrap rounded-lg border border-white/10 bg-[#292844]/92 px-2.5 py-1.5 text-[9px] font-medium text-white opacity-0 shadow-[0_10px_28px_rgba(35,30,70,.2)] backdrop-blur-xl transition duration-200 group-hover/action:-translate-y-0.5 group-hover/action:opacity-100 group-focus-within/action:-translate-y-0.5 group-focus-within/action:opacity-100"
+        className="pointer-events-none absolute bottom-[calc(100%+7px)] right-0 z-20 whitespace-nowrap rounded-lg border border-white/10 bg-[#292844]/92 px-2.5 py-1.5 text-[12px] font-medium text-white opacity-0 shadow-[0_10px_28px_rgba(35,30,70,.2)] backdrop-blur-xl transition duration-200 group-hover/action:-translate-y-0.5 group-hover/action:opacity-100 group-focus-within/action:-translate-y-0.5 group-focus-within/action:opacity-100"
       >
         {label}
         <span className="absolute -bottom-1 right-3 size-2 rotate-45 bg-[#292844]/92" />
@@ -624,7 +639,7 @@ function DeleteProductModal({
         </h2>
         <p
           id="delete-product-description"
-          className="mt-2 text-xs leading-5 text-muted"
+          className="mt-2 text-[13px] leading-5 text-muted"
         >
           <strong className="font-semibold text-foreground">
             {product.name}
@@ -637,7 +652,7 @@ function DeleteProductModal({
             type="button"
             disabled={loading}
             onClick={onCancel}
-            className="h-11 rounded-xl border border-white/85 bg-white/45 px-5 text-xs font-semibold text-muted transition hover:bg-white/75 hover:text-foreground disabled:opacity-50"
+            className="h-11 rounded-xl border border-white/85 bg-white/45 px-5 text-[13px] font-semibold text-muted transition hover:bg-white/75 hover:text-foreground disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -645,7 +660,7 @@ function DeleteProductModal({
             type="button"
             disabled={loading}
             onClick={onConfirm}
-            className="h-11 rounded-xl bg-danger px-5 text-xs font-semibold text-white shadow-[0_10px_24px_rgba(195,59,83,.2)] transition hover:bg-[#aa3148] disabled:cursor-not-allowed disabled:opacity-55"
+            className="h-11 rounded-xl bg-danger px-5 text-[13px] font-semibold text-white shadow-[0_10px_24px_rgba(195,59,83,.2)] transition hover:bg-[#aa3148] disabled:cursor-not-allowed disabled:opacity-55"
           >
             {loading ? "Excluindo..." : "Excluir produto"}
           </button>
@@ -664,13 +679,13 @@ function EmptyProducts({ onCreate }: { onCreate: () => void }) {
       <h2 className="mt-4 text-base font-semibold tracking-[-0.025em]">
         Seu catálogo começa aqui
       </h2>
-      <p className="mx-auto mt-1.5 max-w-sm text-xs leading-5 text-muted">
+      <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-5 text-muted">
         Crie o primeiro produto e configure seu preço para começar a vender.
       </p>
       <button
         type="button"
         onClick={onCreate}
-        className="mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-brand px-4 text-xs font-semibold text-white shadow-[0_10px_24px_rgba(91,69,223,.2)] transition hover:-translate-y-0.5 hover:bg-brand-strong"
+        className="glass-interactive mt-5 inline-flex h-11 items-center gap-2 rounded-xl bg-brand px-5 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:-translate-y-0.5 hover:bg-brand-strong"
       >
         <Icon name="plus" className="size-3.5" />
         Criar primeiro produto
@@ -685,11 +700,11 @@ function Field({
   ...input
 }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
   return (
-    <label className="text-xs font-semibold">
+    <label className="text-[13px] font-semibold">
       {label}
       <input
         {...input}
-        className={`mt-2 h-11 w-full rounded-xl border border-white/80 bg-white/48 px-3.5 font-normal outline-none transition placeholder:text-[#aaaabd] focus:border-brand/25 focus:bg-white/70 focus:shadow-[0_0_0_3px_rgba(109,93,244,.07)] ${className ?? ""}`}
+        className={`mt-2 h-11 w-full rounded-xl border border-[#d9d7e8] bg-white/70 px-3.5 font-normal outline-none transition placeholder:text-[#aaaabd] focus:border-brand/70 focus:bg-white focus:shadow-[0_0_0_3px_rgba(109,93,244,.16)] ${className ?? ""}`}
       />
     </label>
   );
@@ -703,22 +718,28 @@ function SelectField({
   label: string;
   children: React.ReactNode;
 }) {
-  return (
-    <label className="text-xs font-semibold">
-      {label}
-      <select
-        {...select}
-        className="mt-2 h-11 w-full rounded-xl border border-white/80 bg-white/48 px-3.5 font-normal outline-none transition focus:border-brand/25 focus:bg-white/70 focus:shadow-[0_0_0_3px_rgba(109,93,244,.07)]"
-      >
-        {children}
-      </select>
-    </label>
-  );
+  const options = Children.toArray(children).filter(isValidElement).map((child) => { const option = child as ReactElement<{ value?: string; children?: React.ReactNode }>; return { value: String(option.props.value ?? ""), label: String(option.props.children ?? "") }; }) satisfies SelectOption[];
+  return <label className="text-[13px] font-semibold">{label}<div className="mt-2"><CustomSelect name={select.name ?? ""} value={select.value === undefined ? undefined : String(select.value)} defaultValue={select.defaultValue === undefined ? undefined : String(select.defaultValue)} options={options} onValueChange={(value) => select.onChange?.({ target: { value } } as React.ChangeEvent<HTMLSelectElement>)} /></div></label>;
 }
+
+function MoneyField({ name, label }: { name: string; label: string }) {
+  const [minor, setMinor] = useState(0);
+  return <label className="text-[13px] font-semibold">{label}<input type="hidden" name={name} value={minor} /><div className="relative mt-2"><span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-[13px] text-muted">R$</span><input inputMode="numeric" value={new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(minor / 100)} onChange={(event) => setMinor(Number(event.target.value.replace(/\D/g, "")))} className="h-11 w-full rounded-xl border border-[#d9d7e8] bg-white/70 pl-10 pr-3.5 font-normal tabular-nums outline-none transition focus:border-brand/70 focus:shadow-[0_0_0_3px_rgba(109,93,244,.16)]" /></div></label>;
+}
+
+async function uploadProductImage(file: File): Promise<{ id?: string; detail?: string }> {
+  if (file.size > 5_000_000) return { detail: "A imagem deve ter no máximo 5 MB." };
+  const contentBase64 = await fileToBase64(file);
+  const response = await fetch("/api/files", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ originalName: file.name, contentType: file.type, contentBase64 }) });
+  const body = await response.json() as { data?: { id: string }; detail?: string };
+  return response.ok && body.data ? { id: body.data.id } : { detail: body.detail };
+}
+
+function fileToBase64(file: File) { return new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(",")[1] ?? ""); reader.onerror = () => reject(reader.error); reader.readAsDataURL(file); }); }
 
 function TypeBadge({ type }: { type: Product["type"] }) {
   return (
-    <span className="inline-flex rounded-full border border-white/80 bg-white/48 px-2.5 py-1 text-[10px] font-medium text-muted">
+    <span className="inline-flex rounded-full border border-white/80 bg-white/48 px-2.5 py-1 text-[12px] font-medium text-muted">
       {typeLabel(type)}
     </span>
   );
@@ -733,7 +754,7 @@ function StatusBadge({ status }: { status: Product["status"] }) {
         : "bg-white/55 text-muted";
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${style}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold ${style}`}
     >
       <span className="size-1.5 rounded-full bg-current opacity-65" />
       {statusLabel(status)}

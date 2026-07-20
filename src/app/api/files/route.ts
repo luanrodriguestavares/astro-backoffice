@@ -1,0 +1,16 @@
+import { randomUUID } from "node:crypto";
+import { NextResponse } from "next/server";
+
+import { apiFetch, AstroApiError } from "@/lib/api/server";
+
+type FileRecord = { id: string; originalName: string; contentType: string; sizeBytes: number; status: string };
+
+export async function POST(request: Request) {
+  try {
+    const file = await apiFetch<FileRecord>("/api/v1/files", { method: "POST", headers: { "idempotency-key": randomUUID() }, body: JSON.stringify(await request.json()) });
+    return NextResponse.json({ data: file });
+  } catch (error) {
+    if (error instanceof AstroApiError) return NextResponse.json({ detail: error.problem.detail }, { status: error.problem.status });
+    return NextResponse.json({ detail: "Não foi possível enviar a imagem." }, { status: 500 });
+  }
+}

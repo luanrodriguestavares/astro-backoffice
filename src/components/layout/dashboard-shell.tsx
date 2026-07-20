@@ -25,30 +25,30 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
     label: "Vendas",
     items: [
       { label: "Produtos", href: "/products", icon: "box", exact: true },
-      { label: "Preços e planos", href: "/products?view=plans", icon: "tag" },
       { label: "Checkouts", href: "/checkouts", icon: "layout", exact: true },
-      {
-        label: "Links de pagamento",
-        href: "/checkouts?view=links",
-        icon: "link",
-      },
-      { label: "Pedidos", href: "/payments", icon: "cart" },
+      { label: "Cupons", href: "/coupons", icon: "tag" },
+      { label: "Pedidos", href: "/orders", icon: "cart" },
+      { label: "Pagamentos", href: "/payments", icon: "card" },
       { label: "Assinaturas", href: "/subscriptions", icon: "repeat" },
       { label: "Clientes", href: "/customers", icon: "users" },
+      { label: "Estoque", href: "/inventory", icon: "box" },
+      { label: "Frete", href: "/shipping", icon: "link" },
     ],
   },
   {
     label: "Financeiro",
     items: [
-      { label: "Analytics", href: "/dashboard?view=analytics", icon: "chart" },
-      { label: "Reembolsos", href: "/payments?view=refunds", icon: "refund" },
+      { label: "Faturas", href: "/invoices", icon: "card" },
+      { label: "Reembolsos", href: "/refunds", icon: "refund" },
     ],
   },
   {
     label: "Integrações",
     items: [
       { label: "Gateways", href: "/gateways", icon: "plug" },
-      { label: "Webhooks", href: "/gateways?view=webhooks", icon: "webhook" },
+      { label: "Webhooks", href: "/webhooks", icon: "webhook" },
+      { label: "API", href: "/developer", icon: "code" },
+      { label: "Arquivos", href: "/files", icon: "layout" },
     ],
   },
   {
@@ -56,7 +56,6 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
     items: [
       { label: "Equipe", href: "/team", icon: "team" },
       { label: "Conta", href: "/settings", icon: "user", exact: true },
-      { label: "API", href: "/settings?view=api", icon: "code" },
     ],
   },
 ];
@@ -77,6 +76,11 @@ export function DashboardShell({
   const [collapsed, setCollapsed] = useState(false);
   const organizationName =
     organization.displayName ?? organization.legalName ?? "Organização";
+  const focusedEditor = /^\/checkouts\/[^/]+\/builder\/?$/.test(pathname);
+
+  if (focusedEditor) {
+    return <div className="min-h-screen bg-[#f7f7fc]">{children}</div>;
+  }
 
   return (
     <div
@@ -325,8 +329,8 @@ function AmbientBackground() {
       className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
       aria-hidden="true"
     >
-      <div className="absolute -right-48 -top-56 size-[620px] rounded-full bg-[#cfc7ff]/20 blur-[90px]" />
-      <div className="absolute -bottom-52 left-[24%] size-[520px] rounded-full bg-[#dce8ff]/25 blur-[100px]" />
+      <div className="absolute -right-48 -top-56 size-[620px] rounded-full bg-[#cfc7ff]/8 blur-[90px]" />
+      <div className="absolute -bottom-52 left-[24%] size-[520px] rounded-full bg-[#dce8ff]/11 blur-[100px]" />
       <svg
         viewBox="0 0 900 460"
         className="ambient-orbit absolute -right-24 -top-20 hidden h-[480px] w-[900px] lg:block"

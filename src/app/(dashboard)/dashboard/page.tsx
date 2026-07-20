@@ -89,7 +89,7 @@ export default async function DashboardPage() {
         actions={
           <Link
             href="/checkouts"
-            className="glass-interactive group inline-flex h-12 items-center gap-3 rounded-2xl bg-gradient-to-r from-[#7665f5] to-[#5a42e3] px-5 text-xs font-semibold text-white shadow-[0_14px_30px_rgba(91,69,223,.22)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(91,69,223,.3)]"
+            className="glass-interactive group inline-flex h-12 items-center gap-3 rounded-2xl bg-gradient-to-r from-[#7665f5] to-[#5a42e3] px-5 text-[13px] font-semibold text-white shadow-[0_14px_30px_rgba(91,69,223,.22)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(91,69,223,.3)]"
           >
             <Icon name="plus" className="size-4" />
             Criar checkout
@@ -164,16 +164,16 @@ export default async function DashboardPage() {
                 <h2 className="text-sm font-semibold tracking-[-0.02em]">
                   Receita ao longo do tempo
                 </h2>
-                <span className="grid size-4 place-items-center rounded-full border border-brand/15 text-[9px] font-semibold text-brand">
+                <span className="grid size-4 place-items-center rounded-full border border-brand/15 text-[12px] font-semibold text-brand">
                   i
                 </span>
               </div>
-              <p className="mt-1 text-[10px] text-muted">
+              <p className="mt-1 text-[12px] text-muted">
                 Valores aprovados e capturados
               </p>
             </div>
             <p className="hidden text-right sm:block">
-              <span className="block text-[9px] uppercase tracking-[0.1em] text-muted">
+              <span className="block text-[12px] uppercase tracking-[0.1em] text-muted">
                 Últimos 30 dias
               </span>
               <span className="mt-1 block text-sm font-semibold">
@@ -198,17 +198,17 @@ export default async function DashboardPage() {
                   <h2 className="text-sm font-semibold tracking-[-0.02em]">
                     Receita por gateway
                   </h2>
-                  <span className="grid size-4 place-items-center rounded-full border border-brand/15 text-[9px] font-semibold text-brand">
+                  <span className="grid size-4 place-items-center rounded-full border border-brand/15 text-[12px] font-semibold text-brand">
                     i
                   </span>
                 </div>
-                <p className="mt-1 text-[10px] text-muted">
+                <p className="mt-1 text-[12px] text-muted">
                   Distribuição das vendas aprovadas
                 </p>
               </div>
               <Link
                 href="/gateways"
-                className="rounded-xl border border-white/80 bg-white/40 px-3 py-2 text-[10px] font-semibold text-muted transition hover:text-brand-strong"
+                className="rounded-xl border border-white/80 bg-white/40 px-3 py-2 text-[12px] font-semibold text-muted transition hover:text-brand-strong"
               >
                 Ver detalhes
               </Link>
@@ -240,22 +240,21 @@ function OnboardingCard({
     : { href: "/products", label: "Cadastrar produto" };
   return (
     <article className="glass-panel relative overflow-hidden rounded-[28px] p-5 sm:p-6">
-      <div className="absolute -right-16 -top-20 size-52 rounded-full bg-brand/15 blur-3xl" />
       <div className="relative">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-brand-strong/70">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-brand-strong/70">
               Configuração inicial
             </p>
             <h2 className="mt-2 text-xl font-semibold tracking-[-0.035em]">
               Prepare sua operação
             </h2>
           </div>
-          <span className="rounded-full border border-white/80 bg-white/55 px-2.5 py-1 text-xs font-semibold text-brand-strong">
+          <span className="rounded-full border border-white/80 bg-white/55 px-2.5 py-1 text-[13px] font-semibold text-brand-strong">
             {setupDone}/3
           </span>
         </div>
-        <p className="mt-2 text-xs leading-5 text-muted">
+        <p className="mt-2 text-[13px] leading-5 text-muted">
           Conclua os passos essenciais para começar a receber pagamentos.
         </p>
         <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-brand/10">
@@ -279,7 +278,7 @@ function OnboardingCard({
         </ol>
         <Link
           href={nextAction.href}
-          className="glass-interactive mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-brand px-4 text-xs font-semibold text-white shadow-[0_12px_30px_rgba(98,75,255,.22)] transition hover:-translate-y-0.5 hover:bg-brand-strong"
+          className="glass-interactive mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-brand px-4 text-[13px] font-semibold text-white shadow-[0_12px_30px_rgba(98,75,255,.22)] transition hover:-translate-y-0.5 hover:bg-brand-strong"
         >
           {nextAction.label}
           <Icon name="arrow-right" className="size-3.5" />
@@ -310,7 +309,7 @@ function SetupStep({
         )}
       </span>
       <span
-        className={`text-xs font-semibold ${done ? "text-muted" : "text-foreground"}`}
+        className={`text-[13px] font-semibold ${done ? "text-muted" : "text-foreground"}`}
       >
         {label}
       </span>
@@ -345,30 +344,24 @@ function RecentCheckouts({ checkouts }: { checkouts: Checkout[] }) {
       />
       {checkouts.length ? (
         <div className="divide-y divide-white/65 px-3 pb-2 sm:px-4">
-          {checkouts.map((checkout, index) => (
+          {checkouts.map((checkout) => (
             <Link
               key={checkout.id}
               href={`/checkouts/${checkout.id}/builder`}
-              className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-2 py-3 transition hover:bg-white/38 sm:grid-cols-[auto_minmax(0,1fr)_70px_80px_auto]"
+              className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-2 py-3 transition hover:bg-white/38 sm:grid-cols-[minmax(0,1fr)_70px_80px_auto]"
             >
-              <span
-                className={`checkout-thumbnail checkout-thumbnail-${index % 4} relative h-10 w-12 overflow-hidden rounded-[10px] border border-white/70 shadow-sm`}
-              >
-                <span className="absolute inset-x-2 top-2 h-px bg-white/70" />
-                <span className="absolute bottom-2 left-2 h-1.5 w-5 rounded-full bg-white/55" />
-              </span>
               <span className="min-w-0">
-                <span className="block truncate text-[11px] font-semibold text-foreground">
+                <span className="block truncate text-[12px] font-semibold text-foreground">
                   {checkout.name}
                 </span>
-                <span className="mt-1 block truncate text-[9px] text-muted">
+                <span className="mt-1 block truncate text-[12px] text-muted">
                   /checkout/{checkout.slug}
                 </span>
               </span>
-              <span className="hidden text-[9px] text-muted sm:block">
+              <span className="hidden text-[12px] text-muted sm:block">
                 — visitas
               </span>
-              <span className="hidden text-[9px] text-muted sm:block">
+              <span className="hidden text-[12px] text-muted sm:block">
                 — conversão
               </span>
               <span className="flex items-center gap-2">
@@ -419,16 +412,16 @@ function RecentActivities({ activities }: { activities: Activity[] }) {
                 <Icon name={activity.icon} className="size-3.5" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[11px] font-semibold text-foreground">
+                <span className="block truncate text-[12px] font-semibold text-foreground">
                   {activity.title}
                 </span>
-                <span className="mt-1 block truncate text-[9px] text-muted">
+                <span className="mt-1 block truncate text-[12px] text-muted">
                   {activity.detail}
                 </span>
               </span>
               <time
                 dateTime={activity.date}
-                className="shrink-0 text-[9px] text-muted"
+                className="shrink-0 text-[12px] text-muted"
               >
                 {relativeTime(activity.date)}
               </time>
@@ -459,11 +452,11 @@ function SectionHeader({
     <div className="flex items-center justify-between gap-4 px-5 py-5 sm:px-6">
       <div>
         <h2 className="text-sm font-semibold tracking-[-0.02em]">{title}</h2>
-        <p className="mt-1 text-[10px] text-muted">{description}</p>
+        <p className="mt-1 text-[12px] text-muted">{description}</p>
       </div>
       <Link
         href={href}
-        className="text-[10px] font-semibold text-brand-strong transition hover:opacity-65"
+        className="text-[12px] font-semibold text-brand-strong transition hover:opacity-65"
       >
         Ver todos
       </Link>
@@ -485,8 +478,8 @@ function EmptyList({
       <span className="mx-auto grid size-10 place-items-center rounded-full bg-brand-soft/70 text-brand">
         <Icon name={icon} className="size-4" />
       </span>
-      <p className="mt-3 text-xs font-semibold">{title}</p>
-      <p className="mt-1 text-[10px] text-muted">{description}</p>
+      <p className="mt-3 text-[13px] font-semibold">{title}</p>
+      <p className="mt-1 text-[12px] text-muted">{description}</p>
     </div>
   );
 }
@@ -495,7 +488,7 @@ function CheckoutStatus({ status }: { status: Checkout["status"] }) {
   const active = status === "published";
   return (
     <span
-      className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${active ? "bg-[#e7f7f0] text-success" : "bg-white/60 text-muted"}`}
+      className={`rounded-full px-2.5 py-1 text-[12px] font-semibold ${active ? "bg-[#e7f7f0] text-success" : "bg-white/60 text-muted"}`}
     >
       {active
         ? "Ativo"

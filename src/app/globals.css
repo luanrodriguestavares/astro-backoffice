@@ -58,17 +58,17 @@ body {
   background:
     radial-gradient(
       circle at 72% -8%,
-      rgb(191 181 255 / 28%),
+      rgb(191 181 255 / 13%),
       transparent 30rem
     ),
     radial-gradient(
       circle at 100% 42%,
-      rgb(221 216 255 / 32%),
+      rgb(221 216 255 / 15%),
       transparent 28rem
     ),
     radial-gradient(
       circle at 30% 110%,
-      rgb(225 235 255 / 38%),
+      rgb(225 235 255 / 19%),
       transparent 32rem
     ),
     linear-gradient(135deg, #fbfbfe 0%, #f7f7fc 48%, #fafaff 100%);
@@ -78,15 +78,15 @@ body {
   border: 1px solid var(--glass-border);
   background: linear-gradient(
     145deg,
-    rgb(255 255 255 / 70%),
-    rgb(255 255 255 / 44%)
+    rgb(255 255 255 / 96%),
+    rgb(252 251 255 / 90%)
   );
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 88%),
     var(--glass-shadow);
-  backdrop-filter: blur(var(--glass-blur)) saturate(165%) brightness(1.025);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(165%)
-    brightness(1.025);
+  backdrop-filter: blur(var(--glass-blur)) saturate(135%) brightness(1.015);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(135%)
+    brightness(1.015);
   animation: glass-enter 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
@@ -234,6 +234,159 @@ body {
 .glass-interactive:hover::before {
   opacity: 0.7;
   transform: translateX(35%);
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2377758d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E");
+  background-position: right 0.85rem center;
+  background-repeat: no-repeat;
+  padding-right: 2.5rem;
+}
+
+select option {
+  background: #fff;
+  color: #24253c;
+}
+
+input:not([type="hidden"]):focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  border-color: rgb(109 93 244 / 72%);
+  box-shadow: 0 0 0 3px rgb(109 93 244 / 16%);
+  outline: none;
+}
+
+button[aria-haspopup="listbox"]:focus {
+  border-color: rgb(109 93 244 / 72%);
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgb(109 93 244 / 16%);
+}
+
+.filter-control input:focus-visible {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.global-search input:focus,
+.global-search input:focus-visible {
+  border-color: transparent;
+  box-shadow: none;
+  outline: none;
+}
+
+form.modal-surface > div:last-child > button:not([type="button"]),
+.modal-surface form > div:last-child > button:not([type="button"]) {
+  position: relative;
+  height: 2.75rem;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: var(--brand);
+  padding-inline: 1.5rem;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 12px 28px rgb(91 69 223 / 22%);
+  transition: background-color 180ms ease, transform 180ms ease, opacity 180ms ease;
+}
+
+form.modal-surface > div:last-child > button:not([type="button"]):hover,
+.modal-surface form > div:last-child > button:not([type="button"]):hover {
+  background: var(--brand-strong);
+  transform: translateY(-1px);
+}
+
+form.modal-surface > div:last-child > button[type="button"]:not([aria-label]),
+.modal-surface form > div:last-child > button[type="button"]:not([aria-label]) {
+  height: 2.75rem;
+  border: 1px solid #d9d7e8;
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 70%);
+  padding-inline: 1.25rem;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+form.modal-surface > div:last-child > button[type="button"]:not([aria-label]):hover,
+.modal-surface form > div:last-child > button[type="button"]:not([aria-label]):hover {
+  background: #fff;
+  color: var(--foreground);
+}
+
+.modal-surface {
+  background: linear-gradient(145deg, rgb(255 255 255 / 99%), rgb(252 251 255 / 97%));
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.modal-surface {
+  background: linear-gradient(145deg, rgb(255 255 255 / 99%), rgb(252 251 255 / 97%));
+}
+
+.astro-checkout-editor {
+  --puck-color-surface: #ffffff;
+  --puck-color-surface-muted: #f5f5f9;
+  --puck-color-surface-subtle: #fafafd;
+  --puck-color-border: #e8e8ef;
+  --puck-color-border-muted: #eeeeF3;
+  --puck-color-text: #24253c;
+  --puck-color-text-secondary: #656579;
+  --puck-color-text-muted: #858398;
+  --puck-color-interactive: #6757e8;
+  --puck-color-interactive-hover: #5747d3;
+  --puck-color-interactive-active: #4939bd;
+  --puck-color-interactive-soft: #f0edff;
+  --puck-color-interactive-soft-hover: #f6f4ff;
+  --puck-color-focus-ring: #8b7df2;
+  --puck-radius-m: 8px;
+  --puck-radius-l: 12px;
+  --puck-space-chrome-gutter: 12px;
+}
+
+.astro-checkout-editor [class*="_PuckLayout-inner_"] {
+  background: #f6f6fa;
+}
+
+.astro-checkout-editor [class*="_PuckHeader_"] {
+  border-color: #ececf2;
+  box-shadow: 0 4px 18px rgb(39 36 77 / 4%);
+}
+
+.astro-checkout-editor [class*="_PuckCanvas_"] {
+  background: #f2f2f7;
+}
+
+.astro-checkout-editor [class*="_PuckCanvas-root_"] {
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgb(36 34 65 / 10%);
+  outline: 0;
+  overflow: hidden;
+}
+
+.astro-checkout-editor [class*="_Sidebar_"] {
+  border-color: #ececf2;
 }
 
 .ambient-orbit {

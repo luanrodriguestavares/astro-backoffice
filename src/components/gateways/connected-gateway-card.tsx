@@ -25,12 +25,12 @@ export function ConnectedGatewayCard({ connection }: { connection: GatewayConnec
   }
 
   return (
-    <article className="rounded-2xl border bg-surface p-5 shadow-panel">
+    <article className="glass-panel rounded-[24px] p-5">
       <div className="flex items-start justify-between gap-3">
-        <div><p className="font-bold">{connection.name}</p><p className="mt-1 text-xs text-muted">{providerName(connection.provider)} · {connection.environment === "production" ? "Produção" : "Sandbox"}</p></div>
+        <div><p className="text-sm font-semibold">{connection.name}</p><p className="mt-1 text-[12px] text-muted">{providerName(connection.provider)} · {connection.environment === "production" ? "Produção" : "Sandbox"}</p></div>
         <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${connection.status === "active" ? "bg-[#e8f7f1] text-success" : "bg-[#fff3e5] text-warning"}`}>{connection.status === "active" ? "Ativo" : connection.status}</span>
       </div>
-      <dl className="mt-5 grid grid-cols-2 gap-3 text-xs"><div><dt className="text-muted">Credenciais</dt><dd className="mt-1 font-semibold">{connection.credentialsConfigured ? "Configuradas" : "Pendentes"}</dd></div><div><dt className="text-muted">Último teste</dt><dd className="mt-1 font-semibold">{connection.lastTestedAt ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(connection.lastTestedAt)) : "Nunca"}</dd></div></dl>
+      <dl className="mt-5 grid grid-cols-2 gap-3 text-[12px]"><div><dt className="text-muted">Credenciais</dt><dd className="mt-1 font-semibold">{connection.credentialsConfigured ? "Configuradas" : "Pendentes"}</dd></div><div><dt className="text-muted">Último teste</dt><dd className="mt-1 font-semibold">{connection.lastTestedAt ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(connection.lastTestedAt)) : "Nunca"}</dd></div></dl>
       {message && <p className="mt-4 rounded-lg bg-surface-muted p-2.5 text-xs">{message}</p>}
       <div className="mt-5 flex gap-2"><button disabled={Boolean(busy)} onClick={() => act("test")} className="flex-1 rounded-xl border px-3 py-2 text-xs font-semibold disabled:opacity-50">{busy === "test" ? "Testando..." : "Testar conexão"}</button><button disabled={Boolean(busy)} onClick={() => act("delete")} className="rounded-xl border border-[#f2cbd0] px-3 py-2 text-xs font-semibold text-danger disabled:opacity-50">{busy === "delete" ? "Desabilitando..." : "Desabilitar"}</button></div>
     </article>
