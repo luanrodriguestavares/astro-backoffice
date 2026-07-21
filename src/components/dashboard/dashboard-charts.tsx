@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 import { useMemo, useState } from "react";
 import {
   Area,
@@ -37,7 +39,7 @@ export function RevenueAreaChart({
       <div className="mb-4 flex justify-end">
         <div className="inline-flex rounded-xl border border-white/75 bg-white/38 p-1 shadow-[inset_0_1px_0_white] backdrop-blur-xl">
           {periods.map((option) => (
-            <button
+            <Button
               key={option}
               type="button"
               aria-pressed={period === option}
@@ -45,7 +47,7 @@ export function RevenueAreaChart({
               className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-all ${period === option ? "bg-[#ebe7ff] text-brand-strong shadow-[0_5px_16px_rgba(100,80,220,.12)]" : "text-muted hover:text-foreground"}`}
             >
               {option}
-            </button>
+            </Button>
           ))}
         </div>
       </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -89,7 +91,7 @@ export function DashboardShell({
       <AmbientBackground />
 
       {open && (
-        <button
+        <Button
           type="button"
           aria-label="Fechar menu"
           className="fixed inset-0 z-30 bg-[#17172c]/20 backdrop-blur-sm lg:hidden"
@@ -100,7 +102,7 @@ export function DashboardShell({
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex w-[280px] flex-col border-r border-[#7770b4]/8 bg-white/62 px-4 py-5 shadow-[20px_0_80px_rgba(57,53,100,.035)] backdrop-blur-3xl transition-all duration-300 lg:sticky lg:top-0 lg:h-screen lg:w-auto ${collapsed ? "lg:px-2.5" : ""} ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
-        <button
+        <Button
           type="button"
           aria-label={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
           aria-expanded={!collapsed}
@@ -112,7 +114,7 @@ export function DashboardShell({
             name="arrow-right"
             className={`size-3 transition-transform duration-300 ${collapsed ? "" : "rotate-180"}`}
           />
-        </button>
+        </Button>
 
         <div
           className={`flex h-10 items-center justify-between ${collapsed ? "lg:justify-center" : "px-1"}`}
@@ -123,20 +125,20 @@ export function DashboardShell({
           <span className="hidden lg:inline-flex">
             <Brand compact={collapsed} />
           </span>
-          <button
+          <Button
             type="button"
             aria-label="Fechar menu"
             className="rounded-xl p-2 text-muted transition hover:bg-white/70 lg:hidden"
             onClick={() => setOpen(false)}
           >
             <Icon name="close" />
-          </button>
+          </Button>
         </div>
 
         <div
           className={`organization-card mt-7 rounded-[20px] transition-all duration-300 ${collapsed ? "lg:p-1.5" : "p-2"}`}
         >
-          <button
+          <Button
             type="button"
             title={collapsed ? organizationName : undefined}
             className={`flex w-full items-center gap-2.5 rounded-xl text-left ${collapsed ? "lg:justify-center lg:gap-0" : "px-1 py-0.5"}`}
@@ -159,7 +161,7 @@ export function DashboardShell({
             >
               ⌄
             </span>
-          </button>
+          </Button>
         </div>
 
         <nav
@@ -211,26 +213,26 @@ export function DashboardShell({
 
       <div className="relative z-10 min-w-0">
         <header className="sticky top-0 z-20 flex h-[76px] items-center gap-3 bg-gradient-to-b from-[#fafafe]/95 via-[#fafafe]/75 to-transparent px-4 backdrop-blur-xl sm:px-6 lg:px-9">
-          <button
+          <Button
             type="button"
             aria-label="Abrir menu"
             className="glass-panel-soft rounded-xl p-2.5 text-muted lg:hidden"
             onClick={() => setOpen(true)}
           >
             <Icon name="menu" />
-          </button>
+          </Button>
 
           <HeaderSearch />
 
           <div className="ml-auto flex items-center gap-2.5">
-            <button
+            <Button
               type="button"
               className="glass-panel-soft relative grid size-11 place-items-center rounded-2xl text-[#737187] transition hover:-translate-y-0.5 hover:text-brand"
               aria-label="Notificações"
             >
               <Icon name="bell" className="size-[17px]" />
               <span className="absolute right-2.5 top-2.5 size-1.5 rounded-full bg-brand ring-2 ring-white" />
-            </button>
+            </Button>
             <Link
               href="/settings"
               aria-label="Abrir perfil e configurações"

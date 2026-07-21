@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -186,7 +188,7 @@ export function HeaderSearch() {
           className="min-w-0 flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted"
         />
         {query ? (
-          <button
+          <Button
             type="button"
             aria-label="Limpar busca"
             onClick={() => {
@@ -196,7 +198,7 @@ export function HeaderSearch() {
             className="rounded-lg p-1 text-muted transition hover:bg-white/70 hover:text-foreground"
           >
             <Icon name="close" className="size-3" />
-          </button>
+          </Button>
         ) : (
           <kbd className="flex h-6 items-center gap-1 rounded-lg border border-white/90 bg-white/65 px-2 font-sans text-[9px] font-semibold leading-none text-[#77758d] shadow-sm">
             <span className="text-[11px]">⌘</span>
@@ -209,7 +211,7 @@ export function HeaderSearch() {
         position &&
         createPortal(
           <>
-            <button
+            <Button
               type="button"
               aria-label="Fechar busca"
               style={{ top: position.top - 8 }}
@@ -232,7 +234,7 @@ export function HeaderSearch() {
               {results.length ? (
                 <div className="space-y-0.5">
                   {results.map((item, index) => (
-                    <button
+                    <Button
                       key={`${item.href}-${item.label}`}
                       type="button"
                       role="option"
@@ -258,7 +260,7 @@ export function HeaderSearch() {
                         name="arrow-right"
                         className="size-3.5 text-muted"
                       />
-                    </button>
+                    </Button>
                   ))}
                 </div>
               ) : (

@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 import { FormEvent, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -61,18 +63,18 @@ export function CustomerCreate() {
 
   return (
     <>
-      <button
+      <Button
         type="button"
         onClick={openForm}
         className="glass-interactive inline-flex h-11 items-center gap-2 rounded-xl bg-brand px-5 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:-translate-y-0.5 hover:bg-brand-strong"
       >
         <Icon name="plus" className="size-3.5" />
         Adicionar cliente
-      </button>
+      </Button>
 
       {open &&
         createPortal(
-          <div className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 backdrop-blur-sm">
+          <div onMouseDown={(event) => { if (event.target === event.currentTarget) closeForm(); }} className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 backdrop-blur-sm">
             <form
               onSubmit={submit}
               className="modal-surface glass-panel my-6 w-full max-w-2xl overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
@@ -89,7 +91,7 @@ export function CustomerCreate() {
                     Cadastre os dados de contato para acompanhar compras e pagamentos.
                   </p>
                 </div>
-                <button
+                <Button
                   type="button"
                   aria-label="Fechar"
                   disabled={loading}
@@ -97,7 +99,7 @@ export function CustomerCreate() {
                   className="grid size-9 place-items-center rounded-full border border-white/80 bg-white/45 text-muted transition hover:bg-white/75 hover:text-foreground disabled:opacity-50"
                 >
                   <Icon name="close" className="size-4" />
-                </button>
+                </Button>
               </div>
 
               <div className="mt-7 grid gap-4 sm:grid-cols-2">
@@ -114,20 +116,20 @@ export function CustomerCreate() {
               )}
 
               <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                <button
+                <Button
                   type="button"
                   disabled={loading}
                   onClick={closeForm}
                   className="h-11 rounded-xl border border-white/85 bg-white/42 px-5 text-[13px] font-semibold text-muted transition hover:bg-white/70 hover:text-foreground disabled:opacity-50"
                 >
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
                   disabled={loading}
                   className="glass-interactive h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-55"
                 >
                   {loading ? "Cadastrando..." : "Cadastrar cliente"}
-                </button>
+                </Button>
               </div>
             </form>
           </div>,
@@ -136,7 +138,7 @@ export function CustomerCreate() {
 
       {createdName &&
         createPortal(
-          <div className="fixed inset-0 z-[110] grid place-items-center overflow-y-auto bg-[#17172c]/24 p-4 backdrop-blur-sm">
+          <div onMouseDown={(event) => { if (event.target === event.currentTarget) setCreatedName(undefined); }} className="fixed inset-0 z-[110] grid place-items-center overflow-y-auto bg-[#17172c]/24 p-4 backdrop-blur-sm">
             <section
               role="alertdialog"
               aria-modal="true"
@@ -154,13 +156,13 @@ export function CustomerCreate() {
                 <strong className="font-semibold text-foreground">{createdName}</strong> foi adicionado à sua base de clientes com sucesso.
               </p>
               <div className="mt-6 flex justify-end">
-                <button
+                <Button
                   type="button"
                   onClick={() => setCreatedName(undefined)}
                   className="h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white shadow-[0_10px_24px_rgba(91,69,223,.2)] transition hover:bg-brand-strong"
                 >
                   Concluir
-                </button>
+                </Button>
               </div>
             </section>
           </div>,

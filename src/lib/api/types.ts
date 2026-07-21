@@ -163,6 +163,9 @@ export interface OrganizationInvitation {
 
 export type CheckoutSectionType =
   | "hero"
+  | "logo"
+  | "banner"
+  | "grid"
   | "image"
   | "video"
   | "text"
@@ -175,6 +178,14 @@ export type CheckoutSectionType =
   | "product_summary"
   | "checkout_form"
   | "order_summary"
+  | "payment_methods"
+  | "card_payment"
+  | "pix_payment"
+  | "boleto_payment"
+  | "shipping_address"
+  | "shipping_methods"
+  | "coupon_field"
+  | "security_badges"
   | "custom_fields"
   | "footer";
 

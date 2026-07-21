@@ -7,9 +7,12 @@ export const blankCheckoutDocument: CheckoutDocument = {
     surfaceColor: "#ffffff",
     textColor: "#202235",
     accentColor: "#7065e8",
-    radius: 16,
+    themePreset: "light",
+    fontFamily: "system",
+    radius: "md",
+    shadow: "sm",
   },
-  layout: { maxWidth: 1120 },
+  layout: { maxWidth: "lg" },
   sections: [],
   settings: { showPoweredBy: true },
   seo: { title: "", description: "" },
@@ -17,8 +20,8 @@ export const blankCheckoutDocument: CheckoutDocument = {
 
 export const defaultCheckoutDocument: CheckoutDocument = {
   schemaVersion: 1,
-  theme: { backgroundColor: "#f7f7fb", surfaceColor: "#ffffff", textColor: "#202235", accentColor: "#7065e8", radius: 16 },
-  layout: { maxWidth: 1120 },
+  theme: { themePreset: "light", fontFamily: "system", backgroundColor: "#f7f7fb", surfaceColor: "#ffffff", textColor: "#202235", accentColor: "#7065e8", radius: "md", shadow: "sm" },
+  layout: { maxWidth: "lg" },
   sections: [
     { id: "hero-initial", type: "hero", visible: true, props: { eyebrow: "Oferta especial", title: "Transforme seus resultados hoje", description: "Uma solução completa, simples e segura para você avançar.", buttonLabel: "Quero começar agora", alignment: "center" } },
     { id: "benefits-initial", type: "benefits", visible: true, props: { title: "Tudo o que você precisa", items: [{ title: "Acesso imediato", description: "Comece assim que o pagamento for confirmado." }, { title: "Compra segura", description: "Seus dados são processados com segurança." }, { title: "Suporte dedicado", description: "Conte com ajuda sempre que precisar." }] } },

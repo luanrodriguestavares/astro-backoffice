@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 import { Children, type FormEvent, isValidElement, type ReactElement, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -197,14 +199,14 @@ export function ProductManager({
               className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted"
             />
             {query && (
-              <button
+              <Button
                 type="button"
                 aria-label="Limpar busca"
                 onClick={() => setQuery("")}
                 className="text-muted transition hover:text-foreground"
               >
                 <Icon name="close" className="size-3" />
-              </button>
+              </Button>
             )}
           </label>
 
@@ -217,26 +219,26 @@ export function ProductManager({
                 ["inactive", "Inativos"],
               ] as const
             ).map(([value, label]) => (
-              <button
+              <Button
                 key={value}
                 type="button"
                 onClick={() => setStatus(value)}
                 className={`shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${status === value ? "bg-white/80 text-brand-strong shadow-sm" : "text-muted hover:text-foreground"}`}
               >
                 {label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
 
-        <button
+        <Button
           type="button"
           onClick={openCreate}
           className="glass-interactive group inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7665f5] to-[#5a42e3] px-4 text-[13px] font-semibold text-white shadow-[0_10px_26px_rgba(91,69,223,.2)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(91,69,223,.27)]"
         >
           <Icon name="plus" className="size-3.5" />
           Criar produto
-        </button>
+        </Button>
       </section>
 
       {error && !open && (
@@ -266,7 +268,7 @@ export function ProductManager({
 
       {open &&
         createPortal(
-          <div className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 backdrop-blur-sm">
+          <div onMouseDown={(event) => { if (event.target === event.currentTarget) closeForm(); }} className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 backdrop-blur-sm">
             <form
               onSubmit={submit}
               className="modal-surface glass-panel my-6 w-full max-w-2xl overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
@@ -285,14 +287,14 @@ export function ProductManager({
                       : "Cadastre os dados comerciais e o primeiro preço."}
                   </p>
                 </div>
-                <button
+                <Button
                   type="button"
                   aria-label="Fechar"
                   onClick={closeForm}
                   className="grid size-9 place-items-center rounded-full border border-white/80 bg-white/45 text-muted transition hover:bg-white/75 hover:text-foreground"
                 >
                   <Icon name="close" className="size-4" />
-                </button>
+                </Button>
               </div>
 
               <div className="mt-7 grid gap-4 sm:grid-cols-2">
@@ -379,14 +381,14 @@ export function ProductManager({
               )}
 
               <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                <button
+                <Button
                   type="button"
                   onClick={closeForm}
                   className="h-11 rounded-xl border border-white/85 bg-white/42 px-5 text-[13px] font-semibold text-muted transition hover:bg-white/70 hover:text-foreground"
                 >
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
                   disabled={loading}
                   className="glass-interactive h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-55"
                 >
@@ -397,7 +399,7 @@ export function ProductManager({
                     : editing
                       ? "Salvar alterações"
                       : "Criar produto"}
-                </button>
+                </Button>
               </div>
             </form>
           </div>,
@@ -462,13 +464,13 @@ function ProductTable({
             Ajuste a busca ou os filtros utilizados.
           </p>
           {hasFilters && (
-            <button
+            <Button
               type="button"
               onClick={onClear}
               className="mt-4 text-[13px] font-semibold text-brand-strong hover:underline"
             >
               Limpar filtros
-            </button>
+            </Button>
           )}
         </div>
       ) : (
@@ -589,14 +591,14 @@ function ActionButton({
 }) {
   return (
     <span className="group/action relative inline-flex">
-      <button
+      <Button
         type="button"
         onClick={onClick}
         aria-label={label}
         className={`inline-grid size-8 place-items-center rounded-xl transition ${danger ? "text-muted hover:bg-[#fff0f2] hover:text-danger" : "text-muted hover:bg-brand-soft/70 hover:text-brand-strong"}`}
       >
         <Icon name={icon} className="size-3.5" />
-      </button>
+      </Button>
       <span
         role="tooltip"
         className="pointer-events-none absolute bottom-[calc(100%+7px)] right-0 z-20 whitespace-nowrap rounded-lg border border-white/10 bg-[#292844]/92 px-2.5 py-1.5 text-[12px] font-medium text-white opacity-0 shadow-[0_10px_28px_rgba(35,30,70,.2)] backdrop-blur-xl transition duration-200 group-hover/action:-translate-y-0.5 group-hover/action:opacity-100 group-focus-within/action:-translate-y-0.5 group-focus-within/action:opacity-100"
@@ -620,7 +622,7 @@ function DeleteProductModal({
   onConfirm: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-[110] grid place-items-center bg-[#17172c]/24 p-4 backdrop-blur-sm">
+    <div onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }} className="fixed inset-0 z-[110] grid place-items-center bg-[#17172c]/24 p-4 backdrop-blur-sm">
       <section
         role="alertdialog"
         aria-modal="true"
@@ -648,22 +650,22 @@ function DeleteProductModal({
           desfeita.
         </p>
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button
+          <Button
             type="button"
             disabled={loading}
             onClick={onCancel}
             className="h-11 rounded-xl border border-white/85 bg-white/45 px-5 text-[13px] font-semibold text-muted transition hover:bg-white/75 hover:text-foreground disabled:opacity-50"
           >
             Cancelar
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             disabled={loading}
             onClick={onConfirm}
             className="h-11 rounded-xl bg-danger px-5 text-[13px] font-semibold text-white shadow-[0_10px_24px_rgba(195,59,83,.2)] transition hover:bg-[#aa3148] disabled:cursor-not-allowed disabled:opacity-55"
           >
             {loading ? "Excluindo..." : "Excluir produto"}
-          </button>
+          </Button>
         </div>
       </section>
     </div>
@@ -682,14 +684,14 @@ function EmptyProducts({ onCreate }: { onCreate: () => void }) {
       <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-5 text-muted">
         Crie o primeiro produto e configure seu preço para começar a vender.
       </p>
-      <button
+      <Button
         type="button"
         onClick={onCreate}
         className="glass-interactive mt-5 inline-flex h-11 items-center gap-2 rounded-xl bg-brand px-5 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:-translate-y-0.5 hover:bg-brand-strong"
       >
         <Icon name="plus" className="size-3.5" />
         Criar primeiro produto
-      </button>
+      </Button>
     </section>
   );
 }

@@ -1,23 +1,163 @@
-import { ConnectedGatewayCard } from "@/components/gateways/connected-gateway-card";
-import { GatewayConnectCard, type GatewayDefinition } from "@/components/gateways/gateway-connect-card";
+import Link from "next/link";
+
+import { GatewayCenter } from "@/components/gateways/gateway-center";
+import type { GatewayDefinition } from "@/components/gateways/gateway-connect-card";
 import { Icon } from "@/components/ui/icon";
 import { PageHeader } from "@/components/ui/page-header";
-import { SummaryCard } from "@/components/ui/resource-table";
+import { StatCard } from "@/components/ui/stat-card";
 import { apiFetch } from "@/lib/api/server";
-import type { GatewayConnection } from "@/lib/api/types";
+import type { GatewayConnection, Payment } from "@/lib/api/types";
 
 const gateways: GatewayDefinition[] = [
-  { provider: "stripe", name: "Stripe", description: "Cartão, Pix e assinaturas recorrentes.", initials: "S", color: "bg-[#6757e8]", methods: ["Cartão", "Pix", "Recorrência"] },
-  { provider: "mercado_pago", name: "Mercado Pago", description: "Pix e assinaturas via checkout hospedado.", initials: "MP", color: "bg-[#159bd7]", methods: ["Pix", "Recorrência"] },
-  { provider: "abacate_pay", name: "AbacatePay", description: "Checkout transparente para Pix e boleto.", initials: "A", color: "bg-[#53a36b]", methods: ["Pix", "Boleto"] },
-  { provider: "mock", name: "Mock", description: "Simule pagamentos durante o desenvolvimento.", initials: "M", color: "bg-[#55576b]", methods: ["Testes", "Sandbox"] },
+  {
+    provider: "stripe",
+    name: "Stripe",
+    description: "Cartões, Pix e assinaturas recorrentes.",
+    initials: "S",
+    color: "bg-[#635bff]",
+    logo: "/gateways/stripe.png",
+    logoFill: true,
+    methods: ["Cartão", "Pix", "Recorrência"],
+  },
+  {
+    provider: "mercado_pago",
+    name: "Mercado Pago",
+    description: "Cartões, boleto, Pix e carteira digital.",
+    initials: "MP",
+    color: "bg-[#009ee3]",
+    logo: "/gateways/mercado-pago.png",
+    methods: ["Cartão", "Pix", "Boleto"],
+  },
+  {
+    provider: "abacate_pay",
+    name: "AbacatePay",
+    description: "Checkout transparente para Pix e boleto.",
+    initials: "A",
+    color: "bg-[#79b943]",
+    logo: "/gateways/abacate-pay.png",
+    methods: ["Pix", "Boleto"],
+  },
+  {
+    provider: "mock",
+    name: "Ambiente de testes",
+    description: "Simule pagamentos antes de entrar em produção.",
+    initials: "M",
+    color: "bg-[#55576b]",
+    logo: "/gateways/astro-mock.png",
+    logoFill: true,
+    methods: ["Sandbox", "Testes"],
+  },
 ];
 
 export default async function GatewaysPage() {
-  const connections = await apiFetch<GatewayConnection[]>("/api/v1/gateway-connections");
-  const active = connections.filter((connection) => connection.status === "active");
-  const healthy = connections.filter((connection) => connection.lastSuccessAt && !connection.failureReason);
-  return <><PageHeader eyebrow="Pagamentos" title="Gateways" description="Conecte suas contas para receber pagamentos diretamente nos provedores." /><section className="mb-4 grid gap-3 sm:grid-cols-3"><SummaryCard label="Conexões" value={String(connections.length)} detail="Gateways configurados" icon="plug" /><SummaryCard label="Conexões ativas" value={String(active.length)} detail="Disponíveis para processar" icon="check" /><SummaryCard label="Testes bem-sucedidos" value={String(healthy.length)} detail="Conexões validadas" icon="bolt" /></section><div className="glass-panel mb-4 rounded-[22px] p-4 sm:flex sm:items-center sm:justify-between sm:p-5"><div className="flex gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand-strong"><Icon name="plug" className="size-4" /></span><div><p className="text-[13px] font-semibold text-[#373064]">O Astro não movimenta o seu dinheiro</p><p className="mt-1 text-[12px] leading-5 text-[#666083]">Os pagamentos são processados e recebidos diretamente na conta do gateway conectado.</p></div></div></div>{connections.length > 0 && <section className="mb-7"><SectionTitle title="Conexões configuradas" detail={`${connections.length} ${connections.length === 1 ? "gateway conectado" : "gateways conectados"}`} /><div className="grid gap-4 lg:grid-cols-2">{connections.map((connection) => <ConnectedGatewayCard key={connection.id} connection={connection} />)}</div></section>}<section><SectionTitle title="Adicionar conexão" detail="Escolha um provedor homologado" /><div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">{gateways.map((gateway) => <GatewayConnectCard key={gateway.provider} gateway={gateway} />)}</div></section></>;
+  const [connections, payments] = await Promise.all([
+    apiFetch<GatewayConnection[]>("/api/v1/gateway-connections"),
+    apiFetch<Payment[]>("/api/v1/payments"),
+  ]);
+
+  const active = connections.filter(
+    (connection) => connection.status === "active",
+  );
+  const current = period(payments, 0);
+  const previous = period(payments, 30);
+  const currency = payments[0]?.currency ?? "BRL";
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="Pagamentos"
+        title="Gateways"
+        description="Conecte e gerencie seus provedores de pagamento em um só lugar."
+      />
+
+      <section
+        aria-label="Indicadores dos gateways"
+        className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
+      >
+        <StatCard
+          label="Gateways conectados"
+          value={String(active.length)}
+          detail={`${connections.length} configurações no total`}
+          icon="plug"
+          href="#gateways-conectados"
+        />
+        <StatCard
+          label="Transações (30 dias)"
+          value={formatNumber(current.total)}
+          detail="Tentativas processadas"
+          icon="chart"
+          href="/payments"
+          change={variation(current.total, previous.total)}
+        />
+        <StatCard
+          label="Volume processado"
+          value={money(current.volume, currency)}
+          detail="Pagamentos aprovados"
+          icon="card"
+          href="/payments"
+          tone="success"
+          change={variation(current.volume, previous.volume)}
+        />
+        <StatCard
+          label="Taxa de aprovação"
+          value={percentage(current.rate)}
+          detail="Média dos últimos 30 dias"
+          icon="check"
+          href="/payments"
+          tone="warning"
+          change={(current.rate - previous.rate) * 100}
+        />
+      </section>
+
+      <GatewayCenter
+        connections={connections}
+        payments={payments}
+        gateways={gateways}
+      />
+    </>
+  );
 }
 
-function SectionTitle({ title, detail }: { title: string; detail: string }) { return <div className="mb-3"><h2 className="text-sm font-semibold tracking-[-0.02em]">{title}</h2><p className="mt-1 text-[12px] text-muted">{detail}</p></div>; }
+const successful = new Set(["approved", "paid", "captured", "succeeded"]);
+
+function period(payments: Payment[], offset: number) {
+  const end = Date.now() - offset * 86_400_000;
+  const start = end - 30 * 86_400_000;
+  const selected = payments.filter((item) => {
+    const time = new Date(item.createdAt).getTime();
+    return time >= start && time < end;
+  });
+  const approved = selected.filter((item) => successful.has(item.status));
+
+  return {
+    total: selected.length,
+    volume: approved.reduce(
+      (sum, item) => sum + (item.capturedMinor || item.amountMinor),
+      0,
+    ),
+    rate: selected.length ? approved.length / selected.length : 0,
+  };
+}
+
+function variation(current: number, previous: number) {
+  if (!previous) return current ? 100 : null;
+  return ((current - previous) / previous) * 100;
+}
+
+function money(value: number, currency: string) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency,
+  }).format(value / 100);
+}
+
+function percentage(value: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "percent",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat("pt-BR").format(value);
+}

@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { createPortal } from "react-dom";
@@ -117,9 +119,9 @@ export function CheckoutManager({ checkouts, catalog }: { checkouts: Checkout[];
           <h2 className="text-sm font-semibold tracking-[-0.02em]">Experiências de checkout</h2>
           <p className="mt-1 text-[12px] text-muted">Crie e edite suas páginas de conversão</p>
         </div>
-        <button type="button" onClick={openCreate} className="glass-interactive inline-flex h-10 items-center gap-2 rounded-xl bg-brand px-4 text-[13px] font-semibold text-white shadow-[0_10px_24px_rgba(98,75,255,.2)]">
+        <Button type="button" onClick={openCreate} className="glass-interactive inline-flex h-10 items-center gap-2 rounded-xl bg-brand px-4 text-[13px] font-semibold text-white shadow-[0_10px_24px_rgba(98,75,255,.2)]">
           <Icon name="plus" className="size-3.5" /> Criar checkout
-        </button>
+        </Button>
       </div>
 
       {checkouts.length === 0 ? (
@@ -135,7 +137,7 @@ export function CheckoutManager({ checkouts, catalog }: { checkouts: Checkout[];
       )}
 
       {open && createPortal(
-        <div className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 backdrop-blur-sm">
+        <div onMouseDown={(event) => { if (event.target === event.currentTarget) closeCreate(); }} className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 backdrop-blur-sm">
           <div className="modal-surface glass-panel my-6 w-full max-w-3xl overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7">
             <div className="flex items-start justify-between gap-5">
               <div>
@@ -143,24 +145,24 @@ export function CheckoutManager({ checkouts, catalog }: { checkouts: Checkout[];
                 <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">{step === "template" ? "Como você quer começar?" : "Configure seu checkout"}</h2>
                 <p className="mt-1.5 text-[13px] leading-5 text-muted">{step === "template" ? "Escolha um ponto de partida. Você poderá personalizar tudo no editor." : "Defina a oferta e os dados básicos antes de abrir o editor."}</p>
               </div>
-              <button type="button" aria-label="Fechar" onClick={closeCreate} className="grid size-9 place-items-center rounded-full border border-white/80 bg-white/45 text-muted transition hover:bg-white/75 hover:text-foreground"><Icon name="close" className="size-4" /></button>
+              <Button type="button" aria-label="Fechar" onClick={closeCreate} className="grid size-9 place-items-center rounded-full border border-white/80 bg-white/45 text-muted transition hover:bg-white/75 hover:text-foreground"><Icon name="close" className="size-4" /></Button>
             </div>
 
             {step === "template" ? (
               <>
                 <div className="mt-7 grid gap-3 sm:grid-cols-2">
                   {templates.map((item) => (
-                    <button key={item.id} type="button" disabled={!item.available} onClick={() => setTemplate(item.id)} className={`relative min-h-36 rounded-[20px] border p-5 text-left transition ${template === item.id ? "border-brand/40 bg-brand-soft/70 shadow-[0_0_0_3px_rgba(109,93,244,.08)]" : "border-white/85 bg-white/48 hover:bg-white/75"} disabled:cursor-not-allowed disabled:opacity-55`}>
+                    <Button key={item.id} type="button" disabled={!item.available} onClick={() => setTemplate(item.id)} className={`relative min-h-36 rounded-[20px] border p-5 text-left transition ${template === item.id ? "border-brand/40 bg-brand-soft/70 shadow-[0_0_0_3px_rgba(109,93,244,.08)]" : "border-white/85 bg-white/48 hover:bg-white/75"} disabled:cursor-not-allowed disabled:opacity-55`}>
                       <span className={`grid size-10 place-items-center rounded-xl ${template === item.id ? "bg-brand text-white" : "bg-white/75 text-brand"}`}><Icon name={item.icon} className="size-4" /></span>
                       <p className="mt-4 text-sm font-semibold">{item.name}</p>
                       <p className="mt-1 text-[12px] leading-5 text-muted">{item.description}</p>
                       {!item.available && <span className="absolute right-4 top-4 rounded-full bg-white/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">Em breve</span>}
-                    </button>
+                    </Button>
                   ))}
                 </div>
                 <div className="mt-7 flex justify-end gap-2">
-                  <button type="button" onClick={closeCreate} className="h-11 rounded-xl border border-white/85 bg-white/42 px-5 text-[13px] font-semibold text-muted">Cancelar</button>
-                  <button type="button" disabled={!template} onClick={() => setStep("details")} className="h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] disabled:cursor-not-allowed disabled:opacity-50">Continuar</button>
+                  <Button type="button" onClick={closeCreate} className="h-11 rounded-xl border border-white/85 bg-white/42 px-5 text-[13px] font-semibold text-muted">Cancelar</Button>
+                  <Button type="button" disabled={!template} onClick={() => setStep("details")} className="h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] disabled:cursor-not-allowed disabled:opacity-50">Continuar</Button>
                 </div>
               </>
             ) : (
@@ -172,8 +174,8 @@ export function CheckoutManager({ checkouts, catalog }: { checkouts: Checkout[];
                 </div>
                 {error && <p role="alert" className="mt-5 rounded-2xl border border-[#f7d8de] bg-[#fff5f7]/75 p-3 text-[13px] text-danger">{error}</p>}
                 <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                  <button type="button" disabled={loading} onClick={() => setStep("template")} className="h-11 rounded-xl border border-white/85 bg-white/42 px-5 text-[13px] font-semibold text-muted">Voltar</button>
-                  <button disabled={loading} className="h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] disabled:opacity-55">{loading ? "Criando..." : "Criar e abrir editor"}</button>
+                  <Button type="button" disabled={loading} onClick={() => setStep("template")} className="h-11 rounded-xl border border-white/85 bg-white/42 px-5 text-[13px] font-semibold text-muted">Voltar</Button>
+                  <Button disabled={loading} className="h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] disabled:opacity-55">{loading ? "Criando..." : "Criar e abrir editor"}</Button>
                 </div>
               </form>
             )}
@@ -183,14 +185,14 @@ export function CheckoutManager({ checkouts, catalog }: { checkouts: Checkout[];
       )}
 
       {deleteTarget && createPortal(
-        <div className="fixed inset-0 z-[110] grid place-items-center bg-[#17172c]/18 p-4 backdrop-blur-sm">
+        <div onMouseDown={(event) => { if (event.target === event.currentTarget && !deleting) setDeleteTarget(undefined); }} className="fixed inset-0 z-[110] grid place-items-center bg-[#17172c]/18 p-4 backdrop-blur-sm">
           <div className="modal-surface glass-panel w-full max-w-md rounded-[26px] p-6 shadow-[0_30px_90px_rgba(37,31,76,.2)]" role="alertdialog" aria-modal="true" aria-labelledby="delete-checkout-title">
             <span className="grid size-11 place-items-center rounded-full bg-[#fff0f2] text-danger"><Icon name="trash" className="size-4.5" /></span>
             <h2 id="delete-checkout-title" className="mt-4 text-xl font-semibold tracking-[-0.03em]">Excluir checkout?</h2>
             <p className="mt-2 text-[13px] leading-5 text-muted">O checkout <strong className="text-foreground">{deleteTarget.name}</strong> será excluído permanentemente. Esta ação não pode ser desfeita.</p>
             <div className="mt-6 flex justify-end gap-2">
-              <button type="button" disabled={deleting} onClick={() => setDeleteTarget(undefined)} className="h-11 rounded-xl border border-[#d9d7e8] bg-white/70 px-5 text-[13px] font-semibold text-muted transition hover:bg-white disabled:opacity-50">Cancelar</button>
-              <button type="button" disabled={deleting} onClick={removeCheckout} className="h-11 rounded-xl bg-danger px-5 text-[13px] font-semibold text-white shadow-[0_10px_24px_rgba(203,63,86,.2)] disabled:opacity-55">{deleting ? "Excluindo..." : "Excluir checkout"}</button>
+              <Button type="button" disabled={deleting} onClick={() => setDeleteTarget(undefined)} className="h-11 rounded-xl border border-[#d9d7e8] bg-white/70 px-5 text-[13px] font-semibold text-muted transition hover:bg-white disabled:opacity-50">Cancelar</Button>
+              <Button type="button" disabled={deleting} onClick={removeCheckout} className="h-11 rounded-xl bg-danger px-5 text-[13px] font-semibold text-white shadow-[0_10px_24px_rgba(203,63,86,.2)] disabled:opacity-55">{deleting ? "Excluindo..." : "Excluir checkout"}</Button>
             </div>
           </div>
         </div>,
@@ -198,14 +200,14 @@ export function CheckoutManager({ checkouts, catalog }: { checkouts: Checkout[];
       )}
 
       {missingProductAlert && createPortal(
-        <div className="fixed inset-0 z-[110] grid place-items-center overflow-y-auto bg-[#17172c]/18 p-4 backdrop-blur-sm">
+        <div onMouseDown={(event) => { if (event.target === event.currentTarget) setMissingProductAlert(false); }} className="fixed inset-0 z-[110] grid place-items-center overflow-y-auto bg-[#17172c]/18 p-4 backdrop-blur-sm">
           <section role="alertdialog" aria-modal="true" className="modal-surface glass-panel my-6 w-full max-w-md rounded-[26px] p-6 shadow-[0_30px_90px_rgba(37,31,76,.2)]">
             <span className="grid size-11 place-items-center rounded-full bg-[#fff8ee] text-warning"><Icon name="box" className="size-4.5" /></span>
             <h2 className="mt-4 text-xl font-semibold tracking-[-0.03em]">Produto necessário</h2>
             <p className="mt-2 text-[13px] leading-5 text-muted">Cadastre um produto com preço ativo antes de criar um checkout.</p>
-            <div className="mt-6 flex justify-end gap-2">
-              <button type="button" onClick={() => setMissingProductAlert(false)} className="h-11 rounded-xl border border-[#d9d7e8] bg-white/70 px-5 text-[13px] font-semibold text-muted">Fechar</button>
-              <Link href="/products" className="inline-flex h-11 items-center rounded-xl bg-brand px-5 text-[13px] font-semibold text-white">Cadastrar produto</Link>
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button type="button" onClick={() => setMissingProductAlert(false)} className="h-11 rounded-xl border border-[#d9d7e8] bg-white/70 px-5 text-[13px] font-semibold text-muted transition hover:bg-white hover:text-foreground">Fechar</Button>
+              <Link href="/products" className="glass-interactive inline-flex h-11 items-center justify-center rounded-xl bg-brand px-5 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:-translate-y-0.5 hover:bg-brand-strong">Cadastrar produto</Link>
             </div>
           </section>
         </div>, document.body,
@@ -215,7 +217,7 @@ export function CheckoutManager({ checkouts, catalog }: { checkouts: Checkout[];
 }
 
 function CheckoutCard({ checkout, onDelete }: { checkout: Checkout; onDelete: () => void }) {
-  return <article className="glass-panel group rounded-[24px] p-5 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_70px_rgba(66,57,128,.1)]"><div className="flex justify-between gap-4"><span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${checkout.status === "published" ? "border-emerald-100 bg-[#e8f7f1] text-success" : "border-white/80 bg-white/50 text-muted"}`}>{checkout.status === "published" ? "Publicado" : "Rascunho"}</span><div className="flex items-center gap-1.5"><span className="text-[12px] text-muted">v{checkout.version}</span><button type="button" onClick={onDelete} aria-label={`Excluir ${checkout.name}`} className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-[#fff0f2] hover:text-danger"><Icon name="trash" className="size-3.5" /></button></div></div><span className="mt-5 grid size-10 place-items-center rounded-[13px] border border-white/80 bg-gradient-to-br from-white/75 to-[#ece9ff]/65 text-brand"><Icon name="layout" className="size-4" /></span><h2 className="mt-4 text-lg font-semibold tracking-[-0.03em]">{checkout.name}</h2><p className="mt-1 text-[13px] text-muted">/{checkout.slug}</p><Link href={`/checkouts/${checkout.id}/builder`} className="mt-6 flex items-center justify-center gap-2 rounded-xl border border-white/80 bg-white/45 px-4 py-2.5 text-[13px] font-semibold transition hover:border-brand/30 hover:bg-brand-soft hover:text-brand-strong">Abrir editor <Icon name="arrow-right" className="size-4" /></Link></article>;
+  return <article className="glass-panel group rounded-[24px] p-5 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_70px_rgba(66,57,128,.1)]"><div className="flex justify-between gap-4"><span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${checkout.status === "published" ? "border-emerald-100 bg-[#e8f7f1] text-success" : "border-white/80 bg-white/50 text-muted"}`}>{checkout.status === "published" ? "Publicado" : "Rascunho"}</span><div className="flex items-center gap-1.5"><span className="text-[12px] text-muted">v{checkout.version}</span><Button type="button" onClick={onDelete} aria-label={`Excluir ${checkout.name}`} className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-[#fff0f2] hover:text-danger"><Icon name="trash" className="size-3.5" /></Button></div></div><span className="mt-5 grid size-10 place-items-center rounded-[13px] border border-white/80 bg-gradient-to-br from-white/75 to-[#ece9ff]/65 text-brand"><Icon name="layout" className="size-4" /></span><h2 className="mt-4 text-lg font-semibold tracking-[-0.03em]">{checkout.name}</h2><p className="mt-1 text-[13px] text-muted">/{checkout.slug}</p><Link href={`/checkouts/${checkout.id}/builder`} className="mt-6 flex items-center justify-center gap-2 rounded-xl border border-white/80 bg-white/45 px-4 py-2.5 text-[13px] font-semibold transition hover:border-brand/30 hover:bg-brand-soft hover:text-brand-strong">Abrir editor <Icon name="arrow-right" className="size-4" /></Link></article>;
 }
 
 function Field({ label, ...input }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
