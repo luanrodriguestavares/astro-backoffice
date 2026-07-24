@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from "react";
+import { forwardRef, type ButtonHTMLAttributes } from "react";
 
 export type ButtonVariant = "unstyled" | "primary" | "secondary" | "ghost" | "danger" | "icon";
 
@@ -11,6 +11,8 @@ const variants: Record<ButtonVariant, string> = {
   icon: "inline-grid size-9 place-items-center rounded-full border border-[#dedbea] bg-white text-muted hover:bg-white hover:text-foreground",
 };
 
-export function Button({ variant = "unstyled", className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
-  return <button className={`ui-button ${variants[variant]} ${className}`} {...props} />;
-}
+export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }>(
+  function Button({ variant = "unstyled", className = "", ...props }, ref) {
+    return <button ref={ref} className={`ui-button ${variants[variant]} ${className}`} {...props} />;
+  },
+);

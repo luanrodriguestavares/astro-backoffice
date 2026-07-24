@@ -78,7 +78,7 @@ export function DashboardShell({
   const [collapsed, setCollapsed] = useState(false);
   const organizationName =
     organization.displayName ?? organization.legalName ?? "Organização";
-  const focusedEditor = /^\/checkouts\/[^/]+\/builder\/?$/.test(pathname);
+  const focusedEditor = /^\/checkouts\/[^/]+\/(?:builder|preview)\/?$/.test(pathname);
 
   if (focusedEditor) {
     return <div className="min-h-screen bg-[#f7f7fc]">{children}</div>;

@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
 import { Icon, type IconName } from "@/components/ui/icon";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { blankCheckoutDocument } from "@/lib/checkout/document";
 import type { Checkout } from "@/lib/api/types";
 import { useEscapeClose } from "@/hooks/use-escape-close";
@@ -24,7 +25,7 @@ export type CheckoutCatalogOption = {
 };
 
 const templates: { id: string; name: string; description: string; icon: IconName; available: boolean }[] = [
-  { id: "blank", name: "Em branco", description: "Comece com uma tela vazia e adicione somente os blocos necessários.", icon: "plus", available: true },
+  { id: "blank", name: "Em branco", description: "Comece só com a estrutura essencial de pagamento e personalize o restante.", icon: "plus", available: true },
   { id: "product-launch", name: "Lançamento", description: "Estrutura para apresentar uma oferta e gerar conversão.", icon: "bolt", available: false },
   { id: "digital-product", name: "Produto digital", description: "Página completa para cursos, ebooks e comunidades.", icon: "box", available: false },
   { id: "subscription", name: "Assinatura", description: "Experiência focada em planos e cobrança recorrente.", icon: "repeat", available: false },
@@ -170,7 +171,20 @@ export function CheckoutManager({ checkouts, catalog }: { checkouts: Checkout[];
                 <div className="mt-7 grid gap-4 sm:grid-cols-2">
                   <Field name="name" label="Nome do checkout" placeholder="Ex.: Checkout principal" required />
                   <Field name="slug" label="Slug (opcional)" placeholder="checkout-principal" />
-                  <label className="text-[13px] font-semibold sm:col-span-2">Produto e preço<select name="priceId" required className="mt-2 h-11 w-full rounded-xl border border-white/80 bg-white/48 px-3.5 font-normal outline-none focus:border-brand/25 focus:bg-white/70"><option value="">Selecione</option>{catalog.map((item) => <option key={item.priceId} value={item.priceId}>{item.productName} · {item.priceName} · {money(item.amountMinor, item.currency)}{item.pricingType === "recurring" ? "/recorrente" : ""}</option>)}</select></label>
+                  <label className="text-[13px] font-semibold sm:col-span-2">
+                    Produto e preço
+                    <div className="mt-2">
+                      <CustomSelect
+                        name="priceId"
+                        required
+                        placeholder="Selecione um produto e preço"
+                        options={catalog.map((item) => ({
+                          value: item.priceId,
+                          label: `${item.productName} · ${item.priceName} · ${money(item.amountMinor, item.currency)}${item.pricingType === "recurring" ? "/recorrente" : ""}`,
+                        }))}
+                      />
+                    </div>
+                  </label>
                 </div>
                 {error && <p role="alert" className="mt-5 rounded-2xl border border-[#f7d8de] bg-[#fff5f7]/75 p-3 text-[13px] text-danger">{error}</p>}
                 <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
