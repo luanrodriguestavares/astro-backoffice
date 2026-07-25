@@ -1,7 +1,7 @@
 import type { BuilderData, BuilderRootProps } from "@/components/checkout-builder/config";
 import type { CheckoutDocument, CheckoutSectionType } from "@/lib/api/types";
 
-const supported = new Set<CheckoutSectionType>(["hero", "logo", "banner", "grid", "image", "text", "benefits", "testimonials", "faq", "guarantee", "countdown", "product_summary", "checkout_form", "order_summary", "payment_methods", "card_payment", "pix_payment", "boleto_payment", "shipping_address", "shipping_methods", "coupon_field", "security_badges", "footer"]);
+const supported = new Set<CheckoutSectionType>(["hero", "logo", "banner", "grid", "image", "video", "text", "benefits", "testimonials", "faq", "guarantee", "countdown", "product_summary", "checkout_form", "order_summary", "payment_methods", "card_payment", "pix_payment", "boleto_payment", "shipping_address", "shipping_methods", "coupon_field", "security_badges", "footer"]);
 
 export function documentToPuck(document: CheckoutDocument): BuilderData {
   const theme = document.theme;
@@ -28,7 +28,7 @@ export function puckToDocument(data: BuilderData, previous: CheckoutDocument): C
 function stringValue(value: unknown, fallback: string) { return typeof value === "string" ? value : fallback; }
 function themeModeValue(value: unknown): BuilderRootProps["themeMode"] { if (value === "dark" || value === "dark-zinc") return "dark"; if (value === "system") return "system"; return "light"; }
 function grayToneValue(value: unknown): BuilderRootProps["grayTone"] { if (["gray", "zinc", "slate"].includes(String(value))) return value as BuilderRootProps["grayTone"]; if (value === "dark-zinc") return "zinc"; return "neutral"; }
-function fontValue(value: unknown): BuilderRootProps["fontFamily"] { return ["system", "geist", "arial", "georgia", "serif", "mono"].includes(String(value)) ? value as BuilderRootProps["fontFamily"] : "system"; }
+function fontValue(value: unknown): BuilderRootProps["fontFamily"] { return ["system", "geist", "inter", "montserrat", "poppins", "roboto", "open-sans", "lato", "arial", "georgia", "serif", "mono"].includes(String(value)) ? value as BuilderRootProps["fontFamily"] : "system"; }
 function sizeValue(value: unknown, fallback: BuilderRootProps["radius"] = "md"): BuilderRootProps["radius"] { if (["xs", "sm", "md", "lg", "xl"].includes(String(value))) return value as BuilderRootProps["radius"]; if (typeof value === "number") return value <= 6 ? "xs" : value <= 10 ? "sm" : value <= 16 ? "md" : value <= 24 ? "lg" : "xl"; return fallback; }
 function shadowValue(value: unknown): BuilderRootProps["shadow"] { return ["none", "xs", "sm", "md", "lg"].includes(String(value)) ? value as BuilderRootProps["shadow"] : "sm"; }
 function widthValue(value: unknown): BuilderRootProps["maxWidth"] { if (["sm", "md", "lg", "xl", "full"].includes(String(value))) return value as BuilderRootProps["maxWidth"]; if (typeof value === "number") return value <= 800 ? "sm" : value <= 1000 ? "md" : value <= 1200 ? "lg" : value <= 1360 ? "xl" : "full"; return "lg"; }

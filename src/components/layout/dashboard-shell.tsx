@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { Brand } from "@/components/brand";
 import { HeaderSearch } from "@/components/layout/header-search";
@@ -17,6 +17,27 @@ type NavigationItem = {
   icon: IconName;
   exact?: boolean;
 };
+
+const dashboardThemeStorageKey = "astro-dashboard-theme";
+const dashboardThemeChangeEvent = "astro-dashboard-theme-change";
+
+function subscribeDashboardTheme(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange);
+  window.addEventListener(dashboardThemeChangeEvent, onStoreChange);
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+    window.removeEventListener(dashboardThemeChangeEvent, onStoreChange);
+  };
+}
+
+function getDashboardTheme(): "light" | "dark" {
+  const savedTheme = window.localStorage.getItem(dashboardThemeStorageKey);
+  return savedTheme === "light" ? "light" : "dark";
+}
+
+function getServerDashboardTheme(): "dark" {
+  return "dark";
+}
 
 const overview: NavigationItem[] = [
   { label: "Visão geral", href: "/dashboard", icon: "home", exact: true },
@@ -76,9 +97,32 @@ export function DashboardShell({
   const currentView = searchParams.get("view");
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const dashboardTheme = useSyncExternalStore(
+    subscribeDashboardTheme,
+    getDashboardTheme,
+    getServerDashboardTheme,
+  );
   const organizationName =
     organization.displayName ?? organization.legalName ?? "Organização";
   const focusedEditor = /^\/checkouts\/[^/]+\/(?:builder|preview)\/?$/.test(pathname);
+  const themeEnabled = !focusedEditor;
+  const dashboardDark = themeEnabled && dashboardTheme === "dark";
+
+  useEffect(() => {
+    document.documentElement.classList.toggle(
+      "astro-dark-portals",
+      dashboardDark,
+    );
+    return () => {
+      document.documentElement.classList.remove("astro-dark-portals");
+    };
+  }, [dashboardDark]);
+
+  function toggleDashboardTheme() {
+    const nextTheme = dashboardTheme === "dark" ? "light" : "dark";
+    window.localStorage.setItem(dashboardThemeStorageKey, nextTheme);
+    window.dispatchEvent(new Event(dashboardThemeChangeEvent));
+  }
 
   if (focusedEditor) {
     return <div className="min-h-screen bg-[#f7f7fc]">{children}</div>;
@@ -86,7 +130,7 @@ export function DashboardShell({
 
   return (
     <div
-      className={`astro-shell min-h-screen transition-[grid-template-columns] duration-300 lg:grid ${collapsed ? "lg:grid-cols-[76px_1fr]" : "lg:grid-cols-[248px_1fr]"}`}
+      className={`astro-shell min-h-screen transition-[grid-template-columns] duration-300 lg:grid ${dashboardDark ? "dashboard-dark" : ""} ${collapsed ? "lg:grid-cols-[76px_1fr]" : "lg:grid-cols-[248px_1fr]"}`}
     >
       <AmbientBackground />
 
@@ -100,7 +144,7 @@ export function DashboardShell({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[280px] flex-col border-r border-[#7770b4]/8 bg-white/62 px-4 py-5 shadow-[20px_0_80px_rgba(57,53,100,.035)] backdrop-blur-3xl transition-all duration-300 lg:sticky lg:top-0 lg:h-screen lg:w-auto ${collapsed ? "lg:px-2.5" : ""} ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+        className={`astro-sidebar fixed inset-y-0 left-0 z-40 flex w-[280px] flex-col border-r border-[#7770b4]/8 bg-white/62 px-4 py-5 shadow-[20px_0_80px_rgba(57,53,100,.035)] backdrop-blur-3xl transition-all duration-300 lg:sticky lg:top-0 lg:h-screen lg:w-auto ${collapsed ? "lg:px-2.5" : ""} ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         <Button
           type="button"
@@ -147,7 +191,7 @@ export function DashboardShell({
               {initials(organizationName)}
             </span>
             <span className={`min-w-0 flex-1 ${collapsed ? "lg:hidden" : ""}`}>
-              <span className="block truncate text-xs font-semibold text-[#24253c]">
+              <span className="shell-organization-name block truncate text-xs font-semibold text-[#24253c]">
                 {organizationName}
               </span>
               <span className="mt-0.5 block truncate text-[10px] text-muted">
@@ -182,7 +226,7 @@ export function DashboardShell({
           {navigationGroups.map((group) => (
             <div key={group.label}>
               <p
-                className={`mb-1.5 px-3 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#8a88a0] ${collapsed ? "lg:hidden" : ""}`}
+                className={`shell-nav-label mb-1.5 px-3 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#8a88a0] ${collapsed ? "lg:hidden" : ""}`}
               >
                 {group.label}
               </p>
@@ -212,7 +256,7 @@ export function DashboardShell({
       </aside>
 
       <div className="relative z-10 min-w-0">
-        <header className="sticky top-0 z-20 flex h-[76px] items-center gap-3 bg-gradient-to-b from-[#fafafe]/95 via-[#fafafe]/75 to-transparent px-4 backdrop-blur-xl sm:px-6 lg:px-9">
+        <header className="astro-topbar sticky top-0 z-20 flex h-[76px] items-center gap-3 bg-gradient-to-b from-[#fafafe]/95 via-[#fafafe]/75 to-transparent px-4 backdrop-blur-xl sm:px-6 lg:px-9">
           <Button
             type="button"
             aria-label="Abrir menu"
@@ -222,12 +266,29 @@ export function DashboardShell({
             <Icon name="menu" />
           </Button>
 
-          <HeaderSearch />
+          <HeaderSearch dark={dashboardDark} />
 
           <div className="ml-auto flex items-center gap-2.5">
+            {themeEnabled && (
+              <Button
+                type="button"
+                role="switch"
+                aria-checked={dashboardDark}
+                aria-label={`Usar tema ${dashboardDark ? "claro" : "escuro"}`}
+                title={`Mudar para tema ${dashboardDark ? "claro" : "escuro"}`}
+                className="dashboard-theme-switch"
+                onClick={toggleDashboardTheme}
+              >
+                <Icon name="sun" className="size-3.5" />
+                <span className="dashboard-theme-switch-track" aria-hidden="true">
+                  <span className="dashboard-theme-switch-thumb" />
+                </span>
+                <Icon name="moon" className="size-3.5" />
+              </Button>
+            )}
             <Button
               type="button"
-              className="glass-panel-soft relative grid size-11 place-items-center rounded-2xl text-[#737187] transition hover:-translate-y-0.5 hover:text-brand"
+              className="shell-icon-button glass-panel-soft relative grid size-11 place-items-center rounded-2xl text-[#737187] transition hover:-translate-y-0.5 hover:text-brand"
               aria-label="Notificações"
             >
               <Icon name="bell" className="size-[17px]" />
@@ -236,13 +297,13 @@ export function DashboardShell({
             <Link
               href="/settings"
               aria-label="Abrir perfil e configurações"
-              className="group flex items-center gap-2.5 rounded-2xl px-1.5 py-1 transition hover:bg-white/45"
+              className="shell-profile group flex items-center gap-2.5 rounded-2xl px-1.5 py-1 transition hover:bg-white/45"
             >
-              <span className="grid size-9 shrink-0 place-items-center rounded-full border border-white/90 bg-gradient-to-br from-[#e9e5ff] to-white text-[10px] font-bold text-brand-strong shadow-sm">
+              <span className="shell-avatar grid size-9 shrink-0 place-items-center rounded-full border border-white/90 bg-gradient-to-br from-[#e9e5ff] to-white text-[10px] font-bold text-brand-strong shadow-sm">
                 {initials(user.name)}
               </span>
               <span className="hidden min-w-0 xl:block">
-                <span className="block max-w-28 truncate text-[11px] font-semibold text-[#24253c]">
+                <span className="shell-user-name block max-w-28 truncate text-[11px] font-semibold text-[#24253c]">
                   {user.name}
                 </span>
                 <span className="mt-0.5 block max-w-28 truncate text-[9px] text-muted">
@@ -286,7 +347,8 @@ function NavItem({
       onClick={onClick}
       title={collapsed ? label : undefined}
       aria-label={collapsed ? label : undefined}
-      className={`group relative flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-medium transition-all duration-200 ${collapsed ? "lg:justify-center lg:gap-0 lg:px-2" : ""} ${active ? "bg-gradient-to-r from-[#f0edff] to-[#f7f5ff] text-brand-strong shadow-[inset_0_0_0_1px_rgba(119,98,242,.08),0_8px_24px_rgba(99,82,190,.06)]" : "text-[#656579] hover:bg-white/55 hover:text-[#26263d]"}`}
+      data-active={active}
+      className={`astro-nav-item group relative flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-medium transition-all duration-200 ${collapsed ? "lg:justify-center lg:gap-0 lg:px-2" : ""} ${active ? "bg-gradient-to-r from-[#f0edff] to-[#f7f5ff] text-brand-strong shadow-[inset_0_0_0_1px_rgba(119,98,242,.08),0_8px_24px_rgba(99,82,190,.06)]" : "text-[#656579] hover:bg-white/55 hover:text-[#26263d]"}`}
     >
       <Icon
         name={icon}
@@ -307,7 +369,7 @@ function ProCard() {
         <span className="grid size-8 place-items-center rounded-xl border border-white/80 bg-white/55 text-brand shadow-[inset_0_1px_0_white,0_8px_20px_rgba(100,78,225,.12)] backdrop-blur-xl transition duration-500 group-hover:-translate-y-0.5 group-hover:shadow-[inset_0_1px_0_white,0_10px_26px_rgba(100,78,225,.2)]">
           <Icon name="bolt" className="size-4" />
         </span>
-        <p className="mt-3 text-[13px] font-semibold leading-5 tracking-[-0.02em] text-[#22233b]">
+        <p className="pro-card-title mt-3 text-[13px] font-semibold leading-5 tracking-[-0.02em] text-[#22233b]">
           Eleve suas vendas com o Astro Pro
         </p>
         <p className="mt-1.5 text-[10px] leading-4 text-muted">
@@ -328,45 +390,11 @@ function ProCard() {
 function AmbientBackground() {
   return (
     <div
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      className="astro-ambient pointer-events-none fixed inset-0 z-0 overflow-hidden"
       aria-hidden="true"
     >
       <div className="absolute -right-48 -top-56 size-[620px] rounded-full bg-[#cfc7ff]/8 blur-[90px]" />
       <div className="absolute -bottom-52 left-[24%] size-[520px] rounded-full bg-[#dce8ff]/11 blur-[100px]" />
-      <svg
-        viewBox="0 0 900 460"
-        className="ambient-orbit absolute -right-24 -top-20 hidden h-[480px] w-[900px] lg:block"
-      >
-        <ellipse
-          cx="520"
-          cy="195"
-          rx="390"
-          ry="145"
-          fill="none"
-          stroke="url(#orbit)"
-          strokeWidth="1"
-        />
-        <ellipse
-          cx="555"
-          cy="185"
-          rx="292"
-          ry="104"
-          fill="none"
-          stroke="url(#orbit)"
-          strokeWidth=".7"
-          transform="rotate(-8 555 185)"
-        />
-        <circle cx="784" cy="75" r="7" fill="#ffffff" opacity=".85" />
-        <circle cx="242" cy="213" r="2.5" fill="#806df4" opacity=".48" />
-        <circle cx="640" cy="64" r="2" fill="#ffffff" />
-        <defs>
-          <linearGradient id="orbit" x1="160" x2="830" y1="80" y2="300">
-            <stop stopColor="#ffffff" stopOpacity=".15" />
-            <stop offset=".48" stopColor="#9e90ef" stopOpacity=".28" />
-            <stop offset="1" stopColor="#ffffff" stopOpacity=".6" />
-          </linearGradient>
-        </defs>
-      </svg>
     </div>
   );
 }

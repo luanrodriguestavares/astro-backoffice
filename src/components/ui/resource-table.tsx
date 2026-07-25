@@ -21,7 +21,7 @@ export function ResourceTable<T>({
   description?: string;
 }) {
   return (
-    <section className="glass-panel overflow-hidden rounded-[28px]">
+    <section className="resource-table glass-panel overflow-hidden rounded-[28px]">
       {(title || description) && (
         <div className="flex items-center justify-between gap-4 border-b border-white/65 px-5 py-5 sm:px-6">
           <div>
@@ -86,13 +86,13 @@ export function SummaryCard({
   icon: IconName;
 }) {
   return (
-    <article className="glass-panel relative min-h-[132px] rounded-[22px] p-5">
+    <article className="summary-card glass-panel relative min-h-[132px] rounded-[22px] p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-[12px] font-medium text-[#5f6078]">{label}</p>
-          <p className="mt-2.5 truncate text-[25px] font-semibold tracking-[-0.05em] text-[#17182f]">{value}</p>
+          <p className="summary-card-label text-[12px] font-medium text-[#5f6078]">{label}</p>
+          <p className="summary-card-value mt-2.5 truncate text-[25px] font-semibold tracking-[-0.05em] text-[#17182f]">{value}</p>
         </div>
-        <span className="grid size-9 shrink-0 place-items-center rounded-full border border-white/80 bg-[#eeeaff]/80 text-brand-strong shadow-[inset_0_1px_0_rgba(255,255,255,.9)]">
+        <span className="summary-card-icon grid size-9 shrink-0 place-items-center rounded-full border border-white/80 bg-[#eeeaff]/80 text-brand-strong shadow-[inset_0_1px_0_rgba(255,255,255,.9)]">
           <Icon name={icon} className="size-[17px]" />
         </span>
       </div>

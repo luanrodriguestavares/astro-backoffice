@@ -72,7 +72,7 @@ const destinations: {
   },
 ];
 
-export function HeaderSearch() {
+export function HeaderSearch({ dark = false }: { dark?: boolean }) {
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -223,7 +223,7 @@ export function HeaderSearch() {
               id="astro-search-results"
               role="listbox"
               style={position}
-              className="glass-popover fixed z-[100] flex max-h-[min(520px,calc(100vh-96px))] flex-col overflow-hidden rounded-[20px] p-2"
+              className={`glass-popover fixed z-[100] flex max-h-[min(520px,calc(100vh-96px))] flex-col overflow-hidden rounded-[20px] p-2 ${dark ? "dashboard-search-popover" : ""}`}
             >
               <div className="min-h-0 flex-1 overflow-y-auto">
               <p className="px-3 pb-2 pt-1 text-[9px] font-semibold uppercase tracking-[0.15em] text-muted">

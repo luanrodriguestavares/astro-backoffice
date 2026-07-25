@@ -29,7 +29,10 @@ export type IconName =
   | "edit"
   | "trash"
   | "clock"
-  | "image";
+  | "image"
+  | "play"
+  | "sun"
+  | "moon";
 
 const paths: Record<IconName, React.ReactNode> = {
   home: (
@@ -221,6 +224,21 @@ const paths: Record<IconName, React.ReactNode> = {
       <path d="m21 15-5-5L5 20" />
     </>
   ),
+  play: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m10 8 6 4-6 4V8Z" />
+    </>
+  ),
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41" />
+    </>
+  ),
+  moon: (
+    <path d="M20.5 14.4A8.5 8.5 0 0 1 9.6 3.5 8.5 8.5 0 1 0 20.5 14.4Z" />
+  ),
 };
 
 export function Icon({
@@ -233,6 +251,10 @@ export function Icon({
   return (
     <svg
       viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
       aria-hidden="true"
       className={`${className} fill-none stroke-current`}
       strokeWidth="1.8"

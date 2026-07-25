@@ -13,6 +13,6 @@ const variants: Record<ButtonVariant, string> = {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }>(
   function Button({ variant = "unstyled", className = "", ...props }, ref) {
-    return <button ref={ref} className={`ui-button ${variants[variant]} ${className}`} {...props} />;
+    return <button ref={ref} data-variant={variant} className={`ui-button ${variants[variant]} ${className}`} {...props} />;
   },
 );

@@ -73,7 +73,7 @@ export default async function DashboardPage() {
   });
 
   return (
-    <>
+    <div className="dashboard-home">
       <PageHeader
         hero
         eyebrow={`Bem-vindo de volta, ${firstName(user.name)}`}
@@ -208,7 +208,7 @@ export default async function DashboardPage() {
               </div>
               <Link
                 href="/gateways"
-                className="rounded-xl border border-white/80 bg-white/40 px-3 py-2 text-[12px] font-semibold text-muted transition hover:text-brand-strong"
+                className="dashboard-details-button rounded-xl border border-white/80 bg-white/40 px-3 py-2 text-[12px] font-semibold text-muted transition hover:text-brand-strong"
               >
                 Ver detalhes
               </Link>
@@ -222,7 +222,7 @@ export default async function DashboardPage() {
         <RecentCheckouts checkouts={checkouts.slice(0, 4)} />
         <RecentActivities activities={activities.slice(0, 5)} />
       </section>
-    </>
+    </div>
   );
 }
 
@@ -323,7 +323,7 @@ function SetupStep({
       {href && !done ? (
         <Link
           href={href}
-          className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-white/45"
+          className="dashboard-setup-link flex items-center gap-3 rounded-xl p-2 transition hover:bg-white/45"
         >
           {content}
         </Link>
@@ -343,12 +343,12 @@ function RecentCheckouts({ checkouts }: { checkouts: Checkout[] }) {
         href="/checkouts"
       />
       {checkouts.length ? (
-        <div className="divide-y divide-white/65 px-3 pb-2 sm:px-4">
+        <div className="dashboard-list divide-y divide-white/65 px-3 pb-2 sm:px-4">
           {checkouts.map((checkout) => (
             <Link
               key={checkout.id}
               href={`/checkouts/${checkout.id}/builder`}
-              className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-2 py-3 transition hover:bg-white/38 sm:grid-cols-[minmax(0,1fr)_70px_80px_auto]"
+              className="dashboard-list-row group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-2 py-3 transition hover:bg-white/38 sm:grid-cols-[minmax(0,1fr)_70px_80px_auto]"
             >
               <span className="min-w-0">
                 <span className="block truncate text-[12px] font-semibold text-foreground">
@@ -400,14 +400,14 @@ function RecentActivities({ activities }: { activities: Activity[] }) {
         href="/payments"
       />
       {activities.length ? (
-        <div className="divide-y divide-white/65 px-3 pb-2 sm:px-4">
+        <div className="dashboard-list divide-y divide-white/65 px-3 pb-2 sm:px-4">
           {activities.map((activity) => (
             <div
               key={activity.id}
-              className="flex items-center gap-3 rounded-xl px-2 py-3 transition hover:bg-white/38"
+              className="dashboard-list-row flex items-center gap-3 rounded-xl px-2 py-3 transition hover:bg-white/38"
             >
               <span
-                className={`grid size-8 shrink-0 place-items-center rounded-full ${activity.tone}`}
+                className={`dashboard-activity-icon grid size-8 shrink-0 place-items-center rounded-full ${activity.tone}`}
               >
                 <Icon name={activity.icon} className="size-3.5" />
               </span>
@@ -488,7 +488,7 @@ function CheckoutStatus({ status }: { status: Checkout["status"] }) {
   const active = status === "published";
   return (
     <span
-      className={`rounded-full px-2.5 py-1 text-[12px] font-semibold ${active ? "bg-[#e7f7f0] text-success" : "bg-white/60 text-muted"}`}
+      className={`dashboard-checkout-status rounded-full px-2.5 py-1 text-[12px] font-semibold ${active ? "bg-[#e7f7f0] text-success" : "bg-white/60 text-muted"}`}
     >
       {active
         ? "Ativo"

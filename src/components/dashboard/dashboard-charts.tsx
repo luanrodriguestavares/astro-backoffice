@@ -37,14 +37,14 @@ export function RevenueAreaChart({
   return (
     <div className="mt-5">
       <div className="mb-4 flex justify-end">
-        <div className="inline-flex rounded-xl border border-white/75 bg-white/38 p-1 shadow-[inset_0_1px_0_white] backdrop-blur-xl">
+        <div className="dashboard-period-picker inline-flex rounded-xl border border-white/75 bg-white/38 p-1 shadow-[inset_0_1px_0_white] backdrop-blur-xl">
           {periods.map((option) => (
             <Button
               key={option}
               type="button"
               aria-pressed={period === option}
               onClick={() => setPeriod(option)}
-              className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-all ${period === option ? "bg-[#ebe7ff] text-brand-strong shadow-[0_5px_16px_rgba(100,80,220,.12)]" : "text-muted hover:text-foreground"}`}
+              className={`dashboard-period-option rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-all ${period === option ? "bg-[#ebe7ff] text-brand-strong shadow-[0_5px_16px_rgba(100,80,220,.12)]" : "text-muted hover:text-foreground"}`}
             >
               {option}
             </Button>
@@ -79,7 +79,7 @@ export function RevenueAreaChart({
             </defs>
             <CartesianGrid
               vertical={false}
-              stroke="#8f8aa8"
+              stroke="var(--dashboard-chart-grid, #8f8aa8)"
               strokeOpacity={0.1}
             />
             <XAxis
@@ -87,14 +87,14 @@ export function RevenueAreaChart({
               axisLine={false}
               tickLine={false}
               minTickGap={28}
-              tick={{ fill: "#89899b", fontSize: 10 }}
+              tick={{ fill: "var(--dashboard-chart-muted, #89899b)", fontSize: 10 }}
               dy={10}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
               width={58}
-              tick={{ fill: "#89899b", fontSize: 10 }}
+              tick={{ fill: "var(--dashboard-chart-muted, #89899b)", fontSize: 10 }}
               tickFormatter={(value: number) => compactMoney(value, currency)}
             />
             <Tooltip
@@ -117,7 +117,7 @@ export function RevenueAreaChart({
               activeDot={{
                 r: 4.5,
                 fill: "#624bff",
-                stroke: "#fff",
+                stroke: "var(--dashboard-chart-surface, #fff)",
                 strokeWidth: 2,
               }}
             />
@@ -125,7 +125,7 @@ export function RevenueAreaChart({
         </ResponsiveContainer>
         {empty && (
           <div className="pointer-events-none absolute bottom-6 left-10 right-2 top-0 z-10 grid place-items-center">
-            <div className="rounded-2xl border border-white/80 bg-white/62 px-5 py-3 text-center shadow-sm backdrop-blur-xl">
+            <div className="dashboard-chart-empty rounded-2xl border border-white/80 bg-white/62 px-5 py-3 text-center shadow-sm backdrop-blur-xl">
               <p className="text-[13px] font-semibold text-foreground">
                 Sem receita no período
               </p>
@@ -159,7 +159,7 @@ function RevenueTooltip({
   const previous = index > 0 ? data[index - 1].value : 0;
   const variation = previous ? ((value - previous) / previous) * 100 : null;
   return (
-    <div className="rounded-2xl border border-white/85 bg-white/78 px-4 py-3 shadow-[0_18px_50px_rgba(45,39,91,.14)] backdrop-blur-2xl">
+    <div className="dashboard-chart-tooltip rounded-2xl border border-white/85 bg-white/78 px-4 py-3 shadow-[0_18px_50px_rgba(45,39,91,.14)] backdrop-blur-2xl">
       <p className="text-[12px] font-medium text-muted">
         {payload[0].payload?.date ?? label}
       </p>
@@ -211,7 +211,7 @@ export function GatewayDonut({
               innerRadius="64%"
               outerRadius="88%"
               paddingAngle={data.length > 1 ? 2 : 0}
-              stroke="rgba(255,255,255,.75)"
+              stroke="var(--dashboard-chart-surface, rgba(255,255,255,.75))"
               strokeWidth={2}
               animationDuration={900}
             >
@@ -221,7 +221,7 @@ export function GatewayDonut({
                   fill={
                     data.length
                       ? gatewayColors[index % gatewayColors.length]
-                      : "#e7e7ef"
+                      : "var(--dashboard-chart-empty, #e7e7ef)"
                   }
                 />
               ))}
@@ -247,7 +247,7 @@ export function GatewayDonut({
           data.slice(0, 4).map((item, index) => (
             <div
               key={item.id}
-              className="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-white/40"
+              className="dashboard-gateway-row flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-white/40"
             >
               <span
                 className="grid size-7 shrink-0 place-items-center rounded-lg text-[12px] font-bold text-white shadow-sm"
@@ -271,7 +271,7 @@ export function GatewayDonut({
             </div>
           ))
         ) : (
-          <p className="rounded-xl bg-white/30 px-3 py-4 text-center text-[12px] leading-4 text-muted">
+          <p className="dashboard-gateway-empty rounded-xl bg-white/30 px-3 py-4 text-center text-[12px] leading-4 text-muted">
             As vendas serão distribuídas por gateway aqui.
           </p>
         )}
@@ -294,7 +294,7 @@ function GatewayTooltip({
   if (!active || !payload?.[0]) return null;
   const value = Number(payload[0].value ?? 0);
   return (
-    <div className="rounded-xl border border-white/85 bg-white/80 px-3 py-2 shadow-xl backdrop-blur-2xl">
+    <div className="dashboard-chart-tooltip rounded-xl border border-white/85 bg-white/80 px-3 py-2 shadow-xl backdrop-blur-2xl">
       <p className="text-[12px] font-semibold text-foreground">
         {payload[0].name}
       </p>

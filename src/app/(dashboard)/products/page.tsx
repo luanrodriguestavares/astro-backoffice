@@ -15,7 +15,7 @@ export default async function ProductsPage() {
     ),
   );
   return (
-    <>
+    <div className="astro-themed-page products-page">
       <PageHeader
         eyebrow="Catálogo"
         title="Produtos"
@@ -25,6 +25,6 @@ export default async function ProductsPage() {
         products={products}
         prices={Object.fromEntries(entries)}
       />
-    </>
+    </div>
   );
 }

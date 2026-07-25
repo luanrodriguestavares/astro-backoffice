@@ -190,7 +190,7 @@ export function ProductManager({
     <>
       <section className="glass-panel mb-4 flex flex-col gap-3 rounded-[22px] p-2.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-          <label className="filter-control flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#d9d7e8] bg-white/70 px-3.5 transition focus-within:border-brand/70 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(109,93,244,.16)] sm:max-w-[310px]">
+          <label className="product-search filter-control flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#d9d7e8] bg-white/70 px-3.5 transition focus-within:border-brand/70 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(109,93,244,.16)] sm:max-w-[310px]">
             <Icon name="search" className="size-3.5 shrink-0 text-muted" />
             <input
               value={query}
@@ -210,7 +210,7 @@ export function ProductManager({
             )}
           </label>
 
-          <div className="flex overflow-x-auto rounded-xl border border-white/75 bg-white/32 p-1 [scrollbar-width:none]">
+          <div className="product-filter-tabs flex overflow-x-auto rounded-xl border border-white/75 bg-white/32 p-1 [scrollbar-width:none]">
             {(
               [
                 ["all", "Todos"],
@@ -223,6 +223,7 @@ export function ProductManager({
                 key={value}
                 type="button"
                 onClick={() => setStatus(value)}
+                data-active={status === value}
                 className={`shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${status === value ? "bg-white/80 text-brand-strong shadow-sm" : "text-muted hover:text-foreground"}`}
               >
                 {label}
@@ -242,7 +243,7 @@ export function ProductManager({
       </section>
 
       {error && !open && (
-        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-[#f7d8de] bg-[#fff7f8]/80 p-4 text-[13px] text-danger shadow-sm backdrop-blur-xl">
+        <div className="product-error mb-4 flex items-start gap-3 rounded-2xl border border-[#f7d8de] bg-[#fff7f8]/80 p-4 text-[13px] text-danger shadow-sm backdrop-blur-xl">
           <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#ffe8ec] font-bold">
             !
           </span>
@@ -271,7 +272,7 @@ export function ProductManager({
           <div onMouseDown={(event) => { if (event.target === event.currentTarget) closeForm(); }} className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 backdrop-blur-sm">
             <form
               onSubmit={submit}
-              className="modal-surface glass-panel my-6 w-full max-w-2xl overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
+              className="theme-modal modal-surface glass-panel my-6 w-full max-w-2xl overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
             >
               <div className="flex items-start justify-between gap-5">
                 <div>
@@ -366,7 +367,7 @@ export function ProductManager({
                 )}
                 <label className="text-[13px] font-semibold sm:col-span-2">
                   Imagem do produto
-                  <span className="mt-2 flex min-h-20 items-center gap-3 rounded-2xl border border-dashed border-[#cfcbe6] bg-white/55 p-3.5 transition focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_rgba(109,93,244,.14)]">
+                  <span className="product-image-field mt-2 flex min-h-20 items-center gap-3 rounded-2xl border border-dashed border-[#cfcbe6] bg-white/55 p-3.5 transition focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_rgba(109,93,244,.14)]">
                     <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand"><Icon name="image" className="size-4" /></span>
                     <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Selecionar imagem</span><span className="mt-1 block text-[11px] font-normal text-muted">JPEG, PNG ou WebP. {editing?.imageFileId ? "Uma imagem já está vinculada." : "Até 5 MB."}</span></span>
                     <input name="image" type="file" accept="image/jpeg,image/png,image/webp" className="max-w-[220px] text-[11px] font-normal text-muted file:mr-2 file:rounded-lg file:border-0 file:bg-brand-soft file:px-3 file:py-2 file:font-semibold file:text-brand-strong" />
@@ -436,7 +437,7 @@ function ProductTable({
   onRemove: (product: Product) => void;
 }) {
   return (
-    <section className="glass-panel overflow-hidden rounded-[28px]">
+    <section className="product-table glass-panel overflow-hidden rounded-[28px]">
       <div className="flex items-center justify-between gap-4 border-b border-white/65 px-5 py-5 sm:px-6">
         <div>
           <h2 className="text-sm font-semibold tracking-[-0.02em]">
@@ -500,7 +501,7 @@ function ProductTable({
                   >
                     <td className="px-6 py-4">
                       <div className="flex min-w-0 items-center gap-3">
-                        <span className="grid size-10 shrink-0 place-items-center rounded-[13px] border border-white/80 bg-gradient-to-br from-white/75 to-[#ece9ff]/65 text-brand shadow-[0_7px_20px_rgba(91,69,180,.08)]">
+                        <span className="product-table-icon grid size-10 shrink-0 place-items-center rounded-[13px] border border-white/80 bg-gradient-to-br from-white/75 to-[#ece9ff]/65 text-brand shadow-[0_7px_20px_rgba(91,69,180,.08)]">
                           <Icon
                             name={productIcon(product.type)}
                             className="size-4"
@@ -628,7 +629,7 @@ function DeleteProductModal({
         aria-modal="true"
         aria-labelledby="delete-product-title"
         aria-describedby="delete-product-description"
-        className="glass-panel w-full max-w-md rounded-[26px] p-6 shadow-[0_32px_100px_rgba(37,31,76,.24)]"
+        className="theme-modal glass-panel w-full max-w-md rounded-[26px] p-6 shadow-[0_32px_100px_rgba(37,31,76,.24)]"
       >
         <span className="grid size-11 place-items-center rounded-2xl border border-[#ffdce1] bg-[#fff0f2]/85 text-danger shadow-sm">
           <Icon name="trash" className="size-4.5" />
@@ -741,7 +742,7 @@ function fileToBase64(file: File) { return new Promise<string>((resolve, reject)
 
 function TypeBadge({ type }: { type: Product["type"] }) {
   return (
-    <span className="inline-flex rounded-full border border-white/80 bg-white/48 px-2.5 py-1 text-[12px] font-medium text-muted">
+    <span className="product-type-badge inline-flex rounded-full border border-white/80 bg-white/48 px-2.5 py-1 text-[12px] font-medium text-muted">
       {typeLabel(type)}
     </span>
   );
@@ -756,7 +757,7 @@ function StatusBadge({ status }: { status: Product["status"] }) {
         : "bg-white/55 text-muted";
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold ${style}`}
+      className={`product-status-badge inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold ${style}`}
     >
       <span className="size-1.5 rounded-full bg-current opacity-65" />
       {statusLabel(status)}
