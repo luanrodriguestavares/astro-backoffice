@@ -1,8 +1,15 @@
-import { InventoryAdjustAction } from "@/components/resources/create-actions";
-import { PageHeader } from "@/components/ui/page-header";
-import { ResourceTable, SummaryCard, date } from "@/components/ui/resource-table";
-import { apiFetch } from "@/lib/api/server";
-import type { Product } from "@/lib/api/types";
-type Inventory = { id: string; productId: string; productVariantId: string | null; quantityAvailable: string; quantityReserved: string; lowStockThreshold: string; allowNegative: boolean; version: number; updatedAt: string };
-export default async function InventoryPage() { const [inventory, products] = await Promise.all([apiFetch<Inventory[]>("/api/v1/inventory"), apiFetch<Product[]>("/api/v1/products?limit=100")]); const productMap = new Map(products.map((item) => [item.id, item.name])); const available = inventory.reduce((sum, item) => sum + Number(item.quantityAvailable), 0); const reserved = inventory.reduce((sum, item) => sum + Number(item.quantityReserved), 0); const lowStock = inventory.filter((item) => Number(item.quantityAvailable) <= Number(item.lowStockThreshold)).length; return <><PageHeader eyebrow="Catálogo" title="Estoque" description="Consulte saldos, reservas e faça ajustes de estoque dos produtos." /><section className="mb-4 grid gap-3 sm:grid-cols-3"><SummaryCard label="Unidades disponíveis" value={formatQuantity(available)} detail={`${inventory.length} itens monitorados`} icon="box" /><SummaryCard label="Unidades reservadas" value={formatQuantity(reserved)} detail="Aguardando conclusão dos pedidos" icon="clock" /><SummaryCard label="Estoque baixo" value={String(lowStock)} detail="Itens no limite configurado" icon="bolt" /></section><ResourceTable title="Posição de estoque" description="Saldos consolidados por produto e variação" rows={inventory} empty="Nenhum item com controle de estoque." columns={[{ label: "Produto", value: (row) => productMap.get(row.productId) ?? row.productId }, { label: "Disponível", value: (row) => row.quantityAvailable }, { label: "Reservado", value: (row) => row.quantityReserved }, { label: "Estoque baixo", value: (row) => row.lowStockThreshold }, { label: "Atualizado", value: (row) => date(row.updatedAt) }, { label: "Ações", value: () => "", render: (row) => <InventoryAdjustAction id={row.id} version={row.version} product={productMap.get(row.productId) ?? row.productId} /> }]} /></>; }
-function formatQuantity(value: number) { return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(value); }
+import { DevelopmentFeature } from '@/components/ui/development-feature';
+
+export default function InventoryPage() {
+    return (
+        <DevelopmentFeature
+            eyebrow="Catálogo"
+            title="Estoque"
+            description="O controle de estoque chegará junto com o suporte completo a produtos físicos."
+            kicker="Preparando a operação física"
+            headline="Seu estoque, sempre sob controle."
+            body="Estamos construindo uma visão simples dos seus saldos, reservas e movimentações, integrada aos pedidos e aos futuros fluxos de entrega."
+            features={['Saldos em tempo real', 'Reservas automáticas', 'Alertas de estoque']}
+        />
+    );
+}

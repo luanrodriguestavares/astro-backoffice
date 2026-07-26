@@ -1,823 +1,1023 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 
-import { Children, type FormEvent, isValidElement, type ReactElement, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import {
+    Children,
+    type FormEvent,
+    isValidElement,
+    type ReactElement,
+    useMemo,
+    useState,
+} from 'react';
+import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 
-import { Icon, type IconName } from "@/components/ui/icon";
-import { CustomSelect, type SelectOption } from "@/components/ui/custom-select";
-import { useEscapeClose } from "@/hooks/use-escape-close";
-import type { Price, Product } from "@/lib/api/types";
+import { MediaPicker } from '@/components/files/media-picker';
+import { Icon, type IconName } from '@/components/ui/icon';
+import { CustomSelect, type SelectOption } from '@/components/ui/custom-select';
+import { useEscapeClose } from '@/hooks/use-escape-close';
+import type { MediaFile, Price, Product } from '@/lib/api/types';
 
-type StatusFilter = "all" | Product["status"];
+type StatusFilter = 'all' | Product['status'];
 
 export function ProductManager({
-  products,
-  prices,
+    products,
+    prices,
+    files,
 }: {
-  products: Product[];
-  prices: Record<string, Price[]>;
+    products: Product[];
+    prices: Record<string, Price[]>;
+    files: MediaFile[];
 }) {
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Product>();
-  const [deleteTarget, setDeleteTarget] = useState<Product>();
-  const [deleting, setDeleting] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>();
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<StatusFilter>("all");
-  const [pricingType, setPricingType] = useState("one_time");
+    const router = useRouter();
+    const [open, setOpen] = useState(false);
+    const [editing, setEditing] = useState<Product>();
+    const [deleteTarget, setDeleteTarget] = useState<Product>();
+    const [deleting, setDeleting] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string>();
+    const [query, setQuery] = useState('');
+    const [status, setStatus] = useState<StatusFilter>('all');
+    const [pricingType, setPricingType] = useState('one_time');
+    const [statusChanging, setStatusChanging] = useState<string>();
+    const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+    const [selectedImageFileId, setSelectedImageFileId] = useState<string | null>();
 
-  const visibleProducts = useMemo(() => {
-    const term = normalize(query.trim());
-    return products.filter((product) => {
-      const matchesStatus = status === "all" || product.status === status;
-      const matchesQuery =
-        !term ||
-        normalize(
-          `${product.name} ${product.slug} ${product.shortDescription ?? ""} ${typeLabel(product.type)}`,
-        ).includes(term);
-      return matchesStatus && matchesQuery;
+    const visibleProducts = useMemo(() => {
+        const term = normalize(query.trim());
+        return products.filter((product) => {
+            const matchesStatus = status === 'all' || product.status === status;
+            const matchesQuery =
+                !term ||
+                normalize(
+                    `${product.name} ${product.slug} ${product.shortDescription ?? ''} ${typeLabel(product.type)}`,
+                ).includes(term);
+            return matchesStatus && matchesQuery;
+        });
+    }, [products, query, status]);
+    const selectedImageFile = files.find((file) => file.id === selectedImageFileId);
+
+    async function submit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        setLoading(true);
+        setError(undefined);
+        const form = new FormData(event.currentTarget);
+        const name = String(form.get('name') ?? '').trim();
+        const shortDescription = String(form.get('shortDescription') ?? '').trim();
+        const image = form.get('image');
+        let imageFileId = selectedImageFileId;
+        if (image instanceof File && image.size > 0) {
+            const upload = await uploadProductImage(image);
+            if (!upload.id) {
+                setLoading(false);
+                setError(upload.detail ?? 'Não foi possível enviar a imagem.');
+                return;
+            }
+            imageFileId = upload.id;
+        }
+        const productPayload = {
+            type: form.get('type'),
+            name,
+            slug: slugify(String(form.get('slug') || name)),
+            shortDescription: editing ? shortDescription : shortDescription || undefined,
+            status: form.get('status'),
+            deliveryMode: form.get('type') === 'digital' ? 'digital' : 'none',
+            ...(editing
+                ? { imageFileId: imageFileId ?? null }
+                : imageFileId
+                  ? { imageFileId }
+                  : {}),
+        };
+
+        if (editing) {
+            const response = await fetch(`/api/products/${editing.id}`, {
+                method: 'PATCH',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ ...productPayload, version: editing.version }),
+            });
+            const body = (await response.json()) as { detail?: string };
+            setLoading(false);
+            if (!response.ok) {
+                setError(body.detail ?? 'Falha ao atualizar produto.');
+                return;
+            }
+            setOpen(false);
+            setEditing(undefined);
+            router.refresh();
+            return;
+        }
+
+        const productResponse = await fetch('/api/products', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+                ...productPayload,
+                inventoryMode: 'unlimited',
+                metadata: {},
+            }),
+        });
+        const productBody = (await productResponse.json()) as {
+            data?: Product;
+            detail?: string;
+        };
+        if (!productResponse.ok || !productBody.data) {
+            setLoading(false);
+            return setError(productBody.detail ?? 'Falha ao criar produto.');
+        }
+
+        const recurring = pricingType === 'recurring';
+        const priceResponse = await fetch(`/api/products/${productBody.data.id}/prices`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+                name: recurring ? 'Plano principal' : 'Preço principal',
+                pricingType,
+                amountMinor: Number(form.get('amountMinor')),
+                currency: 'BRL',
+                ...(recurring
+                    ? {
+                          recurringInterval: form.get('interval'),
+                          recurringIntervalCount: 1,
+                          billingMode: 'gateway_managed',
+                      }
+                    : {}),
+                status: 'active',
+                allowQuantity: false,
+                minimumQuantity: 1,
+                maximumQuantity: 1,
+                metadata: {},
+            }),
+        });
+        const priceBody = (await priceResponse.json()) as { detail?: string };
+        setLoading(false);
+        if (!priceResponse.ok)
+            return setError(
+                priceBody.detail ?? 'Produto criado sem preço. Recarregue a página para continuar.',
+            );
+        setOpen(false);
+        setPricingType('one_time');
+        router.refresh();
+    }
+
+    async function remove(product: Product) {
+        setDeleting(true);
+        setError(undefined);
+        const response = await fetch(`/api/products/${product.id}`, {
+            method: 'DELETE',
+        });
+        setDeleting(false);
+        if (!response.ok) {
+            const body = (await response.json()) as { detail?: string };
+            setError(body.detail ?? 'Falha ao excluir.');
+            setDeleteTarget(undefined);
+            return;
+        }
+        setDeleteTarget(undefined);
+        router.refresh();
+    }
+
+    async function changeStatus(product: Product, status: 'active' | 'inactive') {
+        setStatusChanging(product.id);
+        setError(undefined);
+        const response = await fetch(`/api/products/${product.id}`, {
+            method: 'PATCH',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ status, version: product.version }),
+        });
+        setStatusChanging(undefined);
+        if (!response.ok) {
+            const body = (await response.json()) as { detail?: string };
+            setError(body.detail ?? 'Não foi possível alterar o status do produto.');
+            return;
+        }
+        router.refresh();
+    }
+
+    function openCreate() {
+        setError(undefined);
+        setEditing(undefined);
+        setPricingType('one_time');
+        setSelectedImageFileId(null);
+        setOpen(true);
+    }
+
+    function openEdit(product: Product) {
+        setError(undefined);
+        setEditing(product);
+        setSelectedImageFileId(product.imageFileId);
+        setOpen(true);
+    }
+
+    function closeForm() {
+        if (loading) return;
+        setOpen(false);
+        setMediaPickerOpen(false);
+        setEditing(undefined);
+        setError(undefined);
+    }
+
+    useEscapeClose((open || Boolean(deleteTarget)) && !mediaPickerOpen, () => {
+        if (deleteTarget && !deleting) setDeleteTarget(undefined);
+        else closeForm();
     });
-  }, [products, query, status]);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setLoading(true);
-    setError(undefined);
-    const form = new FormData(event.currentTarget);
-    const name = String(form.get("name") ?? "").trim();
-    const shortDescription = String(form.get("shortDescription") ?? "").trim();
-    const image = form.get("image");
-    let imageFileId: string | undefined;
-    if (image instanceof File && image.size > 0) {
-      const upload = await uploadProductImage(image);
-      if (!upload.id) { setLoading(false); setError(upload.detail ?? "Não foi possível enviar a imagem."); return; }
-      imageFileId = upload.id;
-    }
-    const productPayload = {
-      type: form.get("type"),
-      name,
-      slug: slugify(String(form.get("slug") || name)),
-      shortDescription: editing
-        ? shortDescription
-        : shortDescription || undefined,
-      status: form.get("status"),
-      deliveryMode: form.get("type") === "digital" ? "digital" : "none",
-      ...(imageFileId ? { imageFileId } : {}),
-    };
+    return (
+        <>
+            <section className="glass-panel mb-4 flex flex-col gap-3 rounded-[22px] p-2.5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+                    <label className="product-search filter-control flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#d9d7e8] bg-white/70 px-3.5 transition focus-within:border-brand/70 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(109,93,244,.16)] sm:max-w-[310px]">
+                        <Icon name="search" className="size-3.5 shrink-0 text-muted" />
+                        <input
+                            value={query}
+                            onChange={(event) => setQuery(event.target.value)}
+                            placeholder="Buscar produto..."
+                            className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted"
+                        />
+                        {query && (
+                            <Button
+                                type="button"
+                                aria-label="Limpar busca"
+                                onClick={() => setQuery('')}
+                                className="text-muted transition hover:text-foreground"
+                            >
+                                <Icon name="close" className="size-3" />
+                            </Button>
+                        )}
+                    </label>
 
-    if (editing) {
-      const response = await fetch(`/api/products/${editing.id}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...productPayload, version: editing.version }),
-      });
-      const body = (await response.json()) as { detail?: string };
-      setLoading(false);
-      if (!response.ok) {
-        setError(body.detail ?? "Falha ao atualizar produto.");
-        return;
-      }
-      setOpen(false);
-      setEditing(undefined);
-      router.refresh();
-      return;
-    }
-
-    const productResponse = await fetch("/api/products", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        ...productPayload,
-        inventoryMode: "unlimited",
-        metadata: {},
-      }),
-    });
-    const productBody = (await productResponse.json()) as {
-      data?: Product;
-      detail?: string;
-    };
-    if (!productResponse.ok || !productBody.data) {
-      setLoading(false);
-      return setError(productBody.detail ?? "Falha ao criar produto.");
-    }
-
-    const recurring = pricingType === "recurring";
-    const priceResponse = await fetch(
-      `/api/products/${productBody.data.id}/prices`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          name: recurring ? "Plano principal" : "Preço principal",
-          pricingType,
-          amountMinor: Number(form.get("amountMinor")),
-          currency: "BRL",
-          ...(recurring
-            ? {
-                recurringInterval: form.get("interval"),
-                recurringIntervalCount: 1,
-                billingMode: "gateway_managed",
-              }
-            : {}),
-          status: "active",
-          allowQuantity: false,
-          minimumQuantity: 1,
-          maximumQuantity: 1,
-          metadata: {},
-        }),
-      },
-    );
-    const priceBody = (await priceResponse.json()) as { detail?: string };
-    setLoading(false);
-    if (!priceResponse.ok)
-      return setError(
-        priceBody.detail ??
-          "Produto criado sem preço. Recarregue a página para continuar.",
-      );
-    setOpen(false);
-    setPricingType("one_time");
-    router.refresh();
-  }
-
-  async function remove(product: Product) {
-    setDeleting(true);
-    setError(undefined);
-    const response = await fetch(`/api/products/${product.id}`, {
-      method: "DELETE",
-    });
-    setDeleting(false);
-    if (!response.ok) {
-      const body = (await response.json()) as { detail?: string };
-      setError(body.detail ?? "Falha ao excluir.");
-      setDeleteTarget(undefined);
-      return;
-    }
-    setDeleteTarget(undefined);
-    router.refresh();
-  }
-
-  function openCreate() {
-    setError(undefined);
-    setEditing(undefined);
-    setPricingType("one_time");
-    setOpen(true);
-  }
-
-  function openEdit(product: Product) {
-    setError(undefined);
-    setEditing(product);
-    setOpen(true);
-  }
-
-  function closeForm() {
-    if (loading) return;
-    setOpen(false);
-    setEditing(undefined);
-    setError(undefined);
-  }
-
-  useEscapeClose(open || Boolean(deleteTarget), () => {
-    if (deleteTarget && !deleting) setDeleteTarget(undefined);
-    else closeForm();
-  });
-
-  return (
-    <>
-      <section className="glass-panel mb-4 flex flex-col gap-3 rounded-[22px] p-2.5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-          <label className="product-search filter-control flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#d9d7e8] bg-white/70 px-3.5 transition focus-within:border-brand/70 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(109,93,244,.16)] sm:max-w-[310px]">
-            <Icon name="search" className="size-3.5 shrink-0 text-muted" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Buscar produto..."
-              className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted"
-            />
-            {query && (
-              <Button
-                type="button"
-                aria-label="Limpar busca"
-                onClick={() => setQuery("")}
-                className="text-muted transition hover:text-foreground"
-              >
-                <Icon name="close" className="size-3" />
-              </Button>
-            )}
-          </label>
-
-          <div className="product-filter-tabs flex overflow-x-auto rounded-xl border border-white/75 bg-white/32 p-1 [scrollbar-width:none]">
-            {(
-              [
-                ["all", "Todos"],
-                ["active", "Ativos"],
-                ["draft", "Rascunhos"],
-                ["inactive", "Inativos"],
-              ] as const
-            ).map(([value, label]) => (
-              <Button
-                key={value}
-                type="button"
-                onClick={() => setStatus(value)}
-                data-active={status === value}
-                className={`shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${status === value ? "bg-white/80 text-brand-strong shadow-sm" : "text-muted hover:text-foreground"}`}
-              >
-                {label}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <Button
-          type="button"
-          onClick={openCreate}
-          className="glass-interactive group inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7665f5] to-[#5a42e3] px-4 text-[13px] font-semibold text-white shadow-[0_10px_26px_rgba(91,69,223,.2)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(91,69,223,.27)]"
-        >
-          <Icon name="plus" className="size-3.5" />
-          Criar produto
-        </Button>
-      </section>
-
-      {error && !open && (
-        <div className="product-error mb-4 flex items-start gap-3 rounded-2xl border border-[#f7d8de] bg-[#fff7f8]/80 p-4 text-[13px] text-danger shadow-sm backdrop-blur-xl">
-          <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#ffe8ec] font-bold">
-            !
-          </span>
-          <p className="pt-1.5">{error}</p>
-        </div>
-      )}
-
-      {products.length === 0 ? (
-        <EmptyProducts onCreate={openCreate} />
-      ) : (
-        <ProductTable
-          products={visibleProducts}
-          prices={prices}
-          hasFilters={Boolean(query) || status !== "all"}
-          onClear={() => {
-            setQuery("");
-            setStatus("all");
-          }}
-          onEdit={openEdit}
-          onRemove={setDeleteTarget}
-        />
-      )}
-
-      {open &&
-        createPortal(
-          <div onMouseDown={(event) => { if (event.target === event.currentTarget) closeForm(); }} className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 backdrop-blur-sm">
-            <form
-              onSubmit={submit}
-              className="theme-modal modal-surface glass-panel my-6 w-full max-w-2xl overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
-            >
-              <div className="flex items-start justify-between gap-5">
-                <div>
-                  <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-strong">
-                    Catálogo
-                  </p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
-                    {editing ? "Editar produto" : "Novo produto"}
-                  </h2>
-                  <p className="mt-1.5 text-[13px] leading-5 text-muted">
-                    {editing
-                      ? "Atualize os dados comerciais e a disponibilidade do produto."
-                      : "Cadastre os dados comerciais e o primeiro preço."}
-                  </p>
+                    <div className="product-filter-tabs flex overflow-x-auto rounded-xl border border-white/75 bg-white/32 p-1 [scrollbar-width:none]">
+                        {(
+                            [
+                                ['all', 'Todos'],
+                                ['active', 'Ativos'],
+                                ['draft', 'Rascunhos'],
+                                ['inactive', 'Inativos'],
+                            ] as const
+                        ).map(([value, label]) => (
+                            <Button
+                                key={value}
+                                type="button"
+                                onClick={() => setStatus(value)}
+                                data-active={status === value}
+                                className={`shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${status === value ? 'bg-white/80 text-brand-strong shadow-sm' : 'text-muted hover:text-foreground'}`}
+                            >
+                                {label}
+                            </Button>
+                        ))}
+                    </div>
                 </div>
-                <Button
-                  type="button"
-                  aria-label="Fechar"
-                  onClick={closeForm}
-                  className="grid size-9 place-items-center rounded-full border border-white/80 bg-white/45 text-muted transition hover:bg-white/75 hover:text-foreground"
-                >
-                  <Icon name="close" className="size-4" />
-                </Button>
-              </div>
 
-              <div className="mt-7 grid gap-4 sm:grid-cols-2">
-                <Field
-                  name="name"
-                  label="Nome"
-                  placeholder="Ex.: Curso de Marketing"
-                  defaultValue={editing?.name}
-                  required
-                />
-                <Field
-                  name="slug"
-                  label="Slug (opcional)"
-                  placeholder="curso-de-marketing"
-                  defaultValue={editing?.slug}
-                />
-                <SelectField
-                  name="type"
-                  label="Tipo"
-                  defaultValue={editing?.type ?? "digital"}
+                <Button
+                    type="button"
+                    onClick={openCreate}
+                    className="glass-interactive group inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7665f5] to-[#5a42e3] px-4 text-[13px] font-semibold text-white shadow-[0_10px_26px_rgba(91,69,223,.2)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(91,69,223,.27)]"
                 >
-                  <option value="digital">Digital</option>
-                  <option value="service">Serviço</option>
-                  <option value="saas">SaaS</option>
-                  <option value="physical">Físico</option>
-                </SelectField>
-                <SelectField
-                  name="status"
-                  label="Status"
-                  defaultValue={editing?.status ?? "active"}
-                >
-                  <option value="active">Ativo</option>
-                  <option value="draft">Rascunho</option>
-                  <option value="inactive">Inativo</option>
-                </SelectField>
-                <label className="text-[13px] font-semibold sm:col-span-2">
-                  Descrição curta
-                  <textarea
-                    name="shortDescription"
-                    defaultValue={editing?.shortDescription ?? ""}
-                    placeholder="Explique brevemente o que o cliente recebe."
-                    className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-white/80 bg-white/48 p-3.5 font-normal outline-none transition placeholder:text-[#aaaabd] focus:border-brand/25 focus:bg-white/70 focus:shadow-[0_0_0_3px_rgba(109,93,244,.07)]"
-                  />
-                </label>
-                {!editing && (
-                  <>
-                    <SelectField
-                      name="pricingType"
-                      label="Cobrança"
-                      value={pricingType}
-                      onChange={(event) => setPricingType(event.target.value)}
+                    <Icon name="plus" className="size-3.5" />
+                    Criar produto
+                </Button>
+            </section>
+
+            {error && !open && (
+                <div className="product-error mb-4 flex items-start gap-3 rounded-2xl border border-[#f7d8de] bg-[#fff7f8]/80 p-4 text-[13px] text-danger shadow-sm backdrop-blur-xl">
+                    <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#ffe8ec] font-bold">
+                        !
+                    </span>
+                    <p className="pt-1.5">{error}</p>
+                </div>
+            )}
+
+            {products.length === 0 ? (
+                <EmptyProducts onCreate={openCreate} />
+            ) : (
+                <ProductTable
+                    products={visibleProducts}
+                    prices={prices}
+                    hasFilters={Boolean(query) || status !== 'all'}
+                    onClear={() => {
+                        setQuery('');
+                        setStatus('all');
+                    }}
+                    onEdit={openEdit}
+                    onRemove={setDeleteTarget}
+                    onStatusChange={changeStatus}
+                    statusChanging={statusChanging}
+                />
+            )}
+
+            {open &&
+                createPortal(
+                    <div
+                        onMouseDown={(event) => {
+                            if (event.target === event.currentTarget) closeForm();
+                        }}
+                        className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 backdrop-blur-sm"
                     >
-                      <option value="one_time">Pagamento único</option>
-                      <option value="recurring">Recorrente</option>
-                    </SelectField>
-                    <MoneyField name="amountMinor" label="Valor" />
-                  </>
+                        <form
+                            onSubmit={submit}
+                            className="theme-modal modal-surface glass-panel my-6 w-full max-w-2xl overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
+                        >
+                            <div className="flex items-start justify-between gap-5">
+                                <div>
+                                    <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-strong">
+                                        Catálogo
+                                    </p>
+                                    <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
+                                        {editing ? 'Editar produto' : 'Novo produto'}
+                                    </h2>
+                                    <p className="mt-1.5 text-[13px] leading-5 text-muted">
+                                        {editing
+                                            ? 'Atualize os dados comerciais e a disponibilidade do produto.'
+                                            : 'Cadastre os dados comerciais e o primeiro preço.'}
+                                    </p>
+                                </div>
+                                <Button
+                                    type="button"
+                                    aria-label="Fechar"
+                                    onClick={closeForm}
+                                    className="grid size-9 place-items-center rounded-full border border-white/80 bg-white/45 text-muted transition hover:bg-white/75 hover:text-foreground"
+                                >
+                                    <Icon name="close" className="size-4" />
+                                </Button>
+                            </div>
+
+                            <div className="mt-7 grid gap-4 sm:grid-cols-2">
+                                <Field
+                                    name="name"
+                                    label="Nome"
+                                    placeholder="Ex.: Curso de Marketing"
+                                    defaultValue={editing?.name}
+                                    required
+                                />
+                                <Field
+                                    name="slug"
+                                    label="Slug (opcional)"
+                                    placeholder="curso-de-marketing"
+                                    defaultValue={editing?.slug}
+                                />
+                                <SelectField
+                                    name="type"
+                                    label="Tipo"
+                                    defaultValue={editing?.type ?? 'digital'}
+                                >
+                                    <option value="digital">Digital</option>
+                                    <option value="service">Serviço</option>
+                                    <option value="saas">SaaS</option>
+                                    <option value="physical" disabled data-badge="Em breve">
+                                        Físico
+                                    </option>
+                                </SelectField>
+                                <SelectField
+                                    name="status"
+                                    label={editing ? 'Status' : 'Status inicial'}
+                                    defaultValue={editing?.status ?? 'draft'}
+                                >
+                                    <option value="active">Ativo</option>
+                                    <option value="draft">Rascunho</option>
+                                    <option value="inactive">Inativo</option>
+                                </SelectField>
+                                <label className="text-[13px] font-semibold sm:col-span-2">
+                                    Descrição curta
+                                    <textarea
+                                        name="shortDescription"
+                                        defaultValue={editing?.shortDescription ?? ''}
+                                        placeholder="Explique brevemente o que o cliente recebe."
+                                        className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-white/80 bg-white/48 p-3.5 font-normal outline-none transition placeholder:text-[#aaaabd] focus:border-brand/25 focus:bg-white/70 focus:shadow-[0_0_0_3px_rgba(109,93,244,.07)]"
+                                    />
+                                </label>
+                                {!editing && (
+                                    <>
+                                        <SelectField
+                                            name="pricingType"
+                                            label="Cobrança"
+                                            value={pricingType}
+                                            onChange={(event) => setPricingType(event.target.value)}
+                                        >
+                                            <option value="one_time">Pagamento único</option>
+                                            <option value="recurring">Recorrente</option>
+                                        </SelectField>
+                                        <MoneyField name="amountMinor" label="Valor" />
+                                    </>
+                                )}
+                                {!editing && pricingType === 'recurring' && (
+                                    <SelectField
+                                        name="interval"
+                                        label="Periodicidade"
+                                        defaultValue="month"
+                                    >
+                                        <option value="month">Mensal</option>
+                                        <option value="year">Anual</option>
+                                        <option value="week">Semanal</option>
+                                    </SelectField>
+                                )}
+                                <label className="text-[13px] font-semibold sm:col-span-2">
+                                    Imagem do produto
+                                    <span className="product-image-field mt-2 block rounded-2xl border border-dashed border-[#cfcbe6] bg-white/55 p-3.5 transition focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_rgba(109,93,244,.14)]">
+                                        <span className="flex items-center gap-3">
+                                            <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand-soft text-brand">
+                                                {selectedImageFile ? (
+                                                    // eslint-disable-next-line @next/next/no-img-element
+                                                    <img
+                                                        src={`/api/files/${encodeURIComponent(selectedImageFile.id)}/content`}
+                                                        alt=""
+                                                        className="size-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <Icon name="image" className="size-4" />
+                                                )}
+                                            </span>
+                                            <span className="min-w-0 flex-1">
+                                                <span className="block truncate text-[13px] font-semibold">
+                                                    {selectedImageFile?.originalName ??
+                                                        'Selecionar imagem'}
+                                                </span>
+                                                <span className="mt-1 block text-[11px] font-normal text-muted">
+                                                    Escolha da biblioteca ou envie uma nova imagem
+                                                    de até 5 MB.
+                                                </span>
+                                            </span>
+                                            <Button
+                                                type="button"
+                                                variant="secondary"
+                                                className="h-9 px-3"
+                                                onClick={() => setMediaPickerOpen(true)}
+                                            >
+                                                Biblioteca
+                                            </Button>
+                                            {selectedImageFileId && (
+                                                <Button
+                                                    type="button"
+                                                    variant="icon"
+                                                    className="size-9"
+                                                    onClick={() => setSelectedImageFileId(null)}
+                                                    aria-label="Remover imagem do produto"
+                                                >
+                                                    <Icon name="close" className="size-3.5" />
+                                                </Button>
+                                            )}
+                                        </span>
+                                        <span className="mt-3 block border-t border-border pt-3">
+                                            <input
+                                                name="image"
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/webp"
+                                                className="w-full text-[11px] font-normal text-muted file:mr-2 file:rounded-lg file:border-0 file:bg-brand-soft file:px-3 file:py-2 file:font-semibold file:text-brand-strong"
+                                            />
+                                        </span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            {error && (
+                                <p className="mt-5 rounded-2xl border border-[#f7d8de] bg-[#fff5f7]/75 p-3 text-[13px] text-danger">
+                                    {error}
+                                </p>
+                            )}
+
+                            <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                <Button
+                                    type="button"
+                                    onClick={closeForm}
+                                    className="h-11 rounded-xl border border-white/85 bg-white/42 px-5 text-[13px] font-semibold text-muted transition hover:bg-white/70 hover:text-foreground"
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    disabled={loading}
+                                    className="glass-interactive h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-55"
+                                >
+                                    {loading
+                                        ? editing
+                                            ? 'Salvando...'
+                                            : 'Criando...'
+                                        : editing
+                                          ? 'Salvar alterações'
+                                          : 'Criar produto'}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>,
+                    document.body,
                 )}
-                {!editing && pricingType === "recurring" && (
-                  <SelectField
-                    name="interval"
-                    label="Periodicidade"
-                    defaultValue="month"
-                  >
-                    <option value="month">Mensal</option>
-                    <option value="year">Anual</option>
-                    <option value="week">Semanal</option>
-                  </SelectField>
+
+            {deleteTarget &&
+                createPortal(
+                    <DeleteProductModal
+                        product={deleteTarget}
+                        loading={deleting}
+                        onCancel={() => !deleting && setDeleteTarget(undefined)}
+                        onConfirm={() => remove(deleteTarget)}
+                    />,
+                    document.body,
                 )}
-                <label className="text-[13px] font-semibold sm:col-span-2">
-                  Imagem do produto
-                  <span className="product-image-field mt-2 flex min-h-20 items-center gap-3 rounded-2xl border border-dashed border-[#cfcbe6] bg-white/55 p-3.5 transition focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_rgba(109,93,244,.14)]">
-                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand"><Icon name="image" className="size-4" /></span>
-                    <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">Selecionar imagem</span><span className="mt-1 block text-[11px] font-normal text-muted">JPEG, PNG ou WebP. {editing?.imageFileId ? "Uma imagem já está vinculada." : "Até 5 MB."}</span></span>
-                    <input name="image" type="file" accept="image/jpeg,image/png,image/webp" className="max-w-[220px] text-[11px] font-normal text-muted file:mr-2 file:rounded-lg file:border-0 file:bg-brand-soft file:px-3 file:py-2 file:font-semibold file:text-brand-strong" />
-                  </span>
-                </label>
-              </div>
-
-              {error && (
-                <p className="mt-5 rounded-2xl border border-[#f7d8de] bg-[#fff5f7]/75 p-3 text-[13px] text-danger">
-                  {error}
-                </p>
-              )}
-
-              <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                <Button
-                  type="button"
-                  onClick={closeForm}
-                  className="h-11 rounded-xl border border-white/85 bg-white/42 px-5 text-[13px] font-semibold text-muted transition hover:bg-white/70 hover:text-foreground"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  disabled={loading}
-                  className="glass-interactive h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-55"
-                >
-                  {loading
-                    ? editing
-                      ? "Salvando..."
-                      : "Criando..."
-                    : editing
-                      ? "Salvar alterações"
-                      : "Criar produto"}
-                </Button>
-              </div>
-            </form>
-          </div>,
-          document.body,
-        )}
-
-      {deleteTarget &&
-        createPortal(
-          <DeleteProductModal
-            product={deleteTarget}
-            loading={deleting}
-            onCancel={() => !deleting && setDeleteTarget(undefined)}
-            onConfirm={() => remove(deleteTarget)}
-          />,
-          document.body,
-        )}
-    </>
-  );
+            <MediaPicker
+                open={mediaPickerOpen}
+                files={files}
+                value={selectedImageFileId}
+                onSelect={setSelectedImageFileId}
+                onClose={() => setMediaPickerOpen(false)}
+            />
+        </>
+    );
 }
 
 function ProductTable({
-  products,
-  prices,
-  hasFilters,
-  onClear,
-  onEdit,
-  onRemove,
+    products,
+    prices,
+    hasFilters,
+    onClear,
+    onEdit,
+    onRemove,
+    onStatusChange,
+    statusChanging,
 }: {
-  products: Product[];
-  prices: Record<string, Price[]>;
-  hasFilters: boolean;
-  onClear: () => void;
-  onEdit: (product: Product) => void;
-  onRemove: (product: Product) => void;
+    products: Product[];
+    prices: Record<string, Price[]>;
+    hasFilters: boolean;
+    onClear: () => void;
+    onEdit: (product: Product) => void;
+    onRemove: (product: Product) => void;
+    onStatusChange: (product: Product, status: 'active' | 'inactive') => void;
+    statusChanging?: string;
 }) {
-  return (
-    <section className="product-table glass-panel overflow-hidden rounded-[28px]">
-      <div className="flex items-center justify-between gap-4 border-b border-white/65 px-5 py-5 sm:px-6">
-        <div>
-          <h2 className="text-sm font-semibold tracking-[-0.02em]">
-            Catálogo de produtos
-          </h2>
-          <p className="mt-1 text-[12px] text-muted">
-            {products.length}{" "}
-            {products.length === 1
-              ? "produto encontrado"
-              : "produtos encontrados"}
-          </p>
-        </div>
-        <span className="hidden rounded-full border border-white/80 bg-white/42 px-3 py-1.5 text-[12px] font-medium text-muted sm:inline-flex">
-          Valores em BRL
-        </span>
-      </div>
+    return (
+        <section className="product-table glass-panel overflow-hidden rounded-[28px]">
+            <div className="flex items-center justify-between gap-4 border-b border-white/65 px-5 py-5 sm:px-6">
+                <div>
+                    <h2 className="text-sm font-semibold tracking-[-0.02em]">
+                        Catálogo de produtos
+                    </h2>
+                    <p className="mt-1 text-[12px] text-muted">
+                        {products.length}{' '}
+                        {products.length === 1 ? 'produto encontrado' : 'produtos encontrados'}
+                    </p>
+                </div>
+                <span className="hidden rounded-full border border-white/80 bg-white/42 px-3 py-1.5 text-[12px] font-medium text-muted sm:inline-flex">
+                    Valores em BRL
+                </span>
+            </div>
 
-      {products.length === 0 ? (
-        <div className="px-5 py-14 text-center">
-          <span className="mx-auto grid size-11 place-items-center rounded-full bg-brand-soft/75 text-brand">
-            <Icon name="search" className="size-4" />
-          </span>
-          <h3 className="mt-3 text-sm font-semibold">Nenhum resultado</h3>
-          <p className="mt-1 text-[13px] text-muted">
-            Ajuste a busca ou os filtros utilizados.
-          </p>
-          {hasFilters && (
-            <Button
-              type="button"
-              onClick={onClear}
-              className="mt-4 text-[13px] font-semibold text-brand-strong hover:underline"
-            >
-              Limpar filtros
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[920px] text-left">
-            <thead className="bg-white/24 text-[12px] uppercase tracking-[0.09em] text-muted">
-              <tr>
-                <th className="px-6 py-3.5 font-semibold">Produto</th>
-                <th className="px-5 py-3.5 font-semibold">Tipo</th>
-                <th className="px-5 py-3.5 font-semibold">Preço principal</th>
-                <th className="px-5 py-3.5 font-semibold">Cobrança</th>
-                <th className="px-5 py-3.5 font-semibold">Status</th>
-                <th className="px-5 py-3.5 font-semibold">Atualização</th>
-                <th className="px-6 py-3.5 text-right font-semibold">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/65">
-              {products.map((product) => {
-                const productPrices = prices[product.id] ?? [];
-                const primaryPrice =
-                  productPrices.find((price) => price.status === "active") ??
-                  productPrices[0];
-                return (
-                  <tr
-                    key={product.id}
-                    className="group text-[13px] transition hover:bg-white/34"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span className="product-table-icon grid size-10 shrink-0 place-items-center rounded-[13px] border border-white/80 bg-gradient-to-br from-white/75 to-[#ece9ff]/65 text-brand shadow-[0_7px_20px_rgba(91,69,180,.08)]">
-                          <Icon
-                            name={productIcon(product.type)}
-                            className="size-4"
-                          />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="max-w-[260px] truncate font-semibold text-foreground">
-                            {product.name}
-                          </p>
-                          <p className="mt-1 max-w-[260px] truncate text-[12px] text-muted">
-                            {product.shortDescription || `/${product.slug}`}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <TypeBadge type={product.type} />
-                    </td>
-                    <td className="px-5 py-4">
-                      {primaryPrice ? (
-                        <div>
-                          <p className="font-semibold tabular-nums text-foreground">
-                            {money(
-                              primaryPrice.amountMinor,
-                              primaryPrice.currency,
-                            )}
-                          </p>
-                          {productPrices.length > 1 && (
-                            <p className="mt-1 text-[12px] text-muted">
-                              +{productPrices.length - 1}{" "}
-                              {productPrices.length === 2 ? "preço" : "preços"}
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-[12px] font-medium text-warning">
-                          Não configurado
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 text-muted">
-                      {primaryPrice ? billingLabel(primaryPrice) : "—"}
-                    </td>
-                    <td className="px-5 py-4">
-                      <StatusBadge status={product.status} />
-                    </td>
-                    <td className="px-5 py-4 text-[12px] text-muted">
-                      <time dateTime={product.updatedAt}>
-                        {shortDate(product.updatedAt)}
-                      </time>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="inline-flex items-center gap-1 opacity-65 transition group-hover:opacity-100">
-                        <ActionButton
-                          label="Editar produto"
-                          icon="edit"
-                          onClick={() => onEdit(product)}
-                        />
-                        <ActionButton
-                          label="Excluir produto"
-                          icon="trash"
-                          danger
-                          onClick={() => onRemove(product)}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  );
+            {products.length === 0 ? (
+                <div className="px-5 py-14 text-center">
+                    <span className="mx-auto grid size-11 place-items-center rounded-full bg-brand-soft/75 text-brand">
+                        <Icon name="search" className="size-4" />
+                    </span>
+                    <h3 className="mt-3 text-sm font-semibold">Nenhum resultado</h3>
+                    <p className="mt-1 text-[13px] text-muted">
+                        Ajuste a busca ou os filtros utilizados.
+                    </p>
+                    {hasFilters && (
+                        <Button
+                            type="button"
+                            onClick={onClear}
+                            className="mt-4 text-[13px] font-semibold text-brand-strong hover:underline"
+                        >
+                            Limpar filtros
+                        </Button>
+                    )}
+                </div>
+            ) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[920px] text-left">
+                        <thead className="bg-white/24 text-[12px] uppercase tracking-[0.09em] text-muted">
+                            <tr>
+                                <th className="px-6 py-3.5 font-semibold">Produto</th>
+                                <th className="px-5 py-3.5 font-semibold">Tipo</th>
+                                <th className="px-5 py-3.5 font-semibold">Preço principal</th>
+                                <th className="px-5 py-3.5 font-semibold">Cobrança</th>
+                                <th className="px-5 py-3.5 font-semibold">Status</th>
+                                <th className="px-5 py-3.5 font-semibold">Atualização</th>
+                                <th className="px-6 py-3.5 text-right font-semibold">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/65">
+                            {products.map((product) => {
+                                const productPrices = prices[product.id] ?? [];
+                                const primaryPrice =
+                                    productPrices.find((price) => price.status === 'active') ??
+                                    productPrices[0];
+                                return (
+                                    <tr
+                                        key={product.id}
+                                        className="group text-[13px] transition hover:bg-white/34"
+                                    >
+                                        <td className="px-6 py-4">
+                                            <div className="flex min-w-0 items-center gap-3">
+                                                <span className="product-table-icon grid size-10 shrink-0 place-items-center rounded-[13px] border border-white/80 bg-gradient-to-br from-white/75 to-[#ece9ff]/65 text-brand shadow-[0_7px_20px_rgba(91,69,180,.08)]">
+                                                    <Icon
+                                                        name={productIcon(product.type)}
+                                                        className="size-4"
+                                                    />
+                                                </span>
+                                                <div className="min-w-0">
+                                                    <p className="max-w-[260px] truncate font-semibold text-foreground">
+                                                        {product.name}
+                                                    </p>
+                                                    <p className="mt-1 max-w-[260px] truncate text-[12px] text-muted">
+                                                        {product.shortDescription ||
+                                                            `/${product.slug}`}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <TypeBadge type={product.type} />
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            {primaryPrice ? (
+                                                <div>
+                                                    <p className="font-semibold tabular-nums text-foreground">
+                                                        {money(
+                                                            primaryPrice.amountMinor,
+                                                            primaryPrice.currency,
+                                                        )}
+                                                    </p>
+                                                    {productPrices.length > 1 && (
+                                                        <p className="mt-1 text-[12px] text-muted">
+                                                            +{productPrices.length - 1}{' '}
+                                                            {productPrices.length === 2
+                                                                ? 'preço'
+                                                                : 'preços'}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-[12px] font-medium text-warning">
+                                                    Não configurado
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-5 py-4 text-muted">
+                                            {primaryPrice ? billingLabel(primaryPrice) : '—'}
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <StatusBadge status={product.status} />
+                                        </td>
+                                        <td className="px-5 py-4 text-[12px] text-muted">
+                                            <time dateTime={product.updatedAt}>
+                                                {shortDate(product.updatedAt)}
+                                            </time>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="inline-flex items-center gap-1 opacity-65 transition group-hover:opacity-100">
+                                                <ActionButton
+                                                    label="Editar produto"
+                                                    icon="edit"
+                                                    onClick={() => onEdit(product)}
+                                                />
+                                                <ActionButton
+                                                    label={
+                                                        product.status === 'active'
+                                                            ? 'Desativar produto'
+                                                            : 'Ativar produto'
+                                                    }
+                                                    icon={
+                                                        product.status === 'active'
+                                                            ? 'close'
+                                                            : 'check'
+                                                    }
+                                                    disabled={statusChanging === product.id}
+                                                    onClick={() =>
+                                                        onStatusChange(
+                                                            product,
+                                                            product.status === 'active'
+                                                                ? 'inactive'
+                                                                : 'active',
+                                                        )
+                                                    }
+                                                />
+                                                <ActionButton
+                                                    label="Excluir produto"
+                                                    icon="trash"
+                                                    danger
+                                                    onClick={() => onRemove(product)}
+                                                />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </section>
+    );
 }
 
 function ActionButton({
-  label,
-  icon,
-  danger = false,
-  onClick,
+    label,
+    icon,
+    danger = false,
+    disabled = false,
+    onClick,
 }: {
-  label: string;
-  icon: IconName;
-  danger?: boolean;
-  onClick: () => void;
+    label: string;
+    icon: IconName;
+    danger?: boolean;
+    disabled?: boolean;
+    onClick: () => void;
 }) {
-  return (
-    <span className="group/action relative inline-flex">
-      <Button
-        type="button"
-        onClick={onClick}
-        aria-label={label}
-        className={`inline-grid size-8 place-items-center rounded-xl transition ${danger ? "text-muted hover:bg-[#fff0f2] hover:text-danger" : "text-muted hover:bg-brand-soft/70 hover:text-brand-strong"}`}
-      >
-        <Icon name={icon} className="size-3.5" />
-      </Button>
-      <span
-        role="tooltip"
-        className="pointer-events-none absolute bottom-[calc(100%+7px)] right-0 z-20 whitespace-nowrap rounded-lg border border-white/10 bg-[#292844]/92 px-2.5 py-1.5 text-[12px] font-medium text-white opacity-0 shadow-[0_10px_28px_rgba(35,30,70,.2)] backdrop-blur-xl transition duration-200 group-hover/action:-translate-y-0.5 group-hover/action:opacity-100 group-focus-within/action:-translate-y-0.5 group-focus-within/action:opacity-100"
-      >
-        {label}
-        <span className="absolute -bottom-1 right-3 size-2 rotate-45 bg-[#292844]/92" />
-      </span>
-    </span>
-  );
+    return (
+        <span className="group/action relative inline-flex">
+            <Button
+                type="button"
+                onClick={onClick}
+                disabled={disabled}
+                aria-label={label}
+                className={`inline-grid size-8 place-items-center rounded-xl transition ${danger ? 'text-muted hover:bg-[#fff0f2] hover:text-danger' : 'text-muted hover:bg-brand-soft/70 hover:text-brand-strong'}`}
+            >
+                <Icon name={icon} className="size-3.5" />
+            </Button>
+            <span
+                role="tooltip"
+                className="pointer-events-none absolute bottom-[calc(100%+7px)] right-0 z-20 whitespace-nowrap rounded-lg border border-white/10 bg-[#292844]/92 px-2.5 py-1.5 text-[12px] font-medium text-white opacity-0 shadow-[0_10px_28px_rgba(35,30,70,.2)] backdrop-blur-xl transition duration-200 group-hover/action:-translate-y-0.5 group-hover/action:opacity-100 group-focus-within/action:-translate-y-0.5 group-focus-within/action:opacity-100"
+            >
+                {label}
+                <span className="absolute -bottom-1 right-3 size-2 rotate-45 bg-[#292844]/92" />
+            </span>
+        </span>
+    );
 }
 
 function DeleteProductModal({
-  product,
-  loading,
-  onCancel,
-  onConfirm,
+    product,
+    loading,
+    onCancel,
+    onConfirm,
 }: {
-  product: Product;
-  loading: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
+    product: Product;
+    loading: boolean;
+    onCancel: () => void;
+    onConfirm: () => void;
 }) {
-  return (
-    <div onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }} className="fixed inset-0 z-[110] grid place-items-center bg-[#17172c]/24 p-4 backdrop-blur-sm">
-      <section
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="delete-product-title"
-        aria-describedby="delete-product-description"
-        className="theme-modal glass-panel w-full max-w-md rounded-[26px] p-6 shadow-[0_32px_100px_rgba(37,31,76,.24)]"
-      >
-        <span className="grid size-11 place-items-center rounded-2xl border border-[#ffdce1] bg-[#fff0f2]/85 text-danger shadow-sm">
-          <Icon name="trash" className="size-4.5" />
-        </span>
-        <h2
-          id="delete-product-title"
-          className="mt-5 text-xl font-semibold tracking-[-0.035em]"
+    return (
+        <div
+            onMouseDown={(event) => {
+                if (event.target === event.currentTarget) onCancel();
+            }}
+            className="fixed inset-0 z-[110] grid place-items-center bg-[#17172c]/24 p-4 backdrop-blur-sm"
         >
-          Excluir produto?
-        </h2>
-        <p
-          id="delete-product-description"
-          className="mt-2 text-[13px] leading-5 text-muted"
-        >
-          <strong className="font-semibold text-foreground">
-            {product.name}
-          </strong>{" "}
-          será removido permanentemente do catálogo. Esta ação não pode ser
-          desfeita.
-        </p>
-        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button
-            type="button"
-            disabled={loading}
-            onClick={onCancel}
-            className="h-11 rounded-xl border border-white/85 bg-white/45 px-5 text-[13px] font-semibold text-muted transition hover:bg-white/75 hover:text-foreground disabled:opacity-50"
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="button"
-            disabled={loading}
-            onClick={onConfirm}
-            className="h-11 rounded-xl bg-danger px-5 text-[13px] font-semibold text-white shadow-[0_10px_24px_rgba(195,59,83,.2)] transition hover:bg-[#aa3148] disabled:cursor-not-allowed disabled:opacity-55"
-          >
-            {loading ? "Excluindo..." : "Excluir produto"}
-          </Button>
+            <section
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="delete-product-title"
+                aria-describedby="delete-product-description"
+                className="theme-modal glass-panel w-full max-w-md rounded-[26px] p-6 shadow-[0_32px_100px_rgba(37,31,76,.24)]"
+            >
+                <span className="grid size-11 place-items-center rounded-2xl border border-[#ffdce1] bg-[#fff0f2]/85 text-danger shadow-sm">
+                    <Icon name="trash" className="size-4.5" />
+                </span>
+                <h2
+                    id="delete-product-title"
+                    className="mt-5 text-xl font-semibold tracking-[-0.035em]"
+                >
+                    Excluir produto?
+                </h2>
+                <p
+                    id="delete-product-description"
+                    className="mt-2 text-[13px] leading-5 text-muted"
+                >
+                    <strong className="font-semibold text-foreground">{product.name}</strong> será
+                    removido permanentemente do catálogo. Esta ação não pode ser desfeita.
+                </p>
+                <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <Button
+                        type="button"
+                        disabled={loading}
+                        onClick={onCancel}
+                        className="h-11 rounded-xl border border-white/85 bg-white/45 px-5 text-[13px] font-semibold text-muted transition hover:bg-white/75 hover:text-foreground disabled:opacity-50"
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        type="button"
+                        disabled={loading}
+                        onClick={onConfirm}
+                        className="h-11 rounded-xl bg-danger px-5 text-[13px] font-semibold text-white shadow-[0_10px_24px_rgba(195,59,83,.2)] transition hover:bg-[#aa3148] disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                        {loading ? 'Excluindo...' : 'Excluir produto'}
+                    </Button>
+                </div>
+            </section>
         </div>
-      </section>
-    </div>
-  );
+    );
 }
 
 function EmptyProducts({ onCreate }: { onCreate: () => void }) {
-  return (
-    <section className="glass-panel rounded-[28px] px-5 py-16 text-center sm:py-20">
-      <span className="mx-auto grid size-12 place-items-center rounded-2xl border border-white/85 bg-brand-soft/70 text-brand shadow-[0_12px_28px_rgba(91,69,180,.1)]">
-        <Icon name="box" className="size-5" />
-      </span>
-      <h2 className="mt-4 text-base font-semibold tracking-[-0.025em]">
-        Seu catálogo começa aqui
-      </h2>
-      <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-5 text-muted">
-        Crie o primeiro produto e configure seu preço para começar a vender.
-      </p>
-      <Button
-        type="button"
-        onClick={onCreate}
-        className="glass-interactive mt-5 inline-flex h-11 items-center gap-2 rounded-xl bg-brand px-5 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:-translate-y-0.5 hover:bg-brand-strong"
-      >
-        <Icon name="plus" className="size-3.5" />
-        Criar primeiro produto
-      </Button>
-    </section>
-  );
+    return (
+        <section className="glass-panel rounded-[28px] px-5 py-16 text-center sm:py-20">
+            <span className="mx-auto grid size-12 place-items-center rounded-2xl border border-white/85 bg-brand-soft/70 text-brand shadow-[0_12px_28px_rgba(91,69,180,.1)]">
+                <Icon name="box" className="size-5" />
+            </span>
+            <h2 className="mt-4 text-base font-semibold tracking-[-0.025em]">
+                Seu catálogo começa aqui
+            </h2>
+            <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-5 text-muted">
+                Crie o primeiro produto e configure seu preço para começar a vender.
+            </p>
+            <Button
+                type="button"
+                onClick={onCreate}
+                className="glass-interactive mt-5 inline-flex h-11 items-center gap-2 rounded-xl bg-brand px-5 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:-translate-y-0.5 hover:bg-brand-strong"
+            >
+                <Icon name="plus" className="size-3.5" />
+                Criar primeiro produto
+            </Button>
+        </section>
+    );
 }
 
 function Field({
-  label,
-  className,
-  ...input
+    label,
+    className,
+    ...input
 }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
-  return (
-    <label className="text-[13px] font-semibold">
-      {label}
-      <input
-        {...input}
-        className={`mt-2 h-11 w-full rounded-xl border border-[#d9d7e8] bg-white/70 px-3.5 font-normal outline-none transition placeholder:text-[#aaaabd] focus:border-brand/70 focus:bg-white focus:shadow-[0_0_0_3px_rgba(109,93,244,.16)] ${className ?? ""}`}
-      />
-    </label>
-  );
+    return (
+        <label className="text-[13px] font-semibold">
+            {label}
+            <input
+                {...input}
+                className={`mt-2 h-11 w-full rounded-xl border border-[#d9d7e8] bg-white/70 px-3.5 font-normal outline-none transition placeholder:text-[#aaaabd] focus:border-brand/70 focus:bg-white focus:shadow-[0_0_0_3px_rgba(109,93,244,.16)] ${className ?? ''}`}
+            />
+        </label>
+    );
 }
 
 function SelectField({
-  label,
-  children,
-  ...select
+    label,
+    children,
+    ...select
 }: React.SelectHTMLAttributes<HTMLSelectElement> & {
-  label: string;
-  children: React.ReactNode;
+    label: string;
+    children: React.ReactNode;
 }) {
-  const options = Children.toArray(children).filter(isValidElement).map((child) => { const option = child as ReactElement<{ value?: string; children?: React.ReactNode }>; return { value: String(option.props.value ?? ""), label: String(option.props.children ?? "") }; }) satisfies SelectOption[];
-  return <label className="text-[13px] font-semibold">{label}<div className="mt-2"><CustomSelect name={select.name ?? ""} value={select.value === undefined ? undefined : String(select.value)} defaultValue={select.defaultValue === undefined ? undefined : String(select.defaultValue)} options={options} onValueChange={(value) => select.onChange?.({ target: { value } } as React.ChangeEvent<HTMLSelectElement>)} /></div></label>;
+    const options = Children.toArray(children)
+        .filter(isValidElement)
+        .map((child) => {
+            const option = child as ReactElement<{
+                value?: string;
+                children?: React.ReactNode;
+                disabled?: boolean;
+                'data-badge'?: string;
+            }>;
+            return {
+                value: String(option.props.value ?? ''),
+                label: String(option.props.children ?? ''),
+                disabled: option.props.disabled,
+                badge: option.props['data-badge'],
+            };
+        }) satisfies SelectOption[];
+    return (
+        <label className="text-[13px] font-semibold">
+            {label}
+            <div className="mt-2">
+                <CustomSelect
+                    name={select.name ?? ''}
+                    value={select.value === undefined ? undefined : String(select.value)}
+                    defaultValue={
+                        select.defaultValue === undefined ? undefined : String(select.defaultValue)
+                    }
+                    options={options}
+                    onValueChange={(value) =>
+                        select.onChange?.({
+                            target: { value },
+                        } as React.ChangeEvent<HTMLSelectElement>)
+                    }
+                />
+            </div>
+        </label>
+    );
 }
 
 function MoneyField({ name, label }: { name: string; label: string }) {
-  const [minor, setMinor] = useState(0);
-  return <label className="text-[13px] font-semibold">{label}<input type="hidden" name={name} value={minor} /><div className="relative mt-2"><span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-[13px] text-muted">R$</span><input inputMode="numeric" value={new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(minor / 100)} onChange={(event) => setMinor(Number(event.target.value.replace(/\D/g, "")))} className="h-11 w-full rounded-xl border border-[#d9d7e8] bg-white/70 pl-10 pr-3.5 font-normal tabular-nums outline-none transition focus:border-brand/70 focus:shadow-[0_0_0_3px_rgba(109,93,244,.16)]" /></div></label>;
+    const [minor, setMinor] = useState(0);
+    return (
+        <label className="text-[13px] font-semibold">
+            {label}
+            <input type="hidden" name={name} value={minor} />
+            <div className="relative mt-2">
+                <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-[13px] text-muted">
+                    R$
+                </span>
+                <input
+                    inputMode="numeric"
+                    value={new Intl.NumberFormat('pt-BR', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                    }).format(minor / 100)}
+                    onChange={(event) => setMinor(Number(event.target.value.replace(/\D/g, '')))}
+                    className="h-11 w-full rounded-xl border border-[#d9d7e8] bg-white/70 pl-10 pr-3.5 font-normal tabular-nums outline-none transition focus:border-brand/70 focus:shadow-[0_0_0_3px_rgba(109,93,244,.16)]"
+                />
+            </div>
+        </label>
+    );
 }
 
 async function uploadProductImage(file: File): Promise<{ id?: string; detail?: string }> {
-  if (file.size > 5_000_000) return { detail: "A imagem deve ter no máximo 5 MB." };
-  const contentBase64 = await fileToBase64(file);
-  const response = await fetch("/api/files", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ originalName: file.name, contentType: file.type, contentBase64 }) });
-  const body = await response.json() as { data?: { id: string }; detail?: string };
-  return response.ok && body.data ? { id: body.data.id } : { detail: body.detail };
+    if (file.size > 5_000_000) return { detail: 'A imagem deve ter no máximo 5 MB.' };
+    const contentBase64 = await fileToBase64(file);
+    const response = await fetch('/api/files', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ originalName: file.name, contentType: file.type, contentBase64 }),
+    });
+    const body = (await response.json()) as { data?: { id: string }; detail?: string };
+    return response.ok && body.data ? { id: body.data.id } : { detail: body.detail };
 }
 
-function fileToBase64(file: File) { return new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(",")[1] ?? ""); reader.onerror = () => reject(reader.error); reader.readAsDataURL(file); }); }
-
-function TypeBadge({ type }: { type: Product["type"] }) {
-  return (
-    <span className="product-type-badge inline-flex rounded-full border border-white/80 bg-white/48 px-2.5 py-1 text-[12px] font-medium text-muted">
-      {typeLabel(type)}
-    </span>
-  );
+function fileToBase64(file: File) {
+    return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+    });
 }
 
-function StatusBadge({ status }: { status: Product["status"] }) {
-  const style =
-    status === "active"
-      ? "bg-[#e7f7f0] text-success"
-      : status === "draft"
-        ? "bg-[#f0edff] text-brand-strong"
-        : "bg-white/55 text-muted";
-  return (
-    <span
-      className={`product-status-badge inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold ${style}`}
-    >
-      <span className="size-1.5 rounded-full bg-current opacity-65" />
-      {statusLabel(status)}
-    </span>
-  );
+function TypeBadge({ type }: { type: Product['type'] }) {
+    return (
+        <span className="product-type-badge inline-flex rounded-full border border-white/80 bg-white/48 px-2.5 py-1 text-[12px] font-medium text-muted">
+            {typeLabel(type)}
+        </span>
+    );
+}
+
+function StatusBadge({ status }: { status: Product['status'] }) {
+    const style =
+        status === 'active'
+            ? 'bg-[#e7f7f0] text-success'
+            : status === 'draft'
+              ? 'bg-[#f0edff] text-brand-strong'
+              : 'bg-white/55 text-muted';
+    return (
+        <span
+            className={`product-status-badge inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold ${style}`}
+        >
+            <span className="size-1.5 rounded-full bg-current opacity-65" />
+            {statusLabel(status)}
+        </span>
+    );
 }
 
 function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
+    return value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
 }
+
 function slugify(value: string) {
-  return normalize(value)
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+    return normalize(value)
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
 }
+
 function money(value: number, currency: string) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format(
-    value / 100,
-  );
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value / 100);
 }
-function typeLabel(type: Product["type"]) {
-  return {
-    digital: "Digital",
-    physical: "Físico",
-    service: "Serviço",
-    saas: "SaaS",
-  }[type];
+
+function typeLabel(type: Product['type']) {
+    return {
+        digital: 'Digital',
+        physical: 'Físico',
+        service: 'Serviço',
+        saas: 'SaaS',
+    }[type];
 }
-function productIcon(type: Product["type"]): "box" | "bolt" | "code" | "tag" {
-  if (type === "digital") return "bolt";
-  if (type === "physical") return "box";
-  if (type === "service") return "tag";
-  return "code";
+
+function productIcon(type: Product['type']): 'box' | 'bolt' | 'code' | 'tag' {
+    if (type === 'digital') return 'bolt';
+    if (type === 'physical') return 'box';
+    if (type === 'service') return 'tag';
+    return 'code';
 }
-function statusLabel(status: Product["status"]) {
-  return { draft: "Rascunho", active: "Ativo", inactive: "Inativo" }[status];
+
+function statusLabel(status: Product['status']) {
+    return { draft: 'Rascunho', active: 'Ativo', inactive: 'Inativo' }[status];
 }
+
 function intervalLabel(interval: string | null) {
-  return (
-    { day: "Diária", week: "Semanal", month: "Mensal", year: "Anual" }[
-      interval ?? ""
-    ] ?? "Recorrente"
-  );
+    return (
+        { day: 'Diária', week: 'Semanal', month: 'Mensal', year: 'Anual' }[interval ?? ''] ??
+        'Recorrente'
+    );
 }
+
 function billingLabel(price: Price) {
-  return price.pricingType === "recurring"
-    ? intervalLabel(price.recurringInterval)
-    : price.pricingType === "one_time"
-      ? "Pagamento único"
-      : price.pricingType === "free"
-        ? "Grátis"
-        : "Personalizado";
+    return price.pricingType === 'recurring'
+        ? intervalLabel(price.recurringInterval)
+        : price.pricingType === 'one_time'
+          ? 'Pagamento único'
+          : price.pricingType === 'free'
+            ? 'Grátis'
+            : 'Personalizado';
 }
+
 function shortDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
+    return new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    }).format(new Date(value));
 }

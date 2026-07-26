@@ -1,23 +1,25 @@
-import type { Metadata } from "next";
+import type { Metadata } from 'next';
 
-import "./globals.css";
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: {
-    default: "Astro — Painel",
-    template: "%s — Astro",
-  },
-  description: "Gerencie sua operação, checkouts e pagamentos no Astro.",
+    title: {
+        default: 'Astro — Painel',
+        template: '%s — Astro',
+    },
+    description: 'Gerencie sua operação, checkouts e pagamentos no Astro.',
 };
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    <html lang="pt-BR" className="h-full antialiased">
-      <body suppressHydrationWarning className="min-h-full">{children}</body>
-    </html>
-  );
+    return (
+        <html lang="pt-BR" className="h-full antialiased">
+            <body suppressHydrationWarning className="min-h-full">
+                {children}
+            </body>
+        </html>
+    );
 }
