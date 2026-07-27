@@ -61,6 +61,7 @@ export const config = {
         '/orders/:path*',
         '/payments/:path*',
         '/refunds/:path*',
+        '/roadmap/:path*',
         '/shipping/:path*',
         '/subscriptions/:path*',
         '/customers/:path*',
@@ -68,5 +69,6 @@ export const config = {
         '/team/:path*',
         '/settings/:path*',
         '/webhooks/:path*',
+        '/admin/:path*',
     ],
 };

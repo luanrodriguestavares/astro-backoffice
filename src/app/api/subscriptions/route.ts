@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { apiFetch, AstroApiError } from '@/lib/api/server';
+import { clientProblem } from '@/lib/api/problem';
 
 export async function POST(request: Request) {
     try {
@@ -12,10 +13,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ data });
     } catch (error) {
         if (error instanceof AstroApiError)
-            return NextResponse.json(
-                { detail: error.problem.detail },
-                { status: error.problem.status },
-            );
+            return NextResponse.json(clientProblem(error.problem), {
+                status: error.problem.status,
+            });
         return NextResponse.json(
             { detail: 'Não foi possível criar a assinatura.' },
             { status: 500 },

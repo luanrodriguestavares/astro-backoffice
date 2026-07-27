@@ -8,19 +8,18 @@ import { useRouter } from 'next/navigation';
 
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
+import { showToast } from '@/components/ui/toast';
 import { useEscapeClose } from '@/hooks/use-escape-close';
 
 export function CouponCreate() {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string>();
     const [discountType, setDiscountType] = useState('percentage');
 
     function close() {
         if (!loading) {
             setOpen(false);
-            setError(undefined);
         }
     }
 
@@ -29,7 +28,6 @@ export function CouponCreate() {
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setLoading(true);
-        setError(undefined);
         const form = new FormData(event.currentTarget);
         const shownValue = Number(String(form.get('discountValue') ?? '0').replace(',', '.'));
         const response = await fetch('/api/coupons', {
@@ -47,9 +45,20 @@ export function CouponCreate() {
         });
         const body = (await response.json()) as { detail?: string };
         setLoading(false);
-        if (!response.ok) return setError(body.detail ?? 'Não foi possível cadastrar o cupom.');
+        if (!response.ok) {
+            showToast({
+                tone: 'error',
+                description: body.detail ?? 'Não foi possível cadastrar o cupom.',
+            });
+            return;
+        }
         setOpen(false);
         setDiscountType('percentage');
+        showToast({
+            tone: 'success',
+            title: 'Cupom criado',
+            description: 'O cupom já pode ser utilizado nos checkouts.',
+        });
         router.refresh();
     }
 
@@ -136,14 +145,6 @@ export function CouponCreate() {
                                     required
                                 />
                             </div>
-                            {error && (
-                                <p
-                                    role="alert"
-                                    className="mt-5 rounded-2xl border border-[#f7d8de] bg-[#fff5f7] p-3 text-[13px] text-danger"
-                                >
-                                    {error}
-                                </p>
-                            )}
                             <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                 <Button
                                     type="button"

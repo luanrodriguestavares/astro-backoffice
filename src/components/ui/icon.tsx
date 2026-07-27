@@ -36,7 +36,8 @@ export type IconName =
     | 'download'
     | 'play'
     | 'sun'
-    | 'moon';
+    | 'moon'
+    | 'heart';
 
 const paths: Record<IconName, React.ReactNode> = {
     home: (
@@ -259,9 +260,20 @@ const paths: Record<IconName, React.ReactNode> = {
         </>
     ),
     moon: <path d="M20.5 14.4A8.5 8.5 0 0 1 9.6 3.5 8.5 8.5 0 1 0 20.5 14.4Z" />,
+    heart: (
+        <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
+    ),
 };
 
-export function Icon({ name, className = 'size-5' }: { name: IconName; className?: string }) {
+export function Icon({
+    name,
+    className = 'size-5',
+    filled = false,
+}: {
+    name: IconName;
+    className?: string;
+    filled?: boolean;
+}) {
     return (
         <svg
             viewBox="0 0 24 24"
@@ -270,7 +282,7 @@ export function Icon({ name, className = 'size-5' }: { name: IconName; className
             fill="none"
             stroke="currentColor"
             aria-hidden="true"
-            className={`${className} fill-none stroke-current`}
+            className={`${className} ${filled ? 'fill-current' : 'fill-none'} stroke-current`}
             strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"

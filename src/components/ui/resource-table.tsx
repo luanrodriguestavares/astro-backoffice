@@ -98,14 +98,14 @@ export function SummaryCard({
         <article className="summary-card glass-panel relative min-h-[132px] rounded-[22px] p-5">
             <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                    <p className="summary-card-label text-[12px] font-medium text-[#5f6078]">
+                    <p className="summary-card-label text-[12px] font-medium text-muted">
                         {label}
                     </p>
-                    <p className="summary-card-value mt-2.5 truncate text-[25px] font-semibold tracking-[-0.05em] text-[#17182f]">
+                    <p className="summary-card-value mt-2.5 truncate text-[25px] font-semibold tracking-[-0.05em] text-foreground">
                         {value}
                     </p>
                 </div>
-                <span className="summary-card-icon grid size-9 shrink-0 place-items-center rounded-full border border-white/80 bg-[#eeeaff]/80 text-brand-strong shadow-[inset_0_1px_0_rgba(255,255,255,.9)]">
+                <span className="summary-card-icon grid size-9 shrink-0 place-items-center rounded-full border border-white/80 bg-brand-soft/80 text-brand-strong shadow-[inset_0_1px_0_rgba(255,255,255,.9)]">
                     <Icon name={icon} className="size-[17px]" />
                 </span>
             </div>

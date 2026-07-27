@@ -8,20 +8,19 @@ import { useRouter } from 'next/navigation';
 
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
+import { showToast } from '@/components/ui/toast';
 import { useEscapeClose } from '@/hooks/use-escape-close';
 
 export function InviteMember() {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string>();
     const [token, setToken] = useState<string>();
 
     function close() {
         if (loading) return;
         setOpen(false);
         setToken(undefined);
-        setError(undefined);
     }
 
     useEscapeClose(open, close);
@@ -29,7 +28,6 @@ export function InviteMember() {
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setLoading(true);
-        setError(undefined);
         const form = new FormData(event.currentTarget);
         const response = await fetch('/api/team/invitations', {
             method: 'POST',
@@ -41,8 +39,19 @@ export function InviteMember() {
             detail?: string;
         };
         setLoading(false);
-        if (!response.ok) return setError(body.detail ?? 'Falha ao convidar.');
+        if (!response.ok) {
+            showToast({
+                tone: 'error',
+                description: body.detail ?? 'Não foi possível enviar o convite.',
+            });
+            return;
+        }
         setToken(body.data?.developmentToken);
+        showToast({
+            tone: 'success',
+            title: 'Convite enviado',
+            description: 'O novo membro foi convidado para o workspace.',
+        });
         router.refresh();
         if (!body.data?.developmentToken) close();
     }
@@ -131,14 +140,6 @@ export function InviteMember() {
                                             </div>
                                         </label>
                                     </div>
-                                    {error && (
-                                        <p
-                                            role="alert"
-                                            className="mt-5 rounded-2xl border border-[#f7d8de] bg-[#fff5f7] p-3 text-[13px] text-danger"
-                                        >
-                                            {error}
-                                        </p>
-                                    )}
                                     <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                         <Button
                                             type="button"

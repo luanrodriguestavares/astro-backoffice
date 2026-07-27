@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { CustomSelect, type SelectOption } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
+import { showToast } from '@/components/ui/toast';
 import { useEscapeClose } from '@/hooks/use-escape-close';
 
 type ModalProps = {
@@ -15,7 +16,6 @@ type ModalProps = {
     title: string;
     eyebrow: string;
     description: string;
-    error?: string;
     submitLabel: string;
     close: () => void;
     onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -61,14 +61,6 @@ function ResourceModal(props: ModalProps) {
                 <div className="-mx-1 mt-6 grid min-h-0 flex-1 gap-4 overflow-y-auto p-1 sm:grid-cols-2">
                     {props.children}
                 </div>
-                {props.error && (
-                    <p
-                        role="alert"
-                        className="mt-5 shrink-0 rounded-2xl border border-[#f7d8de] bg-[#fff5f7] p-3 text-[13px] text-danger"
-                    >
-                        {props.error}
-                    </p>
-                )}
                 <div className="mt-7 flex shrink-0 flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     <Button
                         type="button"
@@ -138,11 +130,9 @@ function useCreate(endpoint: string, after?: (body: Record<string, unknown>) => 
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string>();
 
     async function send(payload: unknown) {
         setLoading(true);
-        setError(undefined);
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
@@ -151,11 +141,18 @@ function useCreate(endpoint: string, after?: (body: Record<string, unknown>) => 
         const body = (await response.json()) as Record<string, unknown> & { detail?: string };
         setLoading(false);
         if (!response.ok) {
-            setError(body.detail ?? 'Não foi possível concluir a operação.');
+            showToast({
+                tone: 'error',
+                description: body.detail ?? 'Não foi possível concluir a operação.',
+            });
             return false;
         }
         setOpen(false);
         after?.(body);
+        showToast({
+            tone: 'success',
+            description: 'A operação foi concluída com sucesso.',
+        });
         router.refresh();
         return true;
     }
@@ -163,11 +160,10 @@ function useCreate(endpoint: string, after?: (body: Record<string, unknown>) => 
     function close() {
         if (!loading) {
             setOpen(false);
-            setError(undefined);
         }
     }
 
-    return { open, setOpen, loading, error, send, close };
+    return { open, setOpen, loading, send, close };
 }
 
 export function FileUploadAction({ folderId }: { folderId?: string | null }) {

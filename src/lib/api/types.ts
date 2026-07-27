@@ -8,6 +8,7 @@ export interface ProblemDetails {
     status: number;
     detail: string;
     requestId?: string;
+    meta?: Record<string, unknown>;
 }
 
 export interface SessionData {
@@ -23,6 +24,81 @@ export interface CurrentUser {
     name: string;
     email: string;
     emailVerified: boolean;
+}
+
+export interface PlatformAdminSession {
+    role: 'super_admin';
+}
+
+export interface PlatformAdminOverview {
+    organizations: { total: number; active: number; suspended: number };
+    users: { total: number; active: number; blocked: number };
+    subscriptions: { trialing: number; active: number; pastDue: number };
+    roadmap: { pending: number; published: number };
+}
+
+export interface PlatformAdminOrganization {
+    id: string;
+    displayName: string;
+    legalName: string;
+    slug: string;
+    status: string;
+    createdAt: string;
+    memberCount: number;
+    planCode: string | null;
+    subscriptionStatus: string | null;
+    periodEndsAt: string | null;
+}
+
+export interface PlatformAdminUser {
+    id: string;
+    name: string;
+    email: string;
+    status: string;
+    emailVerified: boolean;
+    lastLoginAt: string | null;
+    createdAt: string;
+}
+
+export interface PlatformAdminEntitlement {
+    feature: string;
+    enabled: boolean;
+    limit: number | null;
+    resetPeriod: string;
+    metadata: Record<string, unknown>;
+}
+
+export interface PlatformAdminPlan {
+    id: string;
+    code: string;
+    name: string;
+    description: string | null;
+    audience: string | null;
+    pricingType: 'fixed' | 'custom';
+    priceMinor: number;
+    currency: string;
+    billingInterval: string;
+    status: string;
+    sortOrder: number;
+    version: number;
+    entitlements: PlatformAdminEntitlement[];
+}
+
+export interface PlatformAdminAuditEntry {
+    id: string;
+    actorName: string | null;
+    actorEmail: string | null;
+    action: string;
+    resourceType: string;
+    resourceId: string | null;
+    reason: string | null;
+    metadata: Record<string, unknown>;
+    createdAt: string;
+}
+
+export interface PaginatedAdminResult<T> {
+    items: T[];
+    total: number;
 }
 
 export interface Organization {
@@ -109,6 +185,45 @@ export interface StorageUsage {
     usedBytes: number;
     limitBytes: number;
     availableBytes: number;
+}
+
+export type RoadmapStage =
+  | "backlog"
+  | "planned"
+  | "in_progress"
+  | "completed";
+
+export interface RoadmapIdea {
+  id: string;
+  title: string;
+  description: string;
+  stage: RoadmapStage;
+  position: number;
+  likesCount: number;
+  likedByMe: boolean;
+  adminEdited: boolean;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  version: number;
+}
+
+export interface RoadmapSubmission extends RoadmapIdea {
+  moderationStatus: "pending" | "approved" | "rejected";
+}
+
+export interface RoadmapModerationIdea extends RoadmapSubmission {
+  submittedTitle: string;
+  submittedDescription: string;
+  submitterName: string;
+  organizationName: string;
+}
+
+export interface RoadmapDashboard {
+  canModerate: boolean;
+  board: RoadmapIdea[];
+  mySubmissions: RoadmapSubmission[];
+  moderationQueue: RoadmapModerationIdea[];
 }
 
 export interface Price {

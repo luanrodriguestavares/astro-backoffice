@@ -22,7 +22,18 @@ export async function POST(request: Request) {
         if (!response.ok)
             return loginError(request, 'Não foi possível entrar. Confira seus dados.');
 
-        return authenticatedRedirect(request, (payload as ApiEnvelope<SessionData>).data);
+        const session = (payload as ApiEnvelope<SessionData>).data;
+        if (session.organization === undefined) {
+            const admin = await fetch(`${astroApiUrl()}/api/v1/admin/session`, {
+                headers: {
+                    accept: 'application/json',
+                    authorization: `Bearer ${session.accessToken}`,
+                },
+                cache: 'no-store',
+            });
+            if (admin.ok) return authenticatedRedirect(request, session, '/admin');
+        }
+        return authenticatedRedirect(request, session);
     } catch {
         return loginError(request, 'A API do Astro está indisponível no momento.');
     }

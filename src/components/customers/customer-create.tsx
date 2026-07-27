@@ -7,35 +7,28 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 
 import { Icon } from '@/components/ui/icon';
+import { showToast } from '@/components/ui/toast';
 import { useEscapeClose } from '@/hooks/use-escape-close';
 
 export function CustomerCreate() {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string>();
-    const [createdName, setCreatedName] = useState<string>();
 
     function openForm() {
-        setError(undefined);
         setOpen(true);
     }
 
     function closeForm() {
         if (loading) return;
-        setError(undefined);
         setOpen(false);
     }
 
-    useEscapeClose(open || Boolean(createdName), () => {
-        if (createdName) setCreatedName(undefined);
-        else closeForm();
-    });
+    useEscapeClose(open, closeForm);
 
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setLoading(true);
-        setError(undefined);
         const form = new FormData(event.currentTarget);
         const name = String(form.get('name') ?? '').trim();
         const response = await fetch('/api/customers', {
@@ -53,11 +46,18 @@ export function CustomerCreate() {
         const body = (await response.json()) as { detail?: string };
         setLoading(false);
         if (!response.ok) {
-            setError(body.detail ?? 'Não foi possível cadastrar o cliente.');
+            showToast({
+                tone: 'error',
+                description: body.detail ?? 'Não foi possível cadastrar o cliente.',
+            });
             return;
         }
         setOpen(false);
-        setCreatedName(name);
+        showToast({
+            tone: 'success',
+            title: 'Cliente cadastrado',
+            description: `${name} foi adicionado à sua base de clientes.`,
+        });
         router.refresh();
     }
 
@@ -134,18 +134,6 @@ export function CustomerCreate() {
                                 />
                             </div>
 
-                            {error && (
-                                <div
-                                    role="alert"
-                                    className="mt-5 flex items-start gap-2.5 rounded-2xl border border-[#f7d8de] bg-[#fff5f7]/75 p-3 text-[13px] text-danger"
-                                >
-                                    <span className="grid size-5 shrink-0 place-items-center rounded-full bg-danger/10 font-bold">
-                                        !
-                                    </span>
-                                    <p className="pt-0.5">{error}</p>
-                                </div>
-                            )}
-
                             <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                 <Button
                                     type="button"
@@ -167,52 +155,6 @@ export function CustomerCreate() {
                     document.body,
                 )}
 
-            {createdName &&
-                createPortal(
-                    <div
-                        onMouseDown={(event) => {
-                            if (event.target === event.currentTarget) setCreatedName(undefined);
-                        }}
-                        className="fixed inset-0 z-[110] grid place-items-center overflow-y-auto bg-[#17172c]/24 p-4 backdrop-blur-sm"
-                    >
-                        <section
-                            role="alertdialog"
-                            aria-modal="true"
-                            aria-labelledby="customer-created-title"
-                            aria-describedby="customer-created-description"
-                            className="modal-surface glass-panel w-full max-w-md rounded-[26px] p-6 shadow-[0_32px_100px_rgba(37,31,76,.24)]"
-                        >
-                            <span className="grid size-11 place-items-center rounded-2xl border border-[#d5f0e5] bg-[#e8f7f1]/90 text-success shadow-sm">
-                                <Icon name="check" className="size-4.5" />
-                            </span>
-                            <h2
-                                id="customer-created-title"
-                                className="mt-5 text-xl font-semibold tracking-[-0.035em]"
-                            >
-                                Cliente cadastrado
-                            </h2>
-                            <p
-                                id="customer-created-description"
-                                className="mt-2 text-[13px] leading-5 text-muted"
-                            >
-                                <strong className="font-semibold text-foreground">
-                                    {createdName}
-                                </strong>{' '}
-                                foi adicionado à sua base de clientes com sucesso.
-                            </p>
-                            <div className="mt-6 flex justify-end">
-                                <Button
-                                    type="button"
-                                    onClick={() => setCreatedName(undefined)}
-                                    className="h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white shadow-[0_10px_24px_rgba(91,69,223,.2)] transition hover:bg-brand-strong"
-                                >
-                                    Concluir
-                                </Button>
-                            </div>
-                        </section>
-                    </div>,
-                    document.body,
-                )}
         </>
     );
 }

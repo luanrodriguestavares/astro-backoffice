@@ -20,6 +20,7 @@ import { FileUploadAction } from '@/components/resources/create-actions';
 import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
+import { showToast } from '@/components/ui/toast';
 import { useEscapeClose } from '@/hooks/use-escape-close';
 import type { MediaFile, MediaFolder, StorageUsage } from '@/lib/api/types';
 
@@ -30,7 +31,10 @@ type SortMode = 'newest' | 'oldest' | 'name' | 'size';
 type FolderDialog =
     { mode: 'create'; parentId: string | null } | { mode: 'rename'; folder: MediaFolder };
 
-type ContextTarget = { kind: 'file'; item: MediaFile } | { kind: 'folder'; item: MediaFolder };
+type ContextTarget =
+    | { kind: 'file'; item: MediaFile }
+    | { kind: 'folder'; item: MediaFolder }
+    | { kind: 'area'; folderId: string | null };
 
 type ContextMenu = ContextTarget & { x: number; y: number };
 
@@ -60,7 +64,6 @@ export function FileLibrary({
     const [contextMenu, setContextMenu] = useState<ContextMenu>();
     const [dropTarget, setDropTarget] = useState<string | 'root'>();
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string>();
 
     useEffect(() => {
         const close = () => setContextMenu(undefined);
@@ -180,7 +183,6 @@ export function FileLibrary({
         success?: () => void,
     ) {
         setLoading(true);
-        setError(undefined);
         const response = await fetch(endpoint, {
             method,
             ...(payload
@@ -193,10 +195,17 @@ export function FileLibrary({
         const body = (await response.json()) as { detail?: string };
         setLoading(false);
         if (!response.ok) {
-            setError(body.detail ?? 'Não foi possível concluir a operação.');
+            showToast({
+                tone: 'error',
+                description: body.detail ?? 'Não foi possível concluir a operação.',
+            });
             return;
         }
         success?.();
+        showToast({
+            tone: 'success',
+            description: 'A biblioteca de mídia foi atualizada.',
+        });
         router.refresh();
     }
 
@@ -204,7 +213,8 @@ export function FileLibrary({
         event.preventDefault();
         event.stopPropagation();
         const menuWidth = 210;
-        const menuHeight = target.kind === 'folder' ? 190 : 210;
+        const menuHeight =
+            target.kind === 'area' ? 54 : target.kind === 'folder' ? 190 : 210;
         setContextMenu({
             ...target,
             x: Math.min(event.clientX, window.innerWidth - menuWidth - 12),
@@ -219,7 +229,6 @@ export function FileLibrary({
         setDeleteFile(undefined);
         setFolderDialog(undefined);
         setDeleteFolder(undefined);
-        setError(undefined);
     }
 
     function drop(event: DragEvent, folderId: string | null) {
@@ -311,16 +320,7 @@ export function FileLibrary({
                 </div>
             </section>
 
-            {error && (
-                <p
-                    role="alert"
-                    className="mt-4 rounded-2xl border border-danger/20 bg-danger/5 p-3 text-[12px] text-danger"
-                >
-                    {error}
-                </p>
-            )}
-
-            <div className="mt-5 grid gap-4 lg:grid-cols-[230px_minmax(0,1fr)]">
+            <div className="mt-5 grid min-h-[calc(100dvh-330px)] items-stretch gap-4 lg:grid-cols-[230px_minmax(0,1fr)]">
                 <aside className="glass-panel h-fit rounded-[22px] p-3">
                     <div className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
                         Pastas
@@ -338,7 +338,15 @@ export function FileLibrary({
                     />
                 </aside>
 
-                <main className="min-w-0">
+                <main
+                    className="min-h-full min-w-0 rounded-[22px]"
+                    onContextMenu={(event) =>
+                        openContextMenu(event, {
+                            kind: 'area',
+                            folderId: currentFolderId,
+                        })
+                    }
+                >
                     <nav
                         onDragOver={(event) => event.preventDefault()}
                         onDragEnter={() => setDropTarget('root')}
@@ -451,7 +459,7 @@ export function FileLibrary({
                                 if (action === 'delete') setDeleteFile(target.item);
                                 if (action === 'download')
                                     window.location.assign(`${contentUrl(target.item)}?download=1`);
-                            } else {
+                            } else if (target.kind === 'folder') {
                                 if (action === 'open') setCurrentFolderId(target.item.id);
                                 if (action === 'rename')
                                     setFolderDialog({ mode: 'rename', folder: target.item });
@@ -463,6 +471,11 @@ export function FileLibrary({
                                     });
                                 }
                                 if (action === 'delete') setDeleteFolder(target.item);
+                            } else if (action === 'new-folder') {
+                                setFolderDialog({
+                                    mode: 'create',
+                                    parentId: target.folderId,
+                                });
                             }
                         }}
                     />,
@@ -481,7 +494,6 @@ export function FileLibrary({
                         description="O conteúdo e os vínculos existentes serão preservados."
                         defaultValue={renameFile.originalName}
                         loading={loading}
-                        error={error}
                         submitLabel="Salvar nome"
                         onSubmit={renameFileSubmit}
                         onClose={closeDialogs}
@@ -498,7 +510,6 @@ export function FileLibrary({
                             folderDialog.mode === 'rename' ? folderDialog.folder.name : ''
                         }
                         loading={loading}
-                        error={error}
                         submitLabel={folderDialog.mode === 'create' ? 'Criar pasta' : 'Salvar nome'}
                         onSubmit={saveFolder}
                         onClose={closeDialogs}
@@ -510,7 +521,6 @@ export function FileLibrary({
                     <DeleteFileDialog
                         file={deleteFile}
                         loading={loading}
-                        error={error}
                         onConfirm={removeFile}
                         onClose={closeDialogs}
                     />,
@@ -521,7 +531,6 @@ export function FileLibrary({
                     <DeleteFolderDialog
                         folder={deleteFolder}
                         loading={loading}
-                        error={error}
                         onConfirm={removeFolder}
                         onClose={closeDialogs}
                     />,
@@ -824,29 +833,37 @@ function ContextMenuView({
             style={{ left: menu.x, top: menu.y }}
             onClick={(event) => event.stopPropagation()}
         >
-            <ContextAction
-                icon={menu.kind === 'folder' ? 'folder' : 'image'}
-                onClick={() => onAction('open')}
-            >
-                {menu.kind === 'folder' ? 'Abrir pasta' : 'Visualizar'}
-            </ContextAction>
-            {menu.kind === 'folder' && (
+            {menu.kind === 'area' ? (
                 <ContextAction icon="plus" onClick={() => onAction('new-folder')}>
-                    Nova subpasta
+                    Nova pasta
                 </ContextAction>
+            ) : (
+                <>
+                    <ContextAction
+                        icon={menu.kind === 'folder' ? 'folder' : 'image'}
+                        onClick={() => onAction('open')}
+                    >
+                        {menu.kind === 'folder' ? 'Abrir pasta' : 'Visualizar'}
+                    </ContextAction>
+                    {menu.kind === 'folder' && (
+                        <ContextAction icon="plus" onClick={() => onAction('new-folder')}>
+                            Nova subpasta
+                        </ContextAction>
+                    )}
+                    <ContextAction icon="edit" onClick={() => onAction('rename')}>
+                        Renomear
+                    </ContextAction>
+                    {menu.kind === 'file' && (
+                        <ContextAction icon="download" onClick={() => onAction('download')}>
+                            Baixar
+                        </ContextAction>
+                    )}
+                    <div className="my-1 border-t border-border" />
+                    <ContextAction icon="trash" danger onClick={() => onAction('delete')}>
+                        Excluir
+                    </ContextAction>
+                </>
             )}
-            <ContextAction icon="edit" onClick={() => onAction('rename')}>
-                Renomear
-            </ContextAction>
-            {menu.kind === 'file' && (
-                <ContextAction icon="download" onClick={() => onAction('download')}>
-                    Baixar
-                </ContextAction>
-            )}
-            <div className="my-1 border-t border-border" />
-            <ContextAction icon="trash" danger onClick={() => onAction('delete')}>
-                Excluir
-            </ContextAction>
         </div>
     );
 }
@@ -961,7 +978,6 @@ function NameDialog({
     description,
     defaultValue,
     loading,
-    error,
     submitLabel,
     onSubmit,
     onClose,
@@ -971,7 +987,6 @@ function NameDialog({
     description: string;
     defaultValue: string;
     loading: boolean;
-    error?: string;
     submitLabel: string;
     onSubmit: (event: FormEvent<HTMLFormElement>) => void;
     onClose: () => void;
@@ -996,7 +1011,6 @@ function NameDialog({
                         className="mt-2 h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] px-3.5 font-normal outline-none focus:border-brand/60 focus:shadow-[0_0_0_3px_rgba(109,93,244,.12)]"
                     />
                 </label>
-                {error && <ErrorMessage>{error}</ErrorMessage>}
                 <div className="mt-6 flex justify-end gap-2">
                     <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
                         Cancelar
@@ -1013,13 +1027,11 @@ function NameDialog({
 function DeleteFileDialog({
     file,
     loading,
-    error,
     onConfirm,
     onClose,
 }: {
     file: MediaFile;
     loading: boolean;
-    error?: string;
     onConfirm: () => void;
     onClose: () => void;
 }) {
@@ -1047,7 +1059,6 @@ function DeleteFileDialog({
                     </ul>
                 )}
             </div>
-            {error && <ErrorMessage>{error}</ErrorMessage>}
             <div className="mt-6 flex justify-end gap-2">
                 <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
                     {inUse ? 'Entendi' : 'Cancelar'}
@@ -1065,13 +1076,11 @@ function DeleteFileDialog({
 function DeleteFolderDialog({
     folder,
     loading,
-    error,
     onConfirm,
     onClose,
 }: {
     folder: MediaFolder;
     loading: boolean;
-    error?: string;
     onConfirm: () => void;
     onClose: () => void;
 }) {
@@ -1087,7 +1096,6 @@ function DeleteFolderDialog({
             <div className="mt-5 rounded-2xl border border-border bg-surface-muted p-4 text-[13px] font-semibold">
                 {folder.name}
             </div>
-            {error && <ErrorMessage>{error}</ErrorMessage>}
             <div className="mt-6 flex justify-end gap-2">
                 <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
                     Cancelar
@@ -1169,14 +1177,6 @@ function DialogHeader({
                 <Icon name="close" className="size-4" />
             </Button>
         </div>
-    );
-}
-
-function ErrorMessage({ children }: { children: ReactNode }) {
-    return (
-        <p className="mt-4 rounded-xl border border-danger/20 bg-danger/5 p-3 text-[12px] text-danger">
-            {children}
-        </p>
     );
 }
 

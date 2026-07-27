@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 
+import Image from 'next/image';
 import {
     Children,
     type FormEvent,
@@ -16,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { MediaPicker } from '@/components/files/media-picker';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { CustomSelect, type SelectOption } from '@/components/ui/custom-select';
+import { showToast } from '@/components/ui/toast';
 import { useEscapeClose } from '@/hooks/use-escape-close';
 import type { MediaFile, Price, Product } from '@/lib/api/types';
 
@@ -36,7 +38,6 @@ export function ProductManager({
     const [deleteTarget, setDeleteTarget] = useState<Product>();
     const [deleting, setDeleting] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string>();
     const [query, setQuery] = useState('');
     const [status, setStatus] = useState<StatusFilter>('all');
     const [pricingType, setPricingType] = useState('one_time');
@@ -61,7 +62,6 @@ export function ProductManager({
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setLoading(true);
-        setError(undefined);
         const form = new FormData(event.currentTarget);
         const name = String(form.get('name') ?? '').trim();
         const shortDescription = String(form.get('shortDescription') ?? '').trim();
@@ -71,7 +71,10 @@ export function ProductManager({
             const upload = await uploadProductImage(image);
             if (!upload.id) {
                 setLoading(false);
-                setError(upload.detail ?? 'Não foi possível enviar a imagem.');
+                showToast({
+                    tone: 'error',
+                    description: upload.detail ?? 'Não foi possível enviar a imagem.',
+                });
                 return;
             }
             imageFileId = upload.id;
@@ -99,11 +102,19 @@ export function ProductManager({
             const body = (await response.json()) as { detail?: string };
             setLoading(false);
             if (!response.ok) {
-                setError(body.detail ?? 'Falha ao atualizar produto.');
+                showToast({
+                    tone: 'error',
+                    description: body.detail ?? 'Não foi possível atualizar o produto.',
+                });
                 return;
             }
             setOpen(false);
             setEditing(undefined);
+            showToast({
+                tone: 'success',
+                title: 'Produto atualizado',
+                description: 'As alterações do produto foram salvas.',
+            });
             router.refresh();
             return;
         }
@@ -123,7 +134,11 @@ export function ProductManager({
         };
         if (!productResponse.ok || !productBody.data) {
             setLoading(false);
-            return setError(productBody.detail ?? 'Falha ao criar produto.');
+            showToast({
+                tone: 'error',
+                description: productBody.detail ?? 'Não foi possível criar o produto.',
+            });
+            return;
         }
 
         const recurring = pricingType === 'recurring';
@@ -151,35 +166,51 @@ export function ProductManager({
         });
         const priceBody = (await priceResponse.json()) as { detail?: string };
         setLoading(false);
-        if (!priceResponse.ok)
-            return setError(
-                priceBody.detail ?? 'Produto criado sem preço. Recarregue a página para continuar.',
-            );
+        if (!priceResponse.ok) {
+            showToast({
+                tone: 'warning',
+                description:
+                    priceBody.detail ??
+                    'Produto criado sem preço. Recarregue a página para continuar.',
+            });
+            return;
+        }
         setOpen(false);
         setPricingType('one_time');
+        showToast({
+            tone: 'success',
+            title: 'Produto criado',
+            description: 'O produto foi adicionado ao seu catálogo.',
+        });
         router.refresh();
     }
 
     async function remove(product: Product) {
         setDeleting(true);
-        setError(undefined);
         const response = await fetch(`/api/products/${product.id}`, {
             method: 'DELETE',
         });
         setDeleting(false);
         if (!response.ok) {
             const body = (await response.json()) as { detail?: string };
-            setError(body.detail ?? 'Falha ao excluir.');
+            showToast({
+                tone: 'error',
+                description: body.detail ?? 'Não foi possível excluir o produto.',
+            });
             setDeleteTarget(undefined);
             return;
         }
         setDeleteTarget(undefined);
+        showToast({
+            tone: 'success',
+            title: 'Produto excluído',
+            description: 'O produto foi removido do catálogo.',
+        });
         router.refresh();
     }
 
     async function changeStatus(product: Product, status: 'active' | 'inactive') {
         setStatusChanging(product.id);
-        setError(undefined);
         const response = await fetch(`/api/products/${product.id}`, {
             method: 'PATCH',
             headers: { 'content-type': 'application/json' },
@@ -188,14 +219,21 @@ export function ProductManager({
         setStatusChanging(undefined);
         if (!response.ok) {
             const body = (await response.json()) as { detail?: string };
-            setError(body.detail ?? 'Não foi possível alterar o status do produto.');
+            showToast({
+                tone: 'error',
+                description: body.detail ?? 'Não foi possível alterar o status do produto.',
+            });
             return;
         }
+        showToast({
+            tone: 'success',
+            title: status === 'active' ? 'Produto ativado' : 'Produto desativado',
+            description: 'O status do produto foi atualizado.',
+        });
         router.refresh();
     }
 
     function openCreate() {
-        setError(undefined);
         setEditing(undefined);
         setPricingType('one_time');
         setSelectedImageFileId(null);
@@ -203,7 +241,6 @@ export function ProductManager({
     }
 
     function openEdit(product: Product) {
-        setError(undefined);
         setEditing(product);
         setSelectedImageFileId(product.imageFileId);
         setOpen(true);
@@ -214,7 +251,6 @@ export function ProductManager({
         setOpen(false);
         setMediaPickerOpen(false);
         setEditing(undefined);
-        setError(undefined);
     }
 
     useEscapeClose((open || Boolean(deleteTarget)) && !mediaPickerOpen, () => {
@@ -226,7 +262,7 @@ export function ProductManager({
         <>
             <section className="glass-panel mb-4 flex flex-col gap-3 rounded-[22px] p-2.5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-                    <label className="product-search filter-control flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#d9d7e8] bg-white/70 px-3.5 transition focus-within:border-brand/70 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(109,93,244,.16)] sm:max-w-[310px]">
+                    <label className="product-search filter-control flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-white/70 px-3.5 transition focus-within:border-brand/70 focus-within:bg-white focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)] sm:max-w-[310px]">
                         <Icon name="search" className="size-3.5 shrink-0 text-muted" />
                         <input
                             value={query}
@@ -260,7 +296,7 @@ export function ProductManager({
                                 type="button"
                                 onClick={() => setStatus(value)}
                                 data-active={status === value}
-                                className={`shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${status === value ? 'bg-white/80 text-brand-strong shadow-sm' : 'text-muted hover:text-foreground'}`}
+                                className="shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-muted transition hover:text-foreground"
                             >
                                 {label}
                             </Button>
@@ -271,21 +307,12 @@ export function ProductManager({
                 <Button
                     type="button"
                     onClick={openCreate}
-                    className="glass-interactive group inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7665f5] to-[#5a42e3] px-4 text-[13px] font-semibold text-white shadow-[0_10px_26px_rgba(91,69,223,.2)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(91,69,223,.27)]"
+                    className="product-primary-action glass-interactive group inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-strong px-4 text-[13px] font-semibold text-white transition hover:-translate-y-0.5"
                 >
                     <Icon name="plus" className="size-3.5" />
                     Criar produto
                 </Button>
             </section>
-
-            {error && !open && (
-                <div className="product-error mb-4 flex items-start gap-3 rounded-2xl border border-[#f7d8de] bg-[#fff7f8]/80 p-4 text-[13px] text-danger shadow-sm backdrop-blur-xl">
-                    <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#ffe8ec] font-bold">
-                        !
-                    </span>
-                    <p className="pt-1.5">{error}</p>
-                </div>
-            )}
 
             {products.length === 0 ? (
                 <EmptyProducts onCreate={openCreate} />
@@ -311,11 +338,11 @@ export function ProductManager({
                         onMouseDown={(event) => {
                             if (event.target === event.currentTarget) closeForm();
                         }}
-                        className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-black/20 p-4 backdrop-blur-sm"
                     >
                         <form
                             onSubmit={submit}
-                            className="theme-modal modal-surface glass-panel my-6 w-full max-w-2xl overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
+                            className="product-modal theme-modal modal-surface glass-panel my-6 w-full max-w-2xl overflow-hidden rounded-[28px] p-5 sm:p-7"
                         >
                             <div className="flex items-start justify-between gap-5">
                                 <div>
@@ -382,7 +409,7 @@ export function ProductManager({
                                         name="shortDescription"
                                         defaultValue={editing?.shortDescription ?? ''}
                                         placeholder="Explique brevemente o que o cliente recebe."
-                                        className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-white/80 bg-white/48 p-3.5 font-normal outline-none transition placeholder:text-[#aaaabd] focus:border-brand/25 focus:bg-white/70 focus:shadow-[0_0_0_3px_rgba(109,93,244,.07)]"
+                                        className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-border bg-white/48 p-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/25 focus:bg-white/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_7%,transparent)]"
                                     />
                                 </label>
                                 {!editing && (
@@ -412,7 +439,7 @@ export function ProductManager({
                                 )}
                                 <label className="text-[13px] font-semibold sm:col-span-2">
                                     Imagem do produto
-                                    <span className="product-image-field mt-2 block rounded-2xl border border-dashed border-[#cfcbe6] bg-white/55 p-3.5 transition focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_rgba(109,93,244,.14)]">
+                                    <span className="product-image-field mt-2 block rounded-2xl border border-dashed border-border bg-white/55 p-3.5 transition focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]">
                                         <span className="flex items-center gap-3">
                                             <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand-soft text-brand">
                                                 {selectedImageFile ? (
@@ -468,12 +495,6 @@ export function ProductManager({
                                 </label>
                             </div>
 
-                            {error && (
-                                <p className="mt-5 rounded-2xl border border-[#f7d8de] bg-[#fff5f7]/75 p-3 text-[13px] text-danger">
-                                    {error}
-                                </p>
-                            )}
-
                             <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                 <Button
                                     type="button"
@@ -484,7 +505,7 @@ export function ProductManager({
                                 </Button>
                                 <Button
                                     disabled={loading}
-                                    className="glass-interactive h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-55"
+                                    className="product-primary-action glass-interactive h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-55"
                                 >
                                     {loading
                                         ? editing
@@ -603,11 +624,22 @@ function ProductTable({
                                     >
                                         <td className="px-6 py-4">
                                             <div className="flex min-w-0 items-center gap-3">
-                                                <span className="product-table-icon grid size-10 shrink-0 place-items-center rounded-[13px] border border-white/80 bg-gradient-to-br from-white/75 to-[#ece9ff]/65 text-brand shadow-[0_7px_20px_rgba(91,69,180,.08)]">
-                                                    <Icon
-                                                        name={productIcon(product.type)}
-                                                        className="size-4"
-                                                    />
+                                                <span className="product-table-icon relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-[13px] border border-white/80 bg-gradient-to-br from-white/75 to-brand-soft/65 text-brand">
+                                                    {product.imageFileId ? (
+                                                        <Image
+                                                            src={`/api/files/${encodeURIComponent(product.imageFileId)}/content`}
+                                                            alt={product.name}
+                                                            fill
+                                                            unoptimized
+                                                            sizes="40px"
+                                                            className="object-cover"
+                                                        />
+                                                    ) : (
+                                                        <Icon
+                                                            name={productIcon(product.type)}
+                                                            className="size-4"
+                                                        />
+                                                    )}
                                                 </span>
                                                 <div className="min-w-0">
                                                     <p className="max-w-[260px] truncate font-semibold text-foreground">
@@ -731,10 +763,10 @@ function ActionButton({
             </Button>
             <span
                 role="tooltip"
-                className="pointer-events-none absolute bottom-[calc(100%+7px)] right-0 z-20 whitespace-nowrap rounded-lg border border-white/10 bg-[#292844]/92 px-2.5 py-1.5 text-[12px] font-medium text-white opacity-0 shadow-[0_10px_28px_rgba(35,30,70,.2)] backdrop-blur-xl transition duration-200 group-hover/action:-translate-y-0.5 group-hover/action:opacity-100 group-focus-within/action:-translate-y-0.5 group-focus-within/action:opacity-100"
+                className="product-action-tooltip pointer-events-none absolute bottom-[calc(100%+7px)] right-0 z-20 whitespace-nowrap rounded-lg border border-white/10 px-2.5 py-1.5 text-[12px] font-medium text-white opacity-0 backdrop-blur-xl transition duration-200 group-hover/action:-translate-y-0.5 group-hover/action:opacity-100 group-focus-within/action:-translate-y-0.5 group-focus-within/action:opacity-100"
             >
                 {label}
-                <span className="absolute -bottom-1 right-3 size-2 rotate-45 bg-[#292844]/92" />
+                <span className="product-action-tooltip-arrow absolute -bottom-1 right-3 size-2 rotate-45" />
             </span>
         </span>
     );
@@ -756,14 +788,14 @@ function DeleteProductModal({
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget) onCancel();
             }}
-            className="fixed inset-0 z-[110] grid place-items-center bg-[#17172c]/24 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[110] grid place-items-center bg-black/25 p-4 backdrop-blur-sm"
         >
             <section
                 role="alertdialog"
                 aria-modal="true"
                 aria-labelledby="delete-product-title"
                 aria-describedby="delete-product-description"
-                className="theme-modal glass-panel w-full max-w-md rounded-[26px] p-6 shadow-[0_32px_100px_rgba(37,31,76,.24)]"
+                className="theme-modal glass-panel w-full max-w-md rounded-[26px] p-6 shadow-[0_32px_100px_rgba(20,20,24,.24)]"
             >
                 <span className="grid size-11 place-items-center rounded-2xl border border-[#ffdce1] bg-[#fff0f2]/85 text-danger shadow-sm">
                     <Icon name="trash" className="size-4.5" />
@@ -807,7 +839,7 @@ function DeleteProductModal({
 function EmptyProducts({ onCreate }: { onCreate: () => void }) {
     return (
         <section className="glass-panel rounded-[28px] px-5 py-16 text-center sm:py-20">
-            <span className="mx-auto grid size-12 place-items-center rounded-2xl border border-white/85 bg-brand-soft/70 text-brand shadow-[0_12px_28px_rgba(91,69,180,.1)]">
+            <span className="product-empty-icon mx-auto grid size-12 place-items-center rounded-2xl border border-white/85 bg-brand-soft/70 text-brand">
                 <Icon name="box" className="size-5" />
             </span>
             <h2 className="mt-4 text-base font-semibold tracking-[-0.025em]">
@@ -819,7 +851,7 @@ function EmptyProducts({ onCreate }: { onCreate: () => void }) {
             <Button
                 type="button"
                 onClick={onCreate}
-                className="glass-interactive mt-5 inline-flex h-11 items-center gap-2 rounded-xl bg-brand px-5 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:-translate-y-0.5 hover:bg-brand-strong"
+                className="product-primary-action glass-interactive mt-5 inline-flex h-11 items-center gap-2 rounded-xl bg-brand px-5 text-[13px] font-semibold text-white transition hover:-translate-y-0.5 hover:bg-brand-strong"
             >
                 <Icon name="plus" className="size-3.5" />
                 Criar primeiro produto
@@ -838,7 +870,7 @@ function Field({
             {label}
             <input
                 {...input}
-                className={`mt-2 h-11 w-full rounded-xl border border-[#d9d7e8] bg-white/70 px-3.5 font-normal outline-none transition placeholder:text-[#aaaabd] focus:border-brand/70 focus:bg-white focus:shadow-[0_0_0_3px_rgba(109,93,244,.16)] ${className ?? ''}`}
+                className={`mt-2 h-11 w-full rounded-xl border border-border bg-white/70 px-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:bg-white focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)] ${className ?? ''}`}
             />
         </label>
     );
@@ -907,7 +939,7 @@ function MoneyField({ name, label }: { name: string; label: string }) {
                         maximumFractionDigits: 2,
                     }).format(minor / 100)}
                     onChange={(event) => setMinor(Number(event.target.value.replace(/\D/g, '')))}
-                    className="h-11 w-full rounded-xl border border-[#d9d7e8] bg-white/70 pl-10 pr-3.5 font-normal tabular-nums outline-none transition focus:border-brand/70 focus:shadow-[0_0_0_3px_rgba(109,93,244,.16)]"
+                    className="h-11 w-full rounded-xl border border-border bg-white/70 pl-10 pr-3.5 font-normal tabular-nums outline-none transition focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)]"
                 />
             </div>
         </label>
@@ -948,7 +980,7 @@ function StatusBadge({ status }: { status: Product['status'] }) {
         status === 'active'
             ? 'bg-[#e7f7f0] text-success'
             : status === 'draft'
-              ? 'bg-[#f0edff] text-brand-strong'
+              ? 'bg-brand-soft text-brand-strong'
               : 'bg-white/55 text-muted';
     return (
         <span

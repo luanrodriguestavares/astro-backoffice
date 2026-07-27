@@ -1,4 +1,5 @@
 import { OrganizationForm } from '@/components/settings/organization-form';
+import { AppearancePreferences } from '@/components/settings/appearance-preferences';
 import { PageHeader } from '@/components/ui/page-header';
 import { Icon } from '@/components/ui/icon';
 import { apiFetch } from '@/lib/api/server';
@@ -43,6 +44,7 @@ export default async function SettingsPage() {
                         />
                     </dl>
                 </aside>
+                <AppearancePreferences />
             </div>
         </>
     );

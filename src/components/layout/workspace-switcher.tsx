@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { showToast } from '@/components/ui/toast';
 import type { Organization } from '@/lib/api/types';
 
 export function WorkspaceSwitcher({
@@ -18,7 +19,6 @@ export function WorkspaceSwitcher({
     const root = useRef<HTMLDivElement>(null);
     const [open, setOpen] = useState(false);
     const [switching, setSwitching] = useState<string>();
-    const [error, setError] = useState<string>();
     const currentName = organizationName(current);
 
     useEffect(() => {
@@ -45,7 +45,6 @@ export function WorkspaceSwitcher({
         }
 
         setSwitching(organization.id);
-        setError(undefined);
         const response = await fetch('/api/auth/switch-organization', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
@@ -55,7 +54,10 @@ export function WorkspaceSwitcher({
 
         if (!response.ok) {
             setSwitching(undefined);
-            setError(payload.detail ?? 'Não foi possível trocar de workspace.');
+            showToast({
+                tone: 'error',
+                description: payload.detail ?? 'Não foi possível trocar de workspace.',
+            });
             return;
         }
 
@@ -73,10 +75,7 @@ export function WorkspaceSwitcher({
                 aria-label={`Workspace atual: ${currentName}`}
                 aria-haspopup="menu"
                 aria-expanded={open}
-                onClick={() => {
-                    setError(undefined);
-                    setOpen((value) => !value);
-                }}
+                onClick={() => setOpen((value) => !value)}
                 className={`flex w-full items-center gap-2.5 rounded-xl text-left ${collapsed ? 'lg:justify-center lg:gap-0' : 'px-1 py-0.5'}`}
             >
                 <WorkspaceAvatar name={currentName} />
@@ -148,14 +147,6 @@ export function WorkspaceSwitcher({
                             );
                         })}
                     </div>
-                    {error && (
-                        <p
-                            role="alert"
-                            className="mx-1 mt-2 rounded-xl bg-danger/10 px-2.5 py-2 text-[10px] leading-4 text-danger"
-                        >
-                            {error}
-                        </p>
-                    )}
                 </div>
             )}
         </div>

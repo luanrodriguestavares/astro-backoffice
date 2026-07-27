@@ -7,8 +7,8 @@ type Tone = 'brand' | 'success' | 'warning';
 
 const tones: Record<Tone, { icon: string; line: string }> = {
     brand: {
-        icon: 'bg-[#eeeaff]/80 text-brand-strong',
-        line: '#7563f4',
+        icon: 'bg-brand-soft/80 text-brand-strong',
+        line: 'var(--brand)',
     },
     success: {
         icon: 'bg-[#eaf8f3]/80 text-success',
@@ -46,14 +46,14 @@ export function StatCard({
     return (
         <Link
             href={href}
-            className="dashboard-stat-card glass-panel group relative min-h-[142px] rounded-[22px] p-5 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_70px_rgba(66,57,128,.1)]"
+            className="dashboard-stat-card glass-panel group relative min-h-[142px] rounded-[22px] p-5 transition duration-300 hover:-translate-y-0.5"
         >
             <div className="relative flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                    <p className="dashboard-stat-label text-[11px] font-medium text-[#5f6078]">
+                    <p className="dashboard-stat-label text-[11px] font-medium text-muted">
                         {label}
                     </p>
-                    <p className="dashboard-stat-value mt-2.5 truncate text-[25px] font-semibold tracking-[-0.05em] text-[#17182f]">
+                    <p className="dashboard-stat-value mt-2.5 truncate text-[25px] font-semibold tracking-[-0.05em] text-foreground">
                         {value}
                     </p>
                 </div>
@@ -85,7 +85,7 @@ export function StatCard({
                 {sparkline && sparkline.length > 1 ? (
                     <MetricChart values={sparkline} color={palette.line} type={chartType} />
                 ) : (
-                    <span className="dashboard-stat-arrow grid size-7 shrink-0 place-items-center rounded-full bg-white/60 text-[#aaa7bc] transition group-hover:text-brand">
+                    <span className="dashboard-stat-arrow grid size-7 shrink-0 place-items-center rounded-full bg-white/60 text-muted transition group-hover:text-brand">
                         <Icon name="arrow-right" className="size-3.5" />
                     </span>
                 )}

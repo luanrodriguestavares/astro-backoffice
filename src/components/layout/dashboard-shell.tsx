@@ -9,6 +9,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Brand } from '@/components/brand';
 import { HeaderSearch } from '@/components/layout/header-search';
 import { NotificationCenter } from '@/components/layout/notification-center';
+import { ProfileMenu } from '@/components/layout/profile-menu';
 import { WorkspaceSwitcher } from '@/components/layout/workspace-switcher';
 import { Icon, type IconName } from '@/components/ui/icon';
 import type { CurrentUser, Organization } from '@/lib/api/types';
@@ -66,6 +67,16 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
                 label: 'Biblioteca de mídia',
                 href: '/files',
                 icon: 'image',
+            },
+        ],
+    },
+    {
+        label: 'Comunidade',
+        items: [
+            {
+                label: 'Roadmap',
+                href: '/roadmap',
+                icon: 'layout',
             },
         ],
     },
@@ -168,14 +179,14 @@ export function DashboardShell({
             )}
 
             <aside
-                className={`astro-sidebar fixed inset-y-0 left-0 z-40 flex w-[280px] flex-col border-r border-[#7770b4]/8 bg-white/62 px-4 py-5 shadow-[20px_0_80px_rgba(57,53,100,.035)] backdrop-blur-3xl transition-all duration-300 lg:sticky lg:top-0 lg:h-screen lg:w-auto ${collapsed ? 'lg:px-2.5' : ''} ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+                className={`astro-sidebar fixed inset-y-0 left-0 z-40 flex w-[280px] flex-col border-r border-border/70 bg-white/62 px-4 py-5 shadow-[20px_0_80px_color-mix(in_srgb,var(--brand)_3.5%,transparent)] backdrop-blur-3xl transition-all duration-300 lg:sticky lg:top-0 lg:h-screen lg:w-auto ${collapsed ? 'lg:px-2.5' : ''} ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
             >
                 <Button
                     type="button"
                     aria-label={collapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
                     aria-expanded={!collapsed}
                     title={collapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
-                    className="glass-panel-soft absolute -right-3 top-7 z-10 hidden size-7 place-items-center rounded-full text-[#8b899b] shadow-[0_8px_22px_rgba(55,50,105,.1)] transition hover:scale-105 hover:text-brand lg:grid"
+                    className="glass-panel-soft absolute -right-3 top-7 z-10 hidden size-7 place-items-center rounded-full text-muted shadow-[0_8px_22px_color-mix(in_srgb,var(--brand)_10%,transparent)] transition hover:scale-105 hover:text-brand lg:grid"
                     onClick={() => setCollapsed((value) => !value)}
                 >
                     <Icon
@@ -228,7 +239,7 @@ export function DashboardShell({
                     {navigationGroups.map((group) => (
                         <div key={group.label}>
                             <p
-                                className={`shell-nav-label mb-1.5 px-3 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#8a88a0] ${collapsed ? 'lg:hidden' : ''}`}
+                                className={`shell-nav-label mb-1.5 px-3 text-[9px] font-semibold uppercase tracking-[0.16em] text-muted ${collapsed ? 'lg:hidden' : ''}`}
                             >
                                 {group.label}
                             </p>
@@ -259,7 +270,7 @@ export function DashboardShell({
             </aside>
 
             <div className="relative z-10 min-w-0">
-                <header className="astro-topbar sticky top-0 z-20 flex h-[76px] items-center gap-3 bg-gradient-to-b from-[#fafafe]/95 via-[#fafafe]/75 to-transparent px-4 backdrop-blur-xl sm:px-6 lg:px-9">
+                <header className="astro-topbar sticky top-0 z-20 flex h-[76px] items-center gap-3 bg-gradient-to-b from-background/95 via-background/75 to-transparent px-4 backdrop-blur-xl sm:px-6 lg:px-9">
                     <Button
                         type="button"
                         aria-label="Abrir menu"
@@ -290,27 +301,12 @@ export function DashboardShell({
                             </Button>
                         )}
                         <NotificationCenter />
-                        <Link
-                            href="/settings"
-                            aria-label="Abrir perfil e configurações"
-                            className="shell-profile group flex items-center gap-2.5 rounded-2xl px-1.5 py-1 transition hover:bg-white/45"
-                        >
-                            <span className="shell-avatar grid size-9 shrink-0 place-items-center rounded-full border border-white/90 bg-gradient-to-br from-[#e9e5ff] to-white text-[10px] font-bold text-brand-strong shadow-sm">
-                                {initials(user.name)}
-                            </span>
-                            <span className="hidden min-w-0 xl:block">
-                                <span className="shell-user-name block max-w-28 truncate text-[11px] font-semibold text-[#24253c]">
-                                    {user.name}
-                                </span>
-                                <span className="mt-0.5 block max-w-28 truncate text-[9px] text-muted">
-                                    {organizationName}
-                                </span>
-                            </span>
-                            <Icon
-                                name="arrow-right"
-                                className="hidden size-3 text-muted transition-transform group-hover:translate-x-0.5 xl:block"
-                            />
-                        </Link>
+                        <ProfileMenu
+                            user={user}
+                            contextLabel={organizationName}
+                            settingsHref="/settings"
+                            logoutAction="/api/auth/logout"
+                        />
                     </div>
                 </header>
 
@@ -346,11 +342,11 @@ function NavItem({
             title={collapsed ? `${label}${badge ? ` · ${badge}` : ''}` : undefined}
             aria-label={collapsed ? label : undefined}
             data-active={active}
-            className={`astro-nav-item group relative flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-medium transition-all duration-200 ${collapsed ? 'lg:justify-center lg:gap-0 lg:px-2' : ''} ${active ? 'bg-gradient-to-r from-[#f0edff] to-[#f7f5ff] text-brand-strong shadow-[inset_0_0_0_1px_rgba(119,98,242,.08),0_8px_24px_rgba(99,82,190,.06)]' : 'text-[#656579] hover:bg-white/55 hover:text-[#26263d]'}`}
+            className={`astro-nav-item group relative flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-medium text-muted transition-all duration-200 hover:bg-surface/55 hover:text-foreground ${collapsed ? 'lg:justify-center lg:gap-0 lg:px-2' : ''}`}
         >
             <Icon
                 name={icon}
-                className={`size-[16px] shrink-0 transition-transform duration-200 group-hover:scale-105 ${active ? 'text-brand' : 'text-[#858398]'}`}
+                className={`size-[16px] shrink-0 transition-transform duration-200 group-hover:scale-105 ${active ? 'text-brand' : 'text-muted'}`}
             />
             <span className={collapsed ? 'lg:hidden' : ''}>{label}</span>
             {badge && (
@@ -361,7 +357,7 @@ function NavItem({
                 </span>
             )}
             {active && !collapsed && !badge && (
-                <span className="ml-auto size-1 rounded-full bg-brand shadow-[0_0_8px_rgba(109,93,244,.65)]" />
+                <span className="astro-nav-active-dot ml-auto size-1 rounded-full bg-brand" />
             )}
         </Link>
     );
@@ -371,7 +367,7 @@ function ProCard() {
     return (
         <div className="pro-glass-card group relative hidden overflow-hidden rounded-[22px] p-4 lg:block">
             <div className="relative z-10">
-                <span className="grid size-8 place-items-center rounded-xl border border-white/80 bg-white/55 text-brand shadow-[inset_0_1px_0_white,0_8px_20px_rgba(100,78,225,.12)] backdrop-blur-xl transition duration-500 group-hover:-translate-y-0.5 group-hover:shadow-[inset_0_1px_0_white,0_10px_26px_rgba(100,78,225,.2)]">
+                <span className="pro-card-icon grid size-8 place-items-center rounded-xl border border-white/80 bg-white/55 text-brand backdrop-blur-xl transition duration-500 group-hover:-translate-y-0.5">
                     <Icon name="bolt" className="size-4" />
                 </span>
                 <p className="pro-card-title mt-3 text-[13px] font-semibold leading-5 tracking-[-0.02em] text-[#22233b]">
@@ -398,8 +394,8 @@ function AmbientBackground() {
             className="astro-ambient pointer-events-none fixed inset-0 z-0 overflow-hidden"
             aria-hidden="true"
         >
-            <div className="absolute -right-48 -top-56 size-[620px] rounded-full bg-[#cfc7ff]/8 blur-[90px]" />
-            <div className="absolute -bottom-52 left-[24%] size-[520px] rounded-full bg-[#dce8ff]/11 blur-[100px]" />
+            <div className="absolute -right-48 -top-56 size-[620px] rounded-full bg-brand opacity-[0.055] blur-[90px]" />
+            <div className="absolute -bottom-52 left-[24%] size-[520px] rounded-full bg-brand opacity-[0.035] blur-[100px]" />
         </div>
     );
 }
@@ -411,16 +407,5 @@ function isActive(pathname: string, href: string, currentView: string | null, ex
     return (
         (pathname === path && (!exact || currentView === null)) ||
         (!exact && path !== '/dashboard' && pathname.startsWith(`${path}/`))
-    );
-}
-
-function initials(value: string) {
-    return (
-        value
-            .split(/\s+/)
-            .filter(Boolean)
-            .slice(0, 2)
-            .map((part) => part[0]?.toUpperCase())
-            .join('') || 'A'
     );
 }

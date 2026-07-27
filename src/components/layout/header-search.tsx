@@ -80,6 +80,13 @@ const destinations: {
         icon: 'image',
         keywords: 'arquivos imagens documentos pdf',
     },
+    {
+        label: 'Roadmap',
+        group: 'Comunidade',
+        href: '/roadmap',
+        icon: 'layout',
+        keywords: 'ideias sugestões comunidade melhorias',
+    },
     { label: 'Equipe', group: 'Configurações', href: '/team', icon: 'team' },
     {
         label: 'Conta',

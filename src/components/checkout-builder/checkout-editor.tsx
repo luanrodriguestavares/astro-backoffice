@@ -11,6 +11,7 @@ import { useRef, useState } from 'react';
 import { checkoutBuilderConfig, type BuilderData } from '@/components/checkout-builder/config';
 import { CheckoutSelectField } from '@/components/checkout-builder/checkout-select-field';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { showToast } from '@/components/ui/toast';
 import { documentToPuck, puckToDocument } from '@/lib/checkout/puck-data';
 import { checkoutPublicUrl } from '@/lib/checkout/public-url';
 import type { Checkout, CheckoutDocument, CheckoutDraft } from '@/lib/api/types';
@@ -96,13 +97,11 @@ export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft:
     const [state, setState] = useState<'saved' | 'changed' | 'saving' | 'published' | 'error'>(
         'saved',
     );
-    const [message, setMessage] = useState<string>();
 
-    async function save(data: BuilderData = current.current) {
+    async function save(data: BuilderData = current.current, notify = true) {
         if (saving.current) return false;
         saving.current = true;
         setState('saving');
-        setMessage(undefined);
         const nextDocument = puckToDocument(data, document.current);
         const response = await fetch(`/api/checkouts/${checkout.id}/draft`, {
             method: 'PUT',
@@ -113,30 +112,47 @@ export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft:
         saving.current = false;
         if (!response.ok || !body.data) {
             setState('error');
-            setMessage(body.detail ?? 'Não foi possível salvar o rascunho.');
+            showToast({
+                tone: 'error',
+                title: 'Falha ao salvar',
+                description: body.detail ?? 'Não foi possível salvar o rascunho.',
+            });
             return false;
         }
         revision.current = body.data.revision;
         document.current = body.data.document;
         setState('saved');
-        setMessage('Rascunho salvo.');
+        if (notify)
+            showToast({
+                tone: 'success',
+                title: 'Rascunho salvo',
+                description: 'As alterações do checkout foram salvas.',
+            });
         return true;
     }
 
     async function publish(data: BuilderData) {
         current.current = data as BuilderData;
-        if (!(await save(data))) return;
+        if (!(await save(data, false))) return;
         setState('saving');
-        setMessage('Validando e publicando...');
         const response = await fetch(`/api/checkouts/${checkout.id}/publish`, { method: 'POST' });
         const body = (await response.json()) as { code?: string; detail?: string };
         if (!response.ok) {
             setState('error');
-            setMessage(publishErrorMessage(body.code, body.detail));
+            showToast({
+                tone: 'error',
+                title: 'Não foi possível publicar',
+                description: publishErrorMessage(body.code, body.detail),
+                duration: 7_000,
+            });
             return;
         }
         setState('published');
-        setMessage('Checkout publicado com sucesso.');
+        showToast({
+            tone: 'success',
+            title: 'Checkout publicado',
+            description: 'A versão pública já está disponível para seus clientes.',
+        });
     }
 
     async function openPreview() {
@@ -149,13 +165,17 @@ export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft:
         );
         if (!preview) {
             setState('error');
-            setMessage('Permita pop-ups para abrir o preview.');
+            showToast({
+                tone: 'warning',
+                title: 'Preview bloqueado',
+                description: 'Permita pop-ups no navegador para abrir o preview.',
+            });
             return;
         }
         preview.document.title = 'Preparando preview...';
         preview.document.body.innerHTML =
             '<p style="font:14px system-ui;padding:24px;color:#656579">Preparando preview do checkout...</p>';
-        if (!(await save())) {
+        if (!(await save(current.current, false))) {
             preview.close();
             return;
         }
@@ -183,7 +203,6 @@ export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft:
                 onChange={(data) => {
                     current.current = data as BuilderData;
                     setState('changed');
-                    setMessage(undefined);
                 }}
                 onPublish={publish}
                 renderHeader={({ children }) => (
@@ -212,11 +231,6 @@ export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft:
                                 </div>
                             </div>
                         </div>
-                        {message && (
-                            <span className="hidden max-w-64 truncate text-[11px] text-muted xl:block">
-                                {message}
-                            </span>
-                        )}
                         <div className="ml-auto flex shrink-0 items-center gap-2">{children}</div>
                     </header>
                 )}
@@ -230,7 +244,12 @@ export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft:
                                     className="hidden h-9 rounded-xl px-3 text-[11px] md:inline-flex"
                                     onClick={() => {
                                         void navigator.clipboard.writeText(publicUrl);
-                                        setMessage('Link público copiado.');
+                                        showToast({
+                                            tone: 'success',
+                                            title: 'Link copiado',
+                                            description:
+                                                'O link público do checkout foi copiado.',
+                                        });
                                     }}
                                 >
                                     <Icon name="link" className="size-3.5" /> Copiar link
@@ -276,36 +295,6 @@ export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft:
                     </>
                 )}
             />
-            {state === 'error' && message && (
-                <aside
-                    role="alert"
-                    aria-live="assertive"
-                    className="fixed right-4 top-[76px] z-[1000] w-[min(420px,calc(100vw-32px))] rounded-2xl border border-[#f3ccd3] bg-white p-4 shadow-[0_22px_70px_rgba(89,32,45,.18)]"
-                >
-                    <div className="flex items-start gap-3">
-                        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#fff0f2] text-danger">
-                            <Icon name="close" className="size-3.5" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                            <h2 className="text-[13px] font-semibold text-foreground">
-                                Não foi possível publicar
-                            </h2>
-                            <p className="mt-1.5 text-[12px] leading-5 text-muted">{message}</p>
-                        </div>
-                        <Button
-                            type="button"
-                            aria-label="Fechar aviso"
-                            onClick={() => {
-                                setState('changed');
-                                setMessage(undefined);
-                            }}
-                            className="grid size-7 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-surface-muted hover:text-foreground"
-                        >
-                            <Icon name="close" className="size-3" />
-                        </Button>
-                    </div>
-                </aside>
-            )}
         </div>
     );
 }

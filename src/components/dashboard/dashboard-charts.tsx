@@ -45,7 +45,7 @@ export function RevenueAreaChart({
                             type="button"
                             aria-pressed={period === option}
                             onClick={() => setPeriod(option)}
-                            className={`dashboard-period-option rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-all ${period === option ? 'bg-[#ebe7ff] text-brand-strong shadow-[0_5px_16px_rgba(100,80,220,.12)]' : 'text-muted hover:text-foreground'}`}
+                            className="dashboard-period-option rounded-lg px-3 py-1.5 text-[12px] font-semibold text-muted transition-all hover:text-foreground"
                         >
                             {option}
                         </Button>
@@ -57,8 +57,8 @@ export function RevenueAreaChart({
                     <AreaChart data={data} margin={{ top: 12, right: 8, left: -18, bottom: 0 }}>
                         <defs>
                             <linearGradient id="revenueArea" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#765cff" stopOpacity={0.24} />
-                                <stop offset="72%" stopColor="#9e90ff" stopOpacity={0.06} />
+                                <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.24} />
+                                <stop offset="72%" stopColor="var(--brand)" stopOpacity={0.06} />
                                 <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
                             </linearGradient>
                             <filter id="lineGlow" x="-20%" y="-40%" width="140%" height="180%">
@@ -91,7 +91,7 @@ export function RevenueAreaChart({
                         />
                         <Tooltip
                             cursor={{
-                                stroke: '#7764f4',
+                                stroke: 'var(--brand)',
                                 strokeOpacity: 0.2,
                                 strokeDasharray: '3 4',
                             }}
@@ -101,14 +101,14 @@ export function RevenueAreaChart({
                         <Area
                             type="monotone"
                             dataKey="value"
-                            stroke="#624bff"
+                            stroke="var(--brand)"
                             strokeWidth={2.2}
                             fill="url(#revenueArea)"
                             filter="url(#lineGlow)"
                             animationDuration={850}
                             activeDot={{
                                 r: 4.5,
-                                fill: '#624bff',
+                                fill: 'var(--brand)',
                                 stroke: 'var(--dashboard-chart-surface, #fff)',
                                 strokeWidth: 2,
                             }}
@@ -188,7 +188,13 @@ export type GatewayDatum = {
     value: number;
 };
 
-const gatewayColors = ['#6c4eff', '#8f7aff', '#67b9aa', '#bcc3dc', '#d8dbea'];
+const gatewayColors = [
+    'var(--brand)',
+    'var(--brand-strong)',
+    '#67b9aa',
+    '#9ba4b9',
+    '#c8ccd7',
+];
 
 export function GatewayDonut({ data, currency }: { data: GatewayDatum[]; currency: string }) {
     const total = data.reduce((sum, item) => sum + item.value, 0);

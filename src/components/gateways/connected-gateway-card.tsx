@@ -10,6 +10,7 @@ import {
 } from '@/components/gateways/gateway-connect-card';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { showToast } from '@/components/ui/toast';
 import type { GatewayConnection } from '@/lib/api/types';
 
 export function ConnectedGatewayCard({
@@ -24,7 +25,6 @@ export function ConnectedGatewayCard({
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState(false);
     const [busy, setBusy] = useState<'test' | 'delete'>();
-    const [message, setMessage] = useState<string>();
     useEffect(() => {
         function close(event: PointerEvent) {
             if (!menu.current?.contains(event.target as Node)) setOpen(false);
@@ -38,17 +38,27 @@ export function ConnectedGatewayCard({
         if (action === 'delete' && !window.confirm(`Desabilitar ${connection.name}?`)) return;
         setOpen(false);
         setBusy(action);
-        setMessage(undefined);
         const response = await fetch(
             `/api/gateways/${connection.id}${action === 'test' ? '/test' : ''}`,
             { method: action === 'test' ? 'POST' : 'DELETE' },
         );
         const body = (await response.json()) as { detail?: string };
         setBusy(undefined);
-        if (!response.ok) return setMessage(body.detail ?? 'Não foi possível concluir a operação.');
-        setMessage(
-            action === 'test' ? 'Credenciais validadas com sucesso.' : 'Gateway desabilitado.',
-        );
+        if (!response.ok) {
+            showToast({
+                tone: 'error',
+                description: body.detail ?? 'Não foi possível concluir a operação.',
+            });
+            return;
+        }
+        showToast({
+            tone: 'success',
+            title: action === 'test' ? 'Conexão validada' : 'Gateway desabilitado',
+            description:
+                action === 'test'
+                    ? 'As credenciais do gateway estão funcionando.'
+                    : 'O gateway não receberá novos pagamentos.',
+        });
         router.refresh();
     }
 
@@ -91,7 +101,7 @@ export function ConnectedGatewayCard({
                         >
                             {status.label}
                         </span>
-                        <p className="mt-1 text-[10px] text-muted">{message ?? status.detail}</p>
+                        <p className="mt-1 text-[10px] text-muted">{status.detail}</p>
                     </div>
                     <div>
                         <p className="text-[12px] font-semibold">Sob consulta</p>

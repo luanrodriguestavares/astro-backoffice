@@ -2,8 +2,12 @@ import { NextResponse } from 'next/server';
 
 import type { SessionData } from '@/lib/api/types';
 
-export function authenticatedRedirect(request: Request, session: SessionData) {
-    const response = NextResponse.redirect(new URL('/dashboard', request.url), 303);
+export function authenticatedRedirect(
+    request: Request,
+    session: SessionData,
+    destination = '/dashboard',
+) {
+    const response = NextResponse.redirect(new URL(destination, request.url), 303);
     return applySessionCookies(response, session);
 }
 

@@ -88,7 +88,7 @@ export function CustomSelect({
                 left,
                 width,
                 maxHeight: Math.max(96, Math.min(256, available)),
-                zIndex: 130,
+                zIndex: 220,
             });
         }
 
@@ -124,7 +124,7 @@ export function CustomSelect({
                         aria-selected={selected === option.value}
                         disabled={option.disabled}
                         onClick={() => choose(option.value)}
-                        className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] transition ${selected === option.value ? 'bg-brand-soft text-brand-strong' : 'hover:bg-[#f7f6fb]'} disabled:cursor-not-allowed disabled:opacity-55`}
+                        className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] transition ${selected === option.value ? 'bg-brand-soft text-brand-strong' : 'hover:bg-surface-muted'} disabled:cursor-not-allowed disabled:opacity-55`}
                     >
                         <span className="min-w-0 flex-1 truncate">{option.label}</span>
                         {option.badge && (
@@ -153,7 +153,7 @@ export function CustomSelect({
                 aria-haspopup="listbox"
                 aria-expanded={open}
                 onClick={() => setOpen((current) => !current)}
-                className={`custom-select-trigger flex h-11 w-full items-center justify-between gap-3 rounded-xl border px-3.5 text-left font-normal outline-none transition focus-visible:border-brand/70 focus-visible:bg-white focus-visible:shadow-[0_0_0_3px_rgba(109,93,244,.16)] ${open ? 'border-brand/70 bg-white shadow-[0_0_0_3px_rgba(109,93,244,.16)]' : 'border-[#d9d7e8] bg-white/70 hover:border-brand/45'} disabled:opacity-50`}
+                className={`custom-select-trigger flex h-11 w-full items-center justify-between gap-3 rounded-xl border px-3.5 text-left text-[13px] font-normal outline-none transition focus-visible:border-brand/70 focus-visible:bg-white focus-visible:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)] ${open ? 'border-brand/70 bg-white shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)]' : 'border-border bg-white/70 hover:border-brand/45'} disabled:opacity-50`}
             >
                 <span className={label ? 'text-foreground' : 'text-muted'}>
                     {label ?? placeholder}

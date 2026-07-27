@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 
 import { Icon, type IconName } from '@/components/ui/icon';
 import { CustomSelect } from '@/components/ui/custom-select';
+import { showToast } from '@/components/ui/toast';
 import { blankCheckoutDocument } from '@/lib/checkout/document';
 import { checkoutPublicUrl } from '@/lib/checkout/public-url';
 import type { Checkout } from '@/lib/api/types';
@@ -74,7 +75,6 @@ export function CheckoutManager({
     const [step, setStep] = useState<'template' | 'details'>('template');
     const [template, setTemplate] = useState<string>();
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string>();
     const [deleteTarget, setDeleteTarget] = useState<Checkout>();
     const [deleting, setDeleting] = useState(false);
     const [missingProductAlert, setMissingProductAlert] = useState(false);
@@ -86,7 +86,6 @@ export function CheckoutManager({
         }
         setStep('template');
         setTemplate(undefined);
-        setError(undefined);
         setOpen(true);
     }
 
@@ -99,18 +98,16 @@ export function CheckoutManager({
     function closeCreate() {
         if (loading) return;
         setOpen(false);
-        setError(undefined);
     }
 
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setLoading(true);
-        setError(undefined);
         const form = new FormData(event.currentTarget);
         const selected = catalog.find((item) => item.priceId === form.get('priceId'));
         if (!selected) {
             setLoading(false);
-            setError('Selecione um produto e preço.');
+            showToast({ tone: 'warning', description: 'Selecione um produto e preço.' });
             return;
         }
         const name = String(form.get('name') ?? '').trim();
@@ -137,7 +134,10 @@ export function CheckoutManager({
         const body = (await response.json()) as { data?: Checkout; detail?: string };
         setLoading(false);
         if (!response.ok || !body.data) {
-            setError(body.detail ?? 'Não foi possível criar o checkout.');
+            showToast({
+                tone: 'error',
+                description: body.detail ?? 'Não foi possível criar o checkout.',
+            });
             return;
         }
         router.push(`/checkouts/${body.data.id}/builder`);
@@ -150,11 +150,19 @@ export function CheckoutManager({
         const body = response.ok ? undefined : ((await response.json()) as { detail?: string });
         setDeleting(false);
         if (!response.ok) {
-            setError(body?.detail ?? 'Não foi possível excluir o checkout.');
+            showToast({
+                tone: 'error',
+                description: body?.detail ?? 'Não foi possível excluir o checkout.',
+            });
             setDeleteTarget(undefined);
             return;
         }
         setDeleteTarget(undefined);
+        showToast({
+            tone: 'success',
+            title: 'Checkout excluído',
+            description: 'O checkout foi removido com sucesso.',
+        });
         router.refresh();
     }
 
@@ -314,14 +322,6 @@ export function CheckoutManager({
                                             </div>
                                         </label>
                                     </div>
-                                    {error && (
-                                        <p
-                                            role="alert"
-                                            className="mt-5 rounded-2xl border border-[#f7d8de] bg-[#fff5f7]/75 p-3 text-[13px] text-danger"
-                                        >
-                                            {error}
-                                        </p>
-                                    )}
                                     <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                         <Button
                                             type="button"

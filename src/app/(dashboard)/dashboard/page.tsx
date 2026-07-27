@@ -75,7 +75,7 @@ export default async function DashboardPage() {
                 actions={
                     <Link
                         href="/checkouts"
-                        className="glass-interactive group inline-flex h-12 items-center gap-3 rounded-2xl bg-gradient-to-r from-[#7665f5] to-[#5a42e3] px-5 text-[13px] font-semibold text-white shadow-[0_14px_30px_rgba(91,69,223,.22)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(91,69,223,.3)]"
+                        className="dashboard-primary-action glass-interactive group inline-flex h-12 items-center gap-3 rounded-2xl bg-gradient-to-r from-brand to-brand-strong px-5 text-[13px] font-semibold text-white transition duration-300 hover:-translate-y-0.5"
                     >
                         <Icon name="plus" className="size-4" />
                         Criar checkout
@@ -240,7 +240,7 @@ function OnboardingCard({
                 </p>
                 <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-brand/10">
                     <div
-                        className="h-full rounded-full bg-gradient-to-r from-brand to-[#9c91ff] transition-all duration-700"
+                        className="h-full rounded-full bg-gradient-to-r from-brand to-brand-strong transition-all duration-700"
                         style={{ width: `${(setupDone / 3) * 100}%` }}
                     />
                 </div>
@@ -251,7 +251,7 @@ function OnboardingCard({
                 </ol>
                 <Link
                     href={nextAction.href}
-                    className="glass-interactive mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-brand px-4 text-[13px] font-semibold text-white shadow-[0_12px_30px_rgba(98,75,255,.22)] transition hover:-translate-y-0.5 hover:bg-brand-strong"
+                    className="dashboard-primary-action glass-interactive mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-brand px-4 text-[13px] font-semibold text-white transition hover:-translate-y-0.5 hover:bg-brand-strong"
                 >
                     {nextAction.label}
                     <Icon name="arrow-right" className="size-3.5" />
@@ -508,7 +508,7 @@ function recentActivities(input: {
         items.push({
             id: `subscription-${subscription.id}`,
             icon: 'repeat',
-            tone: 'bg-[#ece9ff] text-brand',
+            tone: 'bg-brand-soft text-brand',
             title: 'Nova assinatura criada',
             detail: `Assinatura ${subscription.id}`,
             date: subscription.createdAt,
@@ -528,7 +528,7 @@ function recentActivities(input: {
         items.push({
             id: `checkout-${checkout.id}`,
             icon: 'layout',
-            tone: 'bg-[#eef1ff] text-[#6173d9]',
+            tone: 'bg-brand-soft text-brand',
             title: checkout.status === 'published' ? 'Checkout publicado' : 'Checkout atualizado',
             detail: checkout.name,
             date: checkout.updatedAt,
@@ -537,7 +537,7 @@ function recentActivities(input: {
         items.push({
             id: `product-${product.id}`,
             icon: 'edit',
-            tone: 'bg-[#f2edff] text-brand',
+            tone: 'bg-brand-soft text-brand',
             title: 'Produto atualizado',
             detail: product.name,
             date: product.updatedAt,

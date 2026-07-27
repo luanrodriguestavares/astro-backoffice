@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { GatewayMark } from '@/components/gateways/gateway-mark';
 import { Icon } from '@/components/ui/icon';
+import { showToast } from '@/components/ui/toast';
 import type { GatewayConnection } from '@/lib/api/types';
 import { useEscapeClose } from '@/hooks/use-escape-close';
 
@@ -27,7 +28,6 @@ export function GatewayConnectCard({ gateway }: { gateway: GatewayDefinition }) 
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string>();
     const [created, setCreated] = useState<GatewayConnection>();
 
     useEscapeClose(open || Boolean(created), () => {
@@ -38,7 +38,6 @@ export function GatewayConnectCard({ gateway }: { gateway: GatewayDefinition }) 
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setLoading(true);
-        setError(undefined);
         const response = await fetch('/api/gateways', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
@@ -47,7 +46,10 @@ export function GatewayConnectCard({ gateway }: { gateway: GatewayDefinition }) 
         const body = (await response.json()) as { data?: GatewayConnection; detail?: string };
         setLoading(false);
         if (!response.ok || !body.data) {
-            setError(body.detail ?? 'Falha ao conectar.');
+            showToast({
+                tone: 'error',
+                description: body.detail ?? 'Não foi possível conectar o gateway.',
+            });
             return;
         }
         setOpen(false);
@@ -60,10 +62,7 @@ export function GatewayConnectCard({ gateway }: { gateway: GatewayDefinition }) 
             <Button
                 type="button"
                 aria-label={`Conectar ${gateway.name}`}
-                onClick={() => {
-                    setError(undefined);
-                    setOpen(true);
-                }}
+                onClick={() => setOpen(true)}
                 className="gateway-hover-card group flex min-h-20 w-full items-center gap-2.5 rounded-xl border border-white/80 bg-white/38 p-3 text-left hover:shadow-[0_12px_30px_rgba(66,57,128,.07)]"
             >
                 <GatewayMark
@@ -135,14 +134,6 @@ export function GatewayConnectCard({ gateway }: { gateway: GatewayDefinition }) 
                                 </label>
                                 <GatewayFields provider={gateway.provider} />
                             </div>
-                            {error && (
-                                <p
-                                    role="alert"
-                                    className="mt-5 rounded-2xl border border-[#f7d8de] bg-[#fff5f7] p-3 text-[13px] text-danger"
-                                >
-                                    {error}
-                                </p>
-                            )}
                             <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                 <Button
                                     type="button"
@@ -216,7 +207,6 @@ export function GatewayEditModal({
 }) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string>();
     useEscapeClose(open, () => {
         if (!loading) close();
     });
@@ -225,7 +215,6 @@ export function GatewayEditModal({
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setLoading(true);
-        setError(undefined);
         const form = new FormData(event.currentTarget);
         const response = await fetch(`/api/gateways/${connection.id}`, {
             method: 'PATCH',
@@ -236,8 +225,19 @@ export function GatewayEditModal({
         });
         const body = (await response.json()) as { detail?: string };
         setLoading(false);
-        if (!response.ok) return setError(body.detail ?? 'Não foi possível atualizar o gateway.');
+        if (!response.ok) {
+            showToast({
+                tone: 'error',
+                description: body.detail ?? 'Não foi possível atualizar o gateway.',
+            });
+            return;
+        }
         close();
+        showToast({
+            tone: 'success',
+            title: 'Gateway atualizado',
+            description: 'A configuração do gateway foi salva.',
+        });
         router.refresh();
     }
 
@@ -295,14 +295,6 @@ export function GatewayEditModal({
                 <p className="mt-4 text-[11px] text-muted">
                     Deixe as credenciais em branco para manter as atuais.
                 </p>
-                {error && (
-                    <p
-                        role="alert"
-                        className="mt-5 rounded-2xl border border-[#f7d8de] bg-[#fff5f7] p-3 text-[13px] text-danger"
-                    >
-                        {error}
-                    </p>
-                )}
                 <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     <Button type="button" variant="secondary" disabled={loading} onClick={close}>
                         Cancelar
