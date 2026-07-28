@@ -46,9 +46,13 @@ src/
 └── proxy.ts                # proteção das rotas internas
 ```
 
-Login e cadastro são enviados pelo servidor Next para a API. Access e refresh tokens ficam em cookies `HttpOnly`,
-nunca em `localStorage`. As telas internas possuem dados demonstrativos até cada módulo ser conectado aos
-endpoints correspondentes.
+Login e cadastro são enviados pelo servidor Next para a API. Access e refresh tokens ficam em cookies
+`HttpOnly`, nunca em `localStorage`. O proxy renova a sessão antes de abrir rotas protegidas.
+
+Produtos, preços, checkouts, cupons, clientes, gateways, arquivos, inventário, frete, assinaturas,
+equipe, notificações, developer API keys, roadmap e administração da plataforma já possuem
+integrações com endpoints da API. Algumas telas de consulta ainda podem apresentar estados vazios ou
+conteúdo de apoio enquanto seus fluxos completos são finalizados.
 
 ## Verificação
 
@@ -57,3 +61,7 @@ pnpm lint
 pnpm typecheck
 pnpm build
 ```
+
+Ainda não existe suíte automatizada de testes unitários, de integração ou end-to-end neste projeto.
+Os requisitos de deploy e go-live estão em
+[`PRODUCTION_READINESS.md`](../PRODUCTION_READINESS.md).
