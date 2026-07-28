@@ -130,7 +130,8 @@ export function ConnectedGatewayCard({
                                 type="button"
                                 aria-label={`Ações de ${connection.name}`}
                                 onClick={() => setOpen((value) => !value)}
-                                className="grid size-9 place-items-center rounded-xl border border-[#d9d7e8] bg-white/60 text-muted hover:bg-white hover:text-foreground"
+                                variant="icon"
+                                className="rounded-xl"
                             >
                                 <Icon name="dots" className="size-4" />
                             </Button>
@@ -144,16 +145,18 @@ export function ConnectedGatewayCard({
                                 >
                                     <Button
                                         type="button"
+                                        variant="ghost"
                                         onClick={() => act('test')}
-                                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] font-medium hover:bg-brand-soft"
+                                        className="h-9 w-full justify-start rounded-lg px-3"
                                     >
                                         <Icon name="check" className="size-3.5" />
                                         Testar conexão
                                     </Button>
                                     <Button
                                         type="button"
+                                        variant="danger"
                                         onClick={() => act('delete')}
-                                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] font-medium text-danger hover:bg-[#fff0f2]"
+                                        className="h-9 w-full justify-start rounded-lg border-0"
                                     >
                                         <Icon name="trash" className="size-3.5" />
                                         Desabilitar

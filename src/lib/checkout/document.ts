@@ -13,7 +13,15 @@ export const blankCheckoutDocument: CheckoutDocument = {
         radius: 'md',
         shadow: 'sm',
     },
-    layout: { maxWidth: 'lg', componentGap: 'md', pagePadding: 'lg', inputGroupStyle: 'filled' },
+    layout: {
+        maxWidth: 'lg',
+        componentGap: 'md',
+        pagePadding: 'lg',
+        inputGroupStyle: 'filled',
+        componentBackgroundStyle: 'filled',
+        componentBorderStyle: 'visible',
+        componentShadowMode: 'auto',
+    },
     sections: [
         {
             id: 'product-required',
@@ -75,7 +83,15 @@ export const defaultCheckoutDocument: CheckoutDocument = {
         radius: 'md',
         shadow: 'sm',
     },
-    layout: { maxWidth: 'lg', componentGap: 'md', pagePadding: 'lg', inputGroupStyle: 'filled' },
+    layout: {
+        maxWidth: 'lg',
+        componentGap: 'md',
+        pagePadding: 'lg',
+        inputGroupStyle: 'filled',
+        componentBackgroundStyle: 'filled',
+        componentBorderStyle: 'visible',
+        componentShadowMode: 'auto',
+    },
     sections: [
         {
             id: 'hero-initial',

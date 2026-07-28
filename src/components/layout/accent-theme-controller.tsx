@@ -18,7 +18,7 @@ export const accentThemes: {
     },
     { value: 'blue', label: 'Azul', description: 'Limpo e objetivo', color: '#286dcc' },
     { value: 'violet', label: 'Roxo', description: 'Criativo e profundo', color: '#7651d1' },
-    { value: 'yellow', label: 'Amarelo', description: 'Quente e energético', color: '#a96f00' },
+    { value: 'yellow', label: 'Amarelo', description: 'Quente e energético', color: '#d6a300' },
     { value: 'orange', label: 'Laranja', description: 'Próximo e expressivo', color: '#c4551c' },
     { value: 'green', label: 'Verde', description: 'Calmo e natural', color: '#16815f' },
     { value: 'rose', label: 'Rosa', description: 'Marcante e moderno', color: '#bd416b' },

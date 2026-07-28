@@ -14,6 +14,13 @@ const supported = new Set<CheckoutSectionType>([
     'faq',
     'guarantee',
     'countdown',
+    'plan_comparison',
+    'data_table',
+    'stats',
+    'before_after',
+    'client_logos',
+    'floating_cta',
+    'spacer_divider',
     'product_summary',
     'checkout_form',
     'order_summary',
@@ -47,6 +54,11 @@ export function documentToPuck(document: CheckoutDocument): BuilderData {
                 componentGap: sizeValue(layout.componentGap),
                 pagePadding: sizeValue(layout.pagePadding, 'lg'),
                 inputGroupStyle: inputGroupStyleValue(layout.inputGroupStyle),
+                componentBackgroundStyle: componentBackgroundStyleValue(
+                    layout.componentBackgroundStyle,
+                ),
+                componentBorderStyle: componentBorderStyleValue(layout.componentBorderStyle),
+                componentShadowMode: componentShadowModeValue(layout.componentShadowMode),
             },
         },
         content: document.sections
@@ -82,6 +94,9 @@ export function puckToDocument(data: BuilderData, previous: CheckoutDocument): C
             componentGap: sizeValue(root.componentGap),
             pagePadding: sizeValue(root.pagePadding, 'lg'),
             inputGroupStyle: inputGroupStyleValue(root.inputGroupStyle),
+            componentBackgroundStyle: componentBackgroundStyleValue(root.componentBackgroundStyle),
+            componentBorderStyle: componentBorderStyleValue(root.componentBorderStyle),
+            componentShadowMode: componentShadowModeValue(root.componentShadowMode),
         },
         sections: data.content
             .filter((component) => supported.has(component.type as CheckoutSectionType))
@@ -177,6 +192,20 @@ function widthValue(value: unknown): BuilderRootProps['maxWidth'] {
 
 function inputGroupStyleValue(value: unknown): BuilderRootProps['inputGroupStyle'] {
     return value === 'outlined' ? 'outlined' : 'filled';
+}
+
+function componentBackgroundStyleValue(
+    value: unknown,
+): BuilderRootProps['componentBackgroundStyle'] {
+    return value === 'transparent' ? 'transparent' : 'filled';
+}
+
+function componentBorderStyleValue(value: unknown): BuilderRootProps['componentBorderStyle'] {
+    return value === 'hidden' ? 'hidden' : 'visible';
+}
+
+function componentShadowModeValue(value: unknown): BuilderRootProps['componentShadowMode'] {
+    return value === 'visible' || value === 'hidden' ? value : 'auto';
 }
 
 function safeColor(value: unknown, fallback: string) {

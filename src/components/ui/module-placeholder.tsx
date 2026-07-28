@@ -1,5 +1,4 @@
-import Link from 'next/link';
-
+import { ButtonLink } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { PageHeader } from '@/components/ui/page-header';
 
@@ -27,13 +26,10 @@ export function ModulePlaceholder({
                         A estrutura desta área já está criada. O próximo passo é ligar a listagem e
                         os formulários aos endpoints da API Astro.
                     </p>
-                    <Link
-                        href="#"
-                        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-strong"
-                    >
+                    <ButtonLink href="#" className="mt-6">
                         {action}
                         <Icon name="arrow-right" className="size-4" />
-                    </Link>
+                    </ButtonLink>
                 </div>
             </section>
         </>

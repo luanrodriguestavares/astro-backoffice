@@ -99,7 +99,7 @@ function Field({
             {label}
             <input
                 {...input}
-                className="mt-2 h-11 w-full rounded-xl border border-[#d9d7e8] bg-white/70 px-3.5 font-normal outline-none transition placeholder:text-[#aaaabd] focus:border-brand/70 focus:bg-white focus:shadow-[0_0_0_3px_rgba(109,93,244,.16)]"
+                className="mt-2 h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] px-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]"
             />
         </label>
     );
@@ -199,7 +199,7 @@ export function FileUploadAction({ folderId }: { folderId?: string | null }) {
                         type="file"
                         accept="image/jpeg,image/png,image/webp,image/gif,image/avif,.txt,.csv,.tsv,.md,.json,.xml,.xsl,.rtf,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.odt,.ods,.odp"
                         required
-                        className="mt-2 block w-full rounded-xl border border-[#d9d7e8] bg-white/70 p-3 text-[12px] file:mr-3 file:rounded-lg file:border-0 file:bg-brand-soft file:px-3 file:py-2 file:font-semibold file:text-brand-strong"
+                        className="mt-2 block w-full rounded-xl border border-border bg-[var(--control-bg)] p-3 text-[12px] file:mr-3 file:rounded-lg file:border-0 file:bg-brand-soft file:px-3 file:py-2 file:font-semibold file:text-brand-strong"
                     />
                 </label>
             </ResourceModal>
@@ -372,7 +372,7 @@ export function ApiKeyCreateAction() {
                             <p className="mt-2 text-[13px] text-muted">
                                 Copie o segredo agora. Ele não será exibido novamente.
                             </p>
-                            <code className="mt-4 block overflow-x-auto rounded-xl border border-[#d9d7e8] bg-white p-3 text-xs">
+                            <code className="mt-4 block overflow-x-auto rounded-xl border border-border bg-[var(--control-bg)] p-3 text-xs">
                                 {secret}
                             </code>
                             <div className="mt-6 flex justify-end">
@@ -394,7 +394,7 @@ export function ApiKeyCreateAction() {
 
 function CheckboxOption({ name, value, label }: { name: string; value: string; label: string }) {
     return (
-        <label className="flex items-center gap-2 rounded-xl border border-[#d9d7e8] bg-white/70 p-3 text-[12px]">
+        <label className="flex items-center gap-2 rounded-xl border border-border bg-[var(--control-bg)] p-3 text-[12px]">
             <input name={name} value={value} type="checkbox" className="size-4 accent-brand" />
             {label}
         </label>

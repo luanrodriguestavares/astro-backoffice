@@ -70,10 +70,7 @@ export function OrganizationForm({ organization }: { organization: Organization 
                 />
             </div>
             <div className="mt-7 flex justify-end">
-                <Button
-                    disabled={loading}
-                    className="glass-interactive h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] disabled:opacity-50"
-                >
+                <Button variant="primary" disabled={loading} className="px-6">
                     {loading ? 'Salvando...' : 'Salvar alterações'}
                 </Button>
             </div>

@@ -306,8 +306,9 @@ export function ProductManager({
 
                 <Button
                     type="button"
+                    variant="primary"
                     onClick={openCreate}
-                    className="product-primary-action glass-interactive group inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-brand-strong px-4 text-[13px] font-semibold text-white transition hover:-translate-y-0.5"
+                    className="h-10 shrink-0 px-4"
                 >
                     <Icon name="plus" className="size-3.5" />
                     Criar produto
@@ -360,9 +361,10 @@ export function ProductManager({
                                 </div>
                                 <Button
                                     type="button"
+                                    variant="icon"
                                     aria-label="Fechar"
                                     onClick={closeForm}
-                                    className="grid size-9 place-items-center rounded-full border border-white/80 bg-white/45 text-muted transition hover:bg-white/75 hover:text-foreground"
+                                    className="size-9"
                                 >
                                     <Icon name="close" className="size-4" />
                                 </Button>
@@ -409,7 +411,7 @@ export function ProductManager({
                                         name="shortDescription"
                                         defaultValue={editing?.shortDescription ?? ''}
                                         placeholder="Explique brevemente o que o cliente recebe."
-                                        className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-border bg-white/48 p-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/25 focus:bg-white/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_7%,transparent)]"
+                                        className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-border bg-[var(--control-bg)] p-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]"
                                     />
                                 </label>
                                 {!editing && (
@@ -439,7 +441,7 @@ export function ProductManager({
                                 )}
                                 <label className="text-[13px] font-semibold sm:col-span-2">
                                     Imagem do produto
-                                    <span className="product-image-field mt-2 block rounded-2xl border border-dashed border-border bg-white/55 p-3.5 transition focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]">
+                                    <span className="product-image-field mt-2 block rounded-2xl border border-dashed border-border bg-[var(--control-bg)] p-3.5 transition focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]">
                                         <span className="flex items-center gap-3">
                                             <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand-soft text-brand">
                                                 {selectedImageFile ? (
@@ -498,15 +500,12 @@ export function ProductManager({
                             <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                 <Button
                                     type="button"
+                                    variant="secondary"
                                     onClick={closeForm}
-                                    className="h-11 rounded-xl border border-white/85 bg-white/42 px-5 text-[13px] font-semibold text-muted transition hover:bg-white/70 hover:text-foreground"
                                 >
                                     Cancelar
                                 </Button>
-                                <Button
-                                    disabled={loading}
-                                    className="product-primary-action glass-interactive h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-55"
-                                >
+                                <Button variant="primary" disabled={loading} className="px-6">
                                     {loading
                                         ? editing
                                             ? 'Salvando...'
@@ -795,9 +794,9 @@ function DeleteProductModal({
                 aria-modal="true"
                 aria-labelledby="delete-product-title"
                 aria-describedby="delete-product-description"
-                className="theme-modal glass-panel w-full max-w-md rounded-[26px] p-6 shadow-[0_32px_100px_rgba(20,20,24,.24)]"
+                className="theme-modal modal-surface glass-panel w-full max-w-md rounded-[26px] p-6 shadow-[0_32px_100px_rgba(20,20,24,.24)]"
             >
-                <span className="grid size-11 place-items-center rounded-2xl border border-[#ffdce1] bg-[#fff0f2]/85 text-danger shadow-sm">
+                <span className="grid size-11 place-items-center rounded-2xl border border-danger/20 bg-danger/10 text-danger shadow-sm">
                     <Icon name="trash" className="size-4.5" />
                 </span>
                 <h2
@@ -816,17 +815,18 @@ function DeleteProductModal({
                 <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     <Button
                         type="button"
+                        variant="secondary"
                         disabled={loading}
                         onClick={onCancel}
-                        className="h-11 rounded-xl border border-white/85 bg-white/45 px-5 text-[13px] font-semibold text-muted transition hover:bg-white/75 hover:text-foreground disabled:opacity-50"
                     >
                         Cancelar
                     </Button>
                     <Button
                         type="button"
+                        variant="danger"
                         disabled={loading}
                         onClick={onConfirm}
-                        className="h-11 rounded-xl bg-danger px-5 text-[13px] font-semibold text-white shadow-[0_10px_24px_rgba(195,59,83,.2)] transition hover:bg-[#aa3148] disabled:cursor-not-allowed disabled:opacity-55"
+                        className="h-11 rounded-xl px-5"
                     >
                         {loading ? 'Excluindo...' : 'Excluir produto'}
                     </Button>
@@ -848,11 +848,7 @@ function EmptyProducts({ onCreate }: { onCreate: () => void }) {
             <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-5 text-muted">
                 Crie o primeiro produto e configure seu preço para começar a vender.
             </p>
-            <Button
-                type="button"
-                onClick={onCreate}
-                className="product-primary-action glass-interactive mt-5 inline-flex h-11 items-center gap-2 rounded-xl bg-brand px-5 text-[13px] font-semibold text-white transition hover:-translate-y-0.5 hover:bg-brand-strong"
-            >
+            <Button type="button" variant="primary" onClick={onCreate} className="mt-5">
                 <Icon name="plus" className="size-3.5" />
                 Criar primeiro produto
             </Button>
@@ -870,7 +866,7 @@ function Field({
             {label}
             <input
                 {...input}
-                className={`mt-2 h-11 w-full rounded-xl border border-border bg-white/70 px-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:bg-white focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)] ${className ?? ''}`}
+                className={`mt-2 h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] px-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)] ${className ?? ''}`}
             />
         </label>
     );
@@ -939,7 +935,7 @@ function MoneyField({ name, label }: { name: string; label: string }) {
                         maximumFractionDigits: 2,
                     }).format(minor / 100)}
                     onChange={(event) => setMinor(Number(event.target.value.replace(/\D/g, '')))}
-                    className="h-11 w-full rounded-xl border border-border bg-white/70 pl-10 pr-3.5 font-normal tabular-nums outline-none transition focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)]"
+                    className="h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] pl-10 pr-3.5 font-normal tabular-nums outline-none transition focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)]"
                 />
             </div>
         </label>

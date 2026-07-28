@@ -16,8 +16,19 @@ type BuilderProps = {
         buttonLabel: string;
         imageUrl: string;
     };
+    heading_text: { text: string; alignment: 'left' | 'center' | 'right'; size: TextSize };
+    paragraph_text: { content: string; alignment: 'left' | 'center' | 'right'; size: TextSize };
     text: { title: string; content: string; alignment: 'left' | 'center' };
-    image: { url: string; alt: string; caption: string };
+    image: {
+        url: string;
+        alt: string;
+        caption: string;
+        aspectRatio: ImageRatio;
+        shape: ImageShape;
+        size: ImageSize;
+        fit: 'cover' | 'contain';
+        alignment: 'left' | 'center' | 'right';
+    };
     video: {
         url: string;
         title: string;
@@ -58,6 +69,37 @@ type BuilderProps = {
     faq: { layout: FaqLayout; title: string; items: { question: string; answer: string }[] };
     guarantee: { layout: GuaranteeLayout; title: string; description: string; days: number };
     countdown: { layout: CountdownLayout; title: string; deadline: string };
+    plan_comparison: {
+        layout: PlanComparisonLayout;
+        title: string;
+        plans: { name: string; price: string; description: string; featured: boolean }[];
+    };
+    data_table: {
+        layout: DataTableLayout;
+        title: string;
+        showLines: boolean;
+        rows: { label: string; value: string; detail: string }[];
+    };
+    stats: {
+        layout: StatsLayout;
+        title: string;
+        items: { value: string; label: string; detail: string }[];
+    };
+    before_after: {
+        layout: BeforeAfterLayout;
+        title: string;
+        beforeTitle: string;
+        beforeText: string;
+        afterTitle: string;
+        afterText: string;
+    };
+    client_logos: {
+        layout: ClientLogosLayout;
+        title: string;
+        logos: { name: string; imageUrl: string }[];
+    };
+    floating_cta: { layout: FloatingCtaLayout; text: string; buttonLabel: string };
+    spacer_divider: { layout: SpacerDividerLayout; size: SizePreset; label: string };
     product_summary: { layout: ProductLayout; title: string; description: string };
     checkout_form: {
         layout: FormLayout;
@@ -82,18 +124,29 @@ type BuilderProps = {
         description: string;
         showInstallments: boolean;
     };
-    pix_payment: { title: string; description: string; expiresIn: string };
-    boleto_payment: { title: string; description: string; dueInDays: number };
+    pix_payment: {
+        layout: PaymentInstructionLayout;
+        title: string;
+        description: string;
+        expiresIn: string;
+    };
+    boleto_payment: {
+        layout: PaymentInstructionLayout;
+        title: string;
+        description: string;
+        dueInDays: number;
+    };
     shipping_address: { title: string; description: string };
     shipping_methods: { title: string; economyLabel: string; expressLabel: string };
-    coupon_field: { title: string; placeholder: string; buttonLabel: string };
+    coupon_field: { layout: CouponLayout; title: string; placeholder: string; buttonLabel: string };
     security_badges: {
+        layout: TrustLayout;
         title: string;
         showEncryption: boolean;
         showGuarantee: boolean;
         showPrivacy: boolean;
     };
-    footer: { text: string; showSecurity: boolean };
+    footer: { layout: FooterLayout; text: string; showSecurity: boolean };
 };
 
 type ThemeMode = 'light' | 'dark' | 'system';
@@ -114,6 +167,8 @@ type FontPreset =
     | 'serif'
     | 'mono';
 
+type FontWeightPreset = '400' | '500' | '600' | '700' | '800' | '900';
+
 type SizePreset = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 type WidthPreset = 'sm' | 'md' | 'lg' | 'xl' | 'full';
@@ -124,21 +179,38 @@ type LogoRadius = 'none' | 'sm' | 'md' | 'lg' | 'full';
 
 type BannerRatio = '4/1' | '3/1' | '2/1' | '16/9' | '1/1' | '4/5';
 
+type ImageRatio = 'auto' | '21/9' | '16/9' | '4/3' | '1/1' | '4/5' | '9/16';
+
+type ImageShape = 'rectangle' | 'soft' | 'square' | 'circle' | 'pill';
+
+type ImageSize = 'sm' | 'md' | 'lg' | 'full';
+
 type VideoRatio = '16/9' | '4/3' | '1/1' | '9/16';
 
 type InputGroupStyle = 'filled' | 'outlined';
+type ComponentBackgroundStyle = 'filled' | 'transparent';
+type ComponentBorderStyle = 'visible' | 'hidden';
+type ComponentShadowMode = 'auto' | 'visible' | 'hidden';
 
-type HeroLayout = 'choose' | 'centered' | 'split' | 'compact';
+type HeroLayout = 'choose' | 'centered' | 'split' | 'compact' | 'media-card' | 'editorial';
 
 type CountdownLayout = 'cards' | 'banner' | 'minimal';
+type PlanComparisonLayout = 'cards' | 'columns' | 'compact';
+type DataTableLayout = 'table' | 'matrix' | 'specs';
+type StatsLayout = 'cards' | 'strip' | 'editorial';
+type BeforeAfterLayout = 'split' | 'cards' | 'timeline';
+type ClientLogosLayout = 'grid' | 'strip' | 'cloud';
+type FloatingCtaLayout = 'bar' | 'pill' | 'card';
+type SpacerDividerLayout = 'space' | 'line' | 'label';
 
-type BenefitsLayout = 'cards' | 'list' | 'steps';
+type BenefitsLayout = 'cards' | 'list' | 'steps' | 'feature-grid' | 'checklist';
+type TextSize = 'sm' | 'md' | 'lg' | 'xl';
 
-type TestimonialsLayout = 'cards' | 'featured' | 'compact';
+type TestimonialsLayout = 'cards' | 'featured' | 'compact' | 'wall' | 'spotlight';
 
 type FaqLayout = 'accordion' | 'cards' | 'split';
 
-type GuaranteeLayout = 'horizontal' | 'seal' | 'banner';
+type GuaranteeLayout = 'horizontal' | 'seal' | 'banner' | 'boxed' | 'minimal';
 
 type ProductLayout = 'card' | 'compact' | 'detailed';
 
@@ -150,10 +222,20 @@ type PaymentLayout = 'cards' | 'list' | 'segmented';
 
 type CardPaymentLayout = 'standard' | 'compact' | 'visual';
 
+type CouponLayout = 'inline' | 'card' | 'minimal';
+
+type PaymentInstructionLayout = 'split' | 'card' | 'compact';
+
+type TrustLayout = 'pills' | 'cards' | 'strip';
+
+type FooterLayout = 'centered' | 'columns' | 'minimal';
+
 export type BuilderRootProps = {
     themeMode: ThemeMode;
     grayTone: GrayTone;
     fontFamily: FontPreset;
+    headingFontWeight: FontWeightPreset;
+    bodyFontWeight: FontWeightPreset;
     backgroundColor: string;
     surfaceColor: string;
     textColor: string;
@@ -164,6 +246,9 @@ export type BuilderRootProps = {
     componentGap: SizePreset;
     pagePadding: SizePreset;
     inputGroupStyle: InputGroupStyle;
+    componentBackgroundStyle: ComponentBackgroundStyle;
+    componentBorderStyle: ComponentBorderStyle;
+    componentShadowMode: ComponentShadowMode;
 };
 
 export type BuilderData = Data<BuilderProps, BuilderRootProps>;
@@ -184,6 +269,20 @@ const sizeOptions = [
     { label: 'XL', value: 'xl' },
 ] as const;
 const shadowOptions = [{ label: 'Sem sombra', value: 'none' }, ...sizeOptions.slice(0, 4)] as const;
+const fontWeightOptions = [
+    { label: 'Regular', value: '400' },
+    { label: 'Medium', value: '500' },
+    { label: 'Semibold', value: '600' },
+    { label: 'Bold', value: '700' },
+    { label: 'Extra bold', value: '800' },
+    { label: 'Black', value: '900' },
+] as const;
+const textSizeOptions = [
+    { label: 'Pequeno', value: 'sm' },
+    { label: 'Normal', value: 'md' },
+    { label: 'Grande', value: 'lg' },
+    { label: 'Extra grande', value: 'xl' },
+] as const;
 const colorField = (label: string) => ({
     type: 'custom' as const,
     label,
@@ -221,11 +320,15 @@ const benefitsLayoutField = templateField<BenefitsLayout>('Template dos benefíc
     { value: 'cards', label: 'Cartões', description: 'Benefícios em grade.' },
     { value: 'list', label: 'Lista', description: 'Leitura vertical objetiva.' },
     { value: 'steps', label: 'Etapas', description: 'Fluxo numerado.' },
+    { value: 'feature-grid', label: 'Grade premium', description: 'Cartoes visuais com icones.' },
+    { value: 'checklist', label: 'Checklist', description: 'Lista compacta com checks.' },
 ]);
 const testimonialsLayoutField = templateField<TestimonialsLayout>('Template dos depoimentos', [
     { value: 'cards', label: 'Cartões', description: 'Depoimentos com o mesmo peso.' },
     { value: 'featured', label: 'Destaque', description: 'Um relato principal em evidência.' },
     { value: 'compact', label: 'Compacto', description: 'Prova social mais discreta.' },
+    { value: 'wall', label: 'Mural', description: 'Varios relatos em bloco editorial.' },
+    { value: 'spotlight', label: 'Spotlight', description: 'Relato principal com assinatura forte.' },
 ]);
 const faqLayoutField = templateField<FaqLayout>('Template das perguntas', [
     { value: 'accordion', label: 'Acordeão', description: 'Respostas abertas sob demanda.' },
@@ -236,6 +339,43 @@ const guaranteeLayoutField = templateField<GuaranteeLayout>('Template da garanti
     { value: 'horizontal', label: 'Horizontal', description: 'Selo e texto lado a lado.' },
     { value: 'seal', label: 'Selo central', description: 'Garantia como destaque principal.' },
     { value: 'banner', label: 'Faixa', description: 'Bloco forte usando a cor do tema.' },
+    { value: 'boxed', label: 'Caixa segura', description: 'Bloco sobrio com resumo de risco.' },
+    { value: 'minimal', label: 'Minimalista', description: 'Garantia discreta e elegante.' },
+]);
+const planComparisonLayoutField = templateField<PlanComparisonLayout>('Template da comparação', [
+    { value: 'cards', label: 'Cards', description: 'Planos em cartões comparáveis.' },
+    { value: 'columns', label: 'Colunas', description: 'Tabela visual por plano.' },
+    { value: 'compact', label: 'Compacto', description: 'Lista curta para checkout estreito.' },
+]);
+const dataTableLayoutField = templateField<DataTableLayout>('Template da tabela', [
+    { value: 'table', label: 'Tabela clássica', description: 'Cabeçalho e linhas tradicionais.' },
+    { value: 'matrix', label: 'Matriz', description: 'Tabela comparativa em colunas.' },
+    { value: 'specs', label: 'Ficha técnica', description: 'Tabela de especificações.' },
+]);
+const statsLayoutField = templateField<StatsLayout>('Template das estatísticas', [
+    { value: 'cards', label: 'Cards', description: 'Métricas em grade.' },
+    { value: 'strip', label: 'Faixa', description: 'Números em linha compacta.' },
+    { value: 'editorial', label: 'Editorial', description: 'Uma métrica principal e detalhes.' },
+]);
+const beforeAfterLayoutField = templateField<BeforeAfterLayout>('Template antes/depois', [
+    { value: 'split', label: 'Dividido', description: 'Antes e depois lado a lado.' },
+    { value: 'cards', label: 'Cards', description: 'Comparação em cartões.' },
+    { value: 'timeline', label: 'Linha do tempo', description: 'Mudança em sequência.' },
+]);
+const clientLogosLayoutField = templateField<ClientLogosLayout>('Template dos logos', [
+    { value: 'grid', label: 'Grade', description: 'Logos organizados em grade.' },
+    { value: 'strip', label: 'Faixa', description: 'Linha compacta de clientes.' },
+    { value: 'cloud', label: 'Nuvem', description: 'Logos com pesos visuais diferentes.' },
+]);
+const floatingCtaLayoutField = templateField<FloatingCtaLayout>('Template do CTA', [
+    { value: 'bar', label: 'Barra', description: 'CTA fixo na base.' },
+    { value: 'pill', label: 'Pill', description: 'CTA flutuante compacto.' },
+    { value: 'card', label: 'Card', description: 'CTA flutuante com mais presença.' },
+]);
+const spacerDividerLayoutField = templateField<SpacerDividerLayout>('Template do espaçador', [
+    { value: 'space', label: 'Espaço', description: 'Respiro vertical invisível.' },
+    { value: 'line', label: 'Linha', description: 'Divisor simples.' },
+    { value: 'label', label: 'Com texto', description: 'Divisor com rótulo central.' },
 ]);
 const productLayoutField = templateField<ProductLayout>('Template dos itens', [
     { value: 'card', label: 'Cartão', description: 'Resumo completo do produto.' },
@@ -266,12 +406,56 @@ const cardPaymentLayoutField = templateField<CardPaymentLayout>('Template dos da
         description: 'Prévia do cartão ao lado dos campos.',
     },
 ]);
+const couponLayoutField = templateField<CouponLayout>('Template do cupom', [
+    { value: 'inline', label: 'Linha', description: 'Campo e botão lado a lado.' },
+    { value: 'card', label: 'Cartao', description: 'Cupom em bloco destacado.' },
+    { value: 'minimal', label: 'Minimalista', description: 'Entrada discreta e compacta.' },
+]);
+const paymentInstructionLayoutField = templateField<PaymentInstructionLayout>(
+    'Template da instrucao',
+    [
+        { value: 'split', label: 'Dividido', description: 'Código e detalhes lado a lado.' },
+        { value: 'card', label: 'Cartao', description: 'Instrucao central em destaque.' },
+        { value: 'compact', label: 'Compacto', description: 'Bloco curto para laterais.' },
+    ],
+);
+const trustLayoutField = templateField<TrustLayout>('Template dos selos', [
+    { value: 'pills', label: 'Pills', description: 'Selos pequenos em linha.' },
+    { value: 'cards', label: 'Cartoes', description: 'Selos com mais presenca.' },
+    { value: 'strip', label: 'Faixa', description: 'Barra de seguranca.' },
+]);
+const footerLayoutField = templateField<FooterLayout>('Template do rodape', [
+    { value: 'centered', label: 'Centralizado', description: 'Texto simples central.' },
+    { value: 'columns', label: 'Colunas', description: 'Marca, suporte e seguranca.' },
+    { value: 'minimal', label: 'Minimal', description: 'Linha fina e discreta.' },
+]);
 const checkoutPageStyles = `
   @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lato:wght@400;700;900&family=Montserrat:wght@400;500;600;700;800&family=Open+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&display=swap");
   [data-checkout-page] input,
   [data-checkout-page] select,
   [data-checkout-page] textarea {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  }
+  [data-checkout-page] *,
+  [data-checkout-page] *::before,
+  [data-checkout-page] *::after {
+    box-sizing: border-box;
+  }
+  [data-checkout-page] section,
+  [data-checkout-page] article,
+  [data-checkout-page] aside,
+  [data-checkout-page] figure,
+  [data-checkout-page] footer,
+  [data-checkout-page] div {
+    min-width: 0;
+  }
+  [data-checkout-page] img,
+  [data-checkout-page] video,
+  [data-checkout-page] iframe {
+    max-width: 100%;
   }
   [data-checkout-page] input:focus,
   [data-checkout-page] input:focus-visible,
@@ -322,6 +506,124 @@ const checkoutPageStyles = `
     align-items: stretch;
     gap: var(--checkout-component-gap);
   }
+  @media (max-width: 720px) {
+    [data-checkout-page] {
+      padding: clamp(8px, 2.8vw, 14px) !important;
+    }
+    [data-checkout-page] .checkout-page-content {
+      gap: clamp(14px, 4vw, 22px) !important;
+    }
+    [data-checkout-page] section,
+    [data-checkout-page] article,
+    [data-checkout-page] aside,
+    [data-checkout-page] figure,
+    [data-checkout-page] footer {
+      max-width: 100% !important;
+      min-width: 0 !important;
+    }
+    [data-checkout-page] section[style*="padding: 28px"],
+    [data-checkout-page] aside[style*="padding: 28px"],
+    [data-checkout-page] article[style*="padding: 24px"],
+    [data-checkout-page] footer[style*="padding: 24px"] {
+      padding: clamp(14px, 4vw, 18px) !important;
+    }
+    [data-checkout-page] section[style*="padding: clamp"],
+    [data-checkout-page] aside[style*="padding: clamp"],
+    [data-checkout-page] article[style*="padding: clamp"],
+    [data-checkout-page] figure[style*="padding: clamp"] {
+      padding-left: clamp(14px, 4vw, 18px) !important;
+      padding-right: clamp(14px, 4vw, 18px) !important;
+    }
+    [data-checkout-page] [style*="grid-template-columns"] {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+    [data-checkout-page] [style*="min-width: 220px"],
+    [data-checkout-page] [style*="min-width: 240px"],
+    [data-checkout-page] [style*="min-width: 280px"] {
+      min-width: 0 !important;
+    }
+    [data-checkout-page] [style*="min-height: 520px"] {
+      min-height: 360px !important;
+    }
+    [data-checkout-page] [style*="min-height: 360px"] {
+      min-height: 220px !important;
+    }
+    [data-checkout-page] [style*="min-height: 260px"] {
+      min-height: 180px !important;
+    }
+    [data-checkout-page] [style*="max-width: 760px"],
+    [data-checkout-page] [style*="max-width: 780px"],
+    [data-checkout-page] [style*="max-width: 800px"],
+    [data-checkout-page] [style*="max-width: 820px"] {
+      max-width: 100% !important;
+    }
+    [data-checkout-page] input,
+    [data-checkout-page] select,
+    [data-checkout-page] textarea,
+    [data-checkout-page] button {
+      width: 100%;
+      max-width: 100%;
+    }
+    [data-checkout-page] input[type="radio"],
+    [data-checkout-page] input[type="checkbox"] {
+      width: auto;
+      max-width: none;
+      flex: 0 0 auto;
+    }
+    [data-checkout-page] .checkout-payment-option,
+    [data-checkout-page] label[style*="display: flex"] {
+      align-items: flex-start !important;
+    }
+  }
+  [data-checkout-page][data-checkout-width="sm"] {
+    padding-inline: clamp(8px, 2.8vw, 14px) !important;
+  }
+  [data-checkout-page][data-checkout-width="sm"] .checkout-page-content {
+    gap: clamp(14px, 4vw, 22px) !important;
+  }
+  [data-checkout-page][data-checkout-width="sm"] section,
+  [data-checkout-page][data-checkout-width="sm"] article,
+  [data-checkout-page][data-checkout-width="sm"] aside,
+  [data-checkout-page][data-checkout-width="sm"] figure,
+  [data-checkout-page][data-checkout-width="sm"] footer {
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+  [data-checkout-page][data-checkout-width="sm"] section[style*="padding: 28px"],
+  [data-checkout-page][data-checkout-width="sm"] aside[style*="padding: 28px"],
+  [data-checkout-page][data-checkout-width="sm"] article[style*="padding: 24px"],
+  [data-checkout-page][data-checkout-width="sm"] footer[style*="padding: 24px"] {
+    padding: clamp(14px, 4vw, 18px) !important;
+  }
+  [data-checkout-page][data-checkout-width="sm"] section[style*="padding: clamp"],
+  [data-checkout-page][data-checkout-width="sm"] aside[style*="padding: clamp"],
+  [data-checkout-page][data-checkout-width="sm"] article[style*="padding: clamp"],
+  [data-checkout-page][data-checkout-width="sm"] figure[style*="padding: clamp"] {
+    padding-left: clamp(14px, 4vw, 18px) !important;
+    padding-right: clamp(14px, 4vw, 18px) !important;
+  }
+  [data-checkout-page][data-checkout-width="sm"] [style*="grid-template-columns"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  [data-checkout-page][data-checkout-width="sm"] [style*="min-width: 220px"],
+  [data-checkout-page][data-checkout-width="sm"] [style*="min-width: 240px"],
+  [data-checkout-page][data-checkout-width="sm"] [style*="min-width: 280px"],
+  [data-checkout-page][data-checkout-width="sm"] [style*="min-width: 320px"] {
+    min-width: 0 !important;
+  }
+  [data-checkout-page][data-checkout-width="sm"] input,
+  [data-checkout-page][data-checkout-width="sm"] select,
+  [data-checkout-page][data-checkout-width="sm"] textarea,
+  [data-checkout-page][data-checkout-width="sm"] button {
+    width: 100%;
+    max-width: 100%;
+  }
+  [data-checkout-page][data-checkout-width="sm"] input[type="radio"],
+  [data-checkout-page][data-checkout-width="sm"] input[type="checkbox"] {
+    width: auto;
+    max-width: none;
+    flex: 0 0 auto;
+  }
 `;
 
 export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
@@ -333,6 +635,8 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 'logo',
                 'banner',
                 'video',
+                'heading_text',
+                'paragraph_text',
                 'text',
                 'image',
                 'benefits',
@@ -340,6 +644,19 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 'faq',
                 'guarantee',
                 'countdown',
+            ],
+            defaultExpanded: false,
+        },
+        conversion: {
+            title: 'Conversao',
+            components: [
+                'plan_comparison',
+                'data_table',
+                'stats',
+                'before_after',
+                'client_logos',
+                'floating_cta',
+                'spacer_divider',
             ],
             defaultExpanded: false,
         },
@@ -401,6 +718,16 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                     { label: 'Monoespaçada', value: 'mono' },
                 ],
             },
+            headingFontWeight: {
+                type: 'select',
+                label: 'Peso dos titulos',
+                options: fontWeightOptions,
+            },
+            bodyFontWeight: {
+                type: 'select',
+                label: 'Peso do texto padrao',
+                options: fontWeightOptions,
+            },
             backgroundColor: colorField('Cor do fundo'),
             surfaceColor: colorField('Cor dos componentes'),
             textColor: colorField('Cor do texto'),
@@ -436,11 +763,38 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                     { label: 'Fundo vazado com borda', value: 'outlined' },
                 ],
             },
+            componentBackgroundStyle: {
+                type: 'select',
+                label: 'Fundo dos componentes',
+                options: [
+                    { label: 'Preenchido', value: 'filled' },
+                    { label: 'Vazado', value: 'transparent' },
+                ],
+            },
+            componentBorderStyle: {
+                type: 'select',
+                label: 'Borda dos componentes',
+                options: [
+                    { label: 'Com borda', value: 'visible' },
+                    { label: 'Sem borda', value: 'hidden' },
+                ],
+            },
+            componentShadowMode: {
+                type: 'select',
+                label: 'Sombra dos componentes',
+                options: [
+                    { label: 'Automatica', value: 'auto' },
+                    { label: 'Sempre exibir', value: 'visible' },
+                    { label: 'Ocultar', value: 'hidden' },
+                ],
+            },
         },
         defaultProps: {
             themeMode: 'light',
             grayTone: 'neutral',
             fontFamily: 'system',
+            headingFontWeight: '700',
+            bodyFontWeight: '400',
             backgroundColor: '#f7f7fb',
             surfaceColor: '#ffffff',
             textColor: '#202235',
@@ -451,12 +805,16 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             componentGap: 'md',
             pagePadding: 'lg',
             inputGroupStyle: 'filled',
+            componentBackgroundStyle: 'filled',
+            componentBorderStyle: 'visible',
+            componentShadowMode: 'auto',
         },
         render: ({ children, ...theme }) => {
             const palette = resolvePalette(theme);
             return (
                 <div
                     data-checkout-page
+                    data-checkout-width={theme.maxWidth ?? 'lg'}
                     style={{
                         ...variables(theme),
                         colorScheme: theme.themeMode === 'system' ? 'light dark' : theme.themeMode,
@@ -464,6 +822,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                         background: palette.background,
                         color: palette.text,
                         fontFamily: fontStack(theme.fontFamily),
+                        fontWeight: Number(theme.bodyFontWeight ?? '400'),
                         padding: spacingValue(theme.pagePadding),
                     }}
                 >
@@ -590,7 +949,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                             aspectRatio: '1',
                             placeItems: 'center',
                             overflow: 'hidden',
-                            border: '1px solid var(--checkout-border)',
+                            border: 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
                             borderRadius: logoRadiusValue(radius),
                             background: safeHttpsUrl(url)
                                 ? `var(--checkout-surface) url(${JSON.stringify(url)}) center / contain no-repeat`
@@ -741,6 +1100,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 column3: Column3,
             }) => (
                 <section
+                    data-checkout-grid
                     style={{
                         width: '100%',
                         boxSizing: 'border-box',
@@ -758,8 +1118,72 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 </section>
             ),
         },
+        heading_text: {
+            label: 'Titulo',
+            fields: {
+                text: { type: 'textarea', label: 'Texto', contentEditable: true },
+                alignment: {
+                    type: 'radio',
+                    label: 'Alinhamento',
+                    options: [
+                        { label: 'Esquerda', value: 'left' },
+                        { label: 'Centro', value: 'center' },
+                        { label: 'Direita', value: 'right' },
+                    ],
+                },
+                size: { type: 'select', label: 'Tamanho', options: textSizeOptions },
+            },
+            defaultProps: {
+                text: 'Uma oferta pensada para o seu proximo passo',
+                alignment: 'center',
+                size: 'lg',
+            },
+            render: ({ text, alignment, size }) => (
+                <section style={{ ...fullWidth(), textAlign: alignment, padding: '10px 0' }}>
+                    <h2 style={{ ...heading(), fontSize: textHeadingSize(size ?? 'lg') }}>{text}</h2>
+                </section>
+            ),
+        },
+        paragraph_text: {
+            label: 'Paragrafo',
+            fields: {
+                content: { type: 'textarea', label: 'Texto', contentEditable: true },
+                alignment: {
+                    type: 'radio',
+                    label: 'Alinhamento',
+                    options: [
+                        { label: 'Esquerda', value: 'left' },
+                        { label: 'Centro', value: 'center' },
+                        { label: 'Direita', value: 'right' },
+                    ],
+                },
+                size: { type: 'select', label: 'Tamanho', options: textSizeOptions },
+            },
+            defaultProps: {
+                content:
+                    'Use este bloco para explicar detalhes, contexto, instrucoes ou qualquer texto livre sem precisar criar um titulo.',
+                alignment: 'left',
+                size: 'md',
+            },
+            render: ({ content, alignment, size }) => (
+                <section style={{ ...fullWidth(), textAlign: alignment, padding: '6px 0' }}>
+                    <p
+                        style={{
+                            margin: alignment === 'center' ? '0 auto' : 0,
+                            maxWidth: 820,
+                            whiteSpace: 'pre-wrap',
+                            fontSize: textBodySize(size ?? 'md'),
+                            lineHeight: 1.8,
+                            opacity: 0.72,
+                        }}
+                    >
+                        {content}
+                    </p>
+                </section>
+            ),
+        },
         text: {
-            label: 'Texto',
+            label: 'Texto com titulo',
             fields: {
                 title: { type: 'text', label: 'Título', contentEditable: true },
                 content: { type: 'textarea', label: 'Conteúdo', contentEditable: true },
@@ -783,6 +1207,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                             whiteSpace: 'pre-wrap',
                             fontSize: 16,
                             lineHeight: 1.8,
+                            fontWeight: 'var(--checkout-body-weight)' as React.CSSProperties['fontWeight'],
                             opacity: 0.72,
                         }}
                     >
@@ -797,31 +1222,120 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 url: { type: 'text', label: 'URL HTTPS' },
                 alt: { type: 'text', label: 'Texto alternativo' },
                 caption: { type: 'text', label: 'Legenda' },
+                aspectRatio: {
+                    type: 'select',
+                    label: 'Formato',
+                    options: [
+                        { label: 'Automatico', value: 'auto' },
+                        { label: 'Panoramico 21:9', value: '21/9' },
+                        { label: 'Paisagem 16:9', value: '16/9' },
+                        { label: 'Classico 4:3', value: '4/3' },
+                        { label: 'Quadrado 1:1', value: '1/1' },
+                        { label: 'Retrato 4:5', value: '4/5' },
+                        { label: 'Vertical 9:16', value: '9/16' },
+                    ],
+                },
+                shape: {
+                    type: 'select',
+                    label: 'Formato visual',
+                    options: [
+                        { label: 'Retangulo', value: 'rectangle' },
+                        { label: 'Cantos suaves', value: 'soft' },
+                        { label: 'Quadrado', value: 'square' },
+                        { label: 'Redondo', value: 'circle' },
+                        { label: 'Pill', value: 'pill' },
+                    ],
+                },
+                size: {
+                    type: 'select',
+                    label: 'Tamanho',
+                    options: [
+                        { label: 'Pequeno', value: 'sm' },
+                        { label: 'Medio', value: 'md' },
+                        { label: 'Grande', value: 'lg' },
+                        { label: 'Largura total', value: 'full' },
+                    ],
+                },
+                fit: {
+                    type: 'select',
+                    label: 'Ajuste',
+                    options: [
+                        { label: 'Preencher', value: 'cover' },
+                        { label: 'Mostrar inteira', value: 'contain' },
+                    ],
+                },
+                alignment: {
+                    type: 'radio',
+                    label: 'Alinhamento',
+                    options: [
+                        { label: 'Esquerda', value: 'left' },
+                        { label: 'Centro', value: 'center' },
+                        { label: 'Direita', value: 'right' },
+                    ],
+                },
             },
-            defaultProps: { url: '', alt: 'Imagem da oferta', caption: '' },
-            render: ({ url, alt, caption }) => (
-                <figure style={{ ...card(), margin: 0, padding: 12, overflow: 'hidden' }}>
+            defaultProps: {
+                url: '',
+                alt: 'Imagem da oferta',
+                caption: '',
+                aspectRatio: '16/9',
+                shape: 'soft',
+                size: 'full',
+                fit: 'cover',
+                alignment: 'center',
+            },
+            render: ({ url, alt, caption, aspectRatio, shape, size, fit, alignment }) => (
+                <figure
+                    style={{
+                        ...card(),
+                        width: imageWidth(size ?? 'full'),
+                        maxWidth: '100%',
+                        minWidth: 0,
+                        justifySelf:
+                            alignment === 'left'
+                                ? 'start'
+                                : alignment === 'right'
+                                  ? 'end'
+                                  : 'center',
+                        margin: 0,
+                        padding: 12,
+                        overflow: 'hidden',
+                    }}
+                >
                     {safeHttpsUrl(url) ? (
                         <div
                             role="img"
                             aria-label={alt}
                             style={{
-                                minHeight: 420,
+                                width: '100%',
+                                maxWidth: '100%',
+                                minWidth: 0,
+                                minHeight:
+                                    aspectRatio === 'auto'
+                                        ? imageMinHeight(size ?? 'full')
+                                        : undefined,
+                                aspectRatio: imageAspectRatio(aspectRatio ?? '16/9', shape ?? 'soft'),
                                 backgroundImage: `url(${JSON.stringify(url)})`,
                                 backgroundPosition: 'center',
-                                backgroundSize: 'cover',
-                                borderRadius: 'calc(var(--checkout-radius) - 6px)',
+                                backgroundSize: fit ?? 'cover',
+                                backgroundRepeat: 'no-repeat',
+                                borderRadius: imageRadius(shape ?? 'soft'),
                             }}
                         />
                     ) : (
                         <div
                             style={{
                                 display: 'grid',
-                                minHeight: 280,
+                                width: '100%',
+                                maxWidth: '100%',
+                                minWidth: 0,
+                                minHeight: imageMinHeight(size ?? 'full'),
+                                aspectRatio: imageAspectRatio(aspectRatio ?? '16/9', shape ?? 'soft'),
                                 placeItems: 'center',
-                                borderRadius: 'calc(var(--checkout-radius) - 6px)',
-                                background: '#eeeef5',
-                                color: '#77798a',
+                                borderRadius: imageRadius(shape ?? 'soft'),
+                                background: 'var(--checkout-muted)',
+                                color: 'var(--checkout-text)',
+                                opacity: 0.72,
                             }}
                         >
                             Informe uma URL HTTPS para a imagem
@@ -1162,99 +1676,47 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
         pix_payment: {
             label: 'Pagamento via Pix',
             fields: {
+                layout: paymentInstructionLayoutField,
                 title: { type: 'text', label: 'Título' },
                 description: { type: 'textarea', label: 'Descrição' },
                 expiresIn: { type: 'text', label: 'Tempo de expiração' },
             },
             defaultProps: {
+                layout: 'split',
                 title: 'Pague com Pix',
                 description: 'Escaneie o QR Code ou copie o código Pix.',
                 expiresIn: '30 minutos',
             },
-            render: ({ title, description, expiresIn }) => (
-                <section style={{ ...checkoutCard(), padding: 28 }}>
-                    <h2 style={checkoutHeading()}>{title}</h2>
-                    <p style={checkoutDescription()}>{description}</p>
-                    <div
-                        style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'minmax(120px, 160px) minmax(0, 1fr)',
-                            gap: 24,
-                            alignItems: 'center',
-                            marginTop: 24,
-                        }}
-                    >
-                        <div style={qrPlaceholder()}>PIX</div>
-                        <div>
-                            <p style={{ margin: 0, fontSize: 13, opacity: 0.65 }}>
-                                O código expira em {expiresIn}.
-                            </p>
-                            <input
-                                aria-label="Código Pix"
-                                readOnly
-                                value="00020126••••••••••••••••"
-                                style={{
-                                    ...inputControl(),
-                                    width: '100%',
-                                    marginTop: 12,
-                                    fontFamily: 'monospace',
-                                }}
-                            />
-                            <Button
-                                type="button"
-                                onClick={() => void navigator.clipboard?.writeText('00020126')}
-                                style={{ ...secondaryButton(), width: '100%', marginTop: 10 }}
-                            >
-                                Copiar código Pix
-                            </Button>
-                        </div>
-                    </div>
-                </section>
+            render: ({ layout, title, description, expiresIn }) => (
+                <PixPaymentSection
+                    layout={layout ?? 'split'}
+                    title={title}
+                    description={description}
+                    expiresIn={expiresIn}
+                />
             ),
         },
         boleto_payment: {
             label: 'Pagamento via boleto',
             fields: {
+                layout: paymentInstructionLayoutField,
                 title: { type: 'text', label: 'Título' },
                 description: { type: 'textarea', label: 'Descrição' },
                 dueInDays: { type: 'number', label: 'Vencimento em dias', min: 1, max: 30 },
             },
             defaultProps: {
+                layout: 'split',
                 title: 'Pague com boleto',
-                description: 'O pedido será confirmado após a compensação bancária.',
+                description: 'O pedido sera confirmado apos a compensacao bancaria.',
                 dueInDays: 3,
             },
-            render: ({ title, description, dueInDays }) => (
-                <section style={{ ...checkoutCard(), padding: 28 }}>
-                    <h2 style={checkoutHeading()}>{title}</h2>
-                    <p style={checkoutDescription()}>{description}</p>
-                    <div
-                        style={{
-                            marginTop: 22,
-                            padding: 20,
-                            border: '1px solid var(--checkout-border)',
-                            borderRadius: 14,
-                            background: 'var(--checkout-muted)',
-                        }}
-                    >
-                        <strong>Vencimento em {dueInDays} dias</strong>
-                        <div
-                            style={{
-                                height: 42,
-                                marginTop: 16,
-                                background:
-                                    'repeating-linear-gradient(90deg, var(--checkout-text) 0 2px, transparent 2px 5px)',
-                                opacity: 0.42,
-                            }}
-                        />
-                    </div>
-                    <Button
-                        type="button"
-                        style={{ ...secondaryButton(), width: '100%', marginTop: 12 }}
-                    >
-                        Gerar boleto
-                    </Button>
-                </section>
+            render: ({ layout, title, description, dueInDays }) => (
+                <BoletoPaymentSection
+                    layout={layout ?? 'split'}
+                    title={title}
+                    description={description}
+                    dueInDays={dueInDays}
+                />
             ),
         },
         shipping_address: {
@@ -1385,103 +1847,262 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
         coupon_field: {
             label: 'Cupom de desconto',
             fields: {
+                layout: couponLayoutField,
                 title: { type: 'text', label: 'Título' },
                 placeholder: { type: 'text', label: 'Placeholder' },
                 buttonLabel: { type: 'text', label: 'Texto do botão' },
             },
             defaultProps: {
+                layout: 'inline',
                 title: 'Tem um cupom?',
                 placeholder: 'Digite o código',
                 buttonLabel: 'Aplicar',
             },
-            render: ({ title, placeholder, buttonLabel }) => (
-                <section style={{ ...checkoutCard(), padding: 28 }}>
-                    <h2 style={checkoutHeading()}>{title}</h2>
-                    <div
-                        style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'minmax(0, 1fr) auto',
-                            gap: 10,
-                            marginTop: 18,
-                        }}
-                    >
-                        <input
-                            name="coupon"
-                            placeholder={placeholder}
-                            style={{ ...inputControl(), width: '100%' }}
-                        />
-                        <Button type="button" style={secondaryButton()}>
-                            {buttonLabel}
-                        </Button>
-                    </div>
-                </section>
+            render: ({ layout, title, placeholder, buttonLabel }) => (
+                <CouponSection
+                    layout={layout ?? 'inline'}
+                    title={title}
+                    placeholder={placeholder}
+                    buttonLabel={buttonLabel}
+                />
             ),
         },
         security_badges: {
-            label: 'Selos de segurança',
+            label: 'Selos de seguranca',
             fields: {
-                title: { type: 'text', label: 'Título' },
+                layout: trustLayoutField,
+                title: { type: 'text', label: 'Titulo' },
                 showEncryption: { type: 'radio', label: 'Criptografia', options: booleanOptions },
                 showGuarantee: { type: 'radio', label: 'Garantia', options: booleanOptions },
                 showPrivacy: { type: 'radio', label: 'Privacidade', options: booleanOptions },
             },
             defaultProps: {
+                layout: 'pills',
                 title: 'Compra protegida',
                 showEncryption: true,
                 showGuarantee: true,
                 showPrivacy: true,
             },
-            render: ({ title, showEncryption, showGuarantee, showPrivacy }) => (
-                <section style={{ ...fullWidth(), textAlign: 'center', padding: '28px 0' }}>
-                    <h2 style={{ ...checkoutHeading(), fontSize: 18 }}>{title}</h2>
-                    <div
-                        style={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            justifyContent: 'center',
-                            gap: 10,
-                            marginTop: 16,
-                        }}
-                    >
-                        {showEncryption && <TrustBadge label="Dados criptografados" />}
-                        {showGuarantee && <TrustBadge label="Compra garantida" />}
-                        {showPrivacy && <TrustBadge label="Privacidade protegida" />}
-                    </div>
-                </section>
+            render: ({ layout, title, showEncryption, showGuarantee, showPrivacy }) => (
+                <TrustSection
+                    layout={layout ?? 'pills'}
+                    title={title}
+                    showEncryption={showEncryption}
+                    showGuarantee={showGuarantee}
+                    showPrivacy={showPrivacy}
+                />
+            ),
+        },
+        plan_comparison: {
+            label: 'Comparação de planos',
+            fields: {
+                layout: planComparisonLayoutField,
+                title: { type: 'text', label: 'Título', contentEditable: true },
+                plans: {
+                    type: 'array',
+                    label: 'Planos',
+                    min: 1,
+                    max: 6,
+                    arrayFields: {
+                        name: { type: 'text', label: 'Nome' },
+                        price: { type: 'text', label: 'Preço' },
+                        description: { type: 'textarea', label: 'Descrição' },
+                        featured: { type: 'radio', label: 'Destaque', options: booleanOptions },
+                    },
+                    defaultItemProps: {
+                        name: 'Plano',
+                        price: 'R$ 97',
+                        description: 'Acesso completo aos principais recursos.',
+                        featured: false,
+                    },
+                    getItemSummary: (item) => item.name,
+                },
+            },
+            defaultProps: {
+                layout: 'cards',
+                title: 'Escolha o melhor plano',
+                plans: [
+                    { name: 'Básico', price: 'R$ 47', description: 'Para começar.', featured: false },
+                    { name: 'Pro', price: 'R$ 97', description: 'Mais vendido.', featured: true },
+                ],
+            },
+            render: ({ layout, title, plans }) => (
+                <PlanComparisonSection layout={layout ?? 'cards'} title={title} plans={plans} />
+            ),
+        },
+        data_table: {
+            label: 'Tabela',
+            fields: {
+                layout: dataTableLayoutField,
+                title: { type: 'text', label: 'Título', contentEditable: true },
+                showLines: { type: 'radio', label: 'Linhas internas', options: booleanOptions },
+                rows: {
+                    type: 'array',
+                    label: 'Linhas',
+                    min: 1,
+                    max: 12,
+                    arrayFields: {
+                        label: { type: 'text', label: 'Nome' },
+                        value: { type: 'text', label: 'Valor' },
+                        detail: { type: 'textarea', label: 'Detalhe' },
+                    },
+                    defaultItemProps: { label: 'Item', value: 'Incluido', detail: 'Detalhe da linha.' },
+                    getItemSummary: (item) => item.label,
+                },
+            },
+            defaultProps: {
+                layout: 'table',
+                title: 'O que está incluído',
+                showLines: true,
+                rows: [
+                    { label: 'Acesso', value: 'Completo', detail: 'Todos os módulos liberados.' },
+                    { label: 'Suporte', value: 'Prioritário', detail: 'Atendimento em horário comercial.' },
+                ],
+            },
+            render: ({ layout, title, showLines, rows }) => (
+                <DataTableSection
+                    layout={layout ?? 'table'}
+                    title={title}
+                    showLines={showLines ?? true}
+                    rows={rows}
+                />
+            ),
+        },
+        stats: {
+            label: 'Estatísticas',
+            fields: {
+                layout: statsLayoutField,
+                title: { type: 'text', label: 'Título', contentEditable: true },
+                items: {
+                    type: 'array',
+                    label: 'Metricas',
+                    min: 1,
+                    max: 8,
+                    arrayFields: {
+                        value: { type: 'text', label: 'Valor' },
+                        label: { type: 'text', label: 'Rótulo' },
+                        detail: { type: 'text', label: 'Detalhe' },
+                    },
+                    defaultItemProps: { value: '98%', label: 'Satisfacao', detail: 'entre clientes' },
+                    getItemSummary: (item) => item.label,
+                },
+            },
+            defaultProps: {
+                layout: 'cards',
+                title: 'Resultados em numeros',
+                items: [
+                    { value: '98%', label: 'Satisfacao', detail: 'entre clientes' },
+                    { value: '+2k', label: 'Compras', detail: 'processadas' },
+                ],
+            },
+            render: ({ layout, title, items }) => (
+                <StatsSection layout={layout ?? 'cards'} title={title} items={items} />
+            ),
+        },
+        before_after: {
+            label: 'Antes e depois',
+            fields: {
+                layout: beforeAfterLayoutField,
+                title: { type: 'text', label: 'Titulo', contentEditable: true },
+                beforeTitle: { type: 'text', label: 'Titulo antes' },
+                beforeText: { type: 'textarea', label: 'Texto antes' },
+                afterTitle: { type: 'text', label: 'Titulo depois' },
+                afterText: { type: 'textarea', label: 'Texto depois' },
+            },
+            defaultProps: {
+                layout: 'split',
+                title: 'Antes e depois',
+                beforeTitle: 'Antes',
+                beforeText: 'Processo manual, lento e sem clareza.',
+                afterTitle: 'Depois',
+                afterText: 'Fluxo organizado, rápido e previsível.',
+            },
+            render: (props) => <BeforeAfterSection {...props} layout={props.layout ?? 'split'} />,
+        },
+        client_logos: {
+            label: 'Logos de clientes',
+            fields: {
+                layout: clientLogosLayoutField,
+                title: { type: 'text', label: 'Titulo', contentEditable: true },
+                logos: {
+                    type: 'array',
+                    label: 'Logos',
+                    min: 1,
+                    max: 16,
+                    arrayFields: {
+                        name: { type: 'text', label: 'Nome' },
+                        imageUrl: { type: 'text', label: 'URL da imagem' },
+                    },
+                    defaultItemProps: { name: 'Cliente', imageUrl: '' },
+                    getItemSummary: (item) => item.name,
+                },
+            },
+            defaultProps: {
+                layout: 'grid',
+                title: 'Clientes que confiam',
+                logos: [
+                    { name: 'Cliente A', imageUrl: '' },
+                    { name: 'Cliente B', imageUrl: '' },
+                    { name: 'Cliente C', imageUrl: '' },
+                ],
+            },
+            render: ({ layout, title, logos }) => (
+                <ClientLogosSection layout={layout ?? 'grid'} title={title} logos={logos} />
+            ),
+        },
+        floating_cta: {
+            label: 'CTA flutuante',
+            fields: {
+                layout: floatingCtaLayoutField,
+                text: { type: 'text', label: 'Texto' },
+                buttonLabel: { type: 'text', label: 'Botão' },
+            },
+            defaultProps: {
+                layout: 'bar',
+                text: 'Pronto para finalizar?',
+                buttonLabel: 'Comprar agora',
+            },
+            render: ({ layout, text, buttonLabel }) => (
+                <FloatingCtaSection layout={layout ?? 'bar'} text={text} buttonLabel={buttonLabel} />
+            ),
+        },
+        spacer_divider: {
+            label: 'Espaçador e divisor',
+            fields: {
+                layout: spacerDividerLayoutField,
+                size: { type: 'select', label: 'Tamanho', options: sizeOptions },
+                label: { type: 'text', label: 'Texto' },
+            },
+            defaultProps: { layout: 'line', size: 'md', label: 'Continuar' },
+            render: ({ layout, size, label }) => (
+                <SpacerDividerSection layout={layout ?? 'line'} size={size ?? 'md'} label={label} />
             ),
         },
         footer: {
-            label: 'Rodapé',
+            label: 'Rodape',
             fields: {
+                layout: footerLayoutField,
                 text: { type: 'text', label: 'Texto', contentEditable: true },
                 showSecurity: {
                     type: 'radio',
-                    label: 'Selo de segurança',
+                    label: 'Selo de seguranca',
                     options: [
                         { label: 'Exibir', value: true },
                         { label: 'Ocultar', value: false },
                     ],
                 },
             },
-            defaultProps: { text: 'Pagamento seguro processado pelo Astro.', showSecurity: true },
-            render: ({ text, showSecurity }) => (
-                <footer
-                    style={{
-                        ...fullWidth(),
-                        padding: '28px 16px',
-                        textAlign: 'center',
-                        fontSize: 12,
-                        lineHeight: 1.6,
-                        opacity: 0.62,
-                    }}
-                >
-                    <p style={{ margin: 0 }}>{text}</p>
-                    {showSecurity && (
-                        <p style={{ margin: '8px 0 0' }}>
-                            🔒 Ambiente protegido e pagamento criptografado
-                        </p>
-                    )}
-                </footer>
+            defaultProps: {
+                layout: 'centered',
+                text: 'Pagamento seguro processado pelo Astro.',
+                showSecurity: true,
+            },
+            render: ({ layout, text, showSecurity }) => (
+                <FooterSection
+                    layout={layout ?? 'centered'}
+                    text={text}
+                    showSecurity={showSecurity}
+                />
             ),
         },
     },
@@ -1526,9 +2147,12 @@ function TemplatePicker<T extends string>({
                             gridTemplateColumns: index === 1 ? '1fr' : 'repeat(3, 1fr)',
                             alignItems: 'center',
                             gap: 4,
-                            border: '1px solid #e5e3ee',
+                            border: '1px solid var(--border)',
                             borderRadius: 8,
-                            background: index === 2 ? '#7566ea' : '#f8f7ff',
+                            background:
+                                index === 2
+                                    ? 'var(--brand)'
+                                    : 'color-mix(in srgb, var(--brand-soft) 72%, var(--surface))',
                             padding: 7,
                         }}
                     >
@@ -1543,8 +2167,8 @@ function TemplatePicker<T extends string>({
                                         index === 2
                                             ? 'rgb(255 255 255 / 76%)'
                                             : item === 1
-                                              ? '#b7aff8'
-                                              : '#ddd9f5',
+                                              ? 'color-mix(in srgb, var(--brand) 42%, var(--surface))'
+                                              : 'color-mix(in srgb, var(--brand-soft) 72%, var(--surface-muted))',
                                 }}
                             />
                         ))}
@@ -1580,6 +2204,177 @@ function BenefitsSection({
     title: string;
     items: BenefitItem[];
 }) {
+    const itemCount = Math.max(items.length, 1);
+    if (layout === 'checklist')
+        return (
+            <section style={{ ...card(), padding: 'clamp(26px, 5vw, 46px)' }}>
+                <h2 style={heading()}>{title}</h2>
+                <div
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit,minmax(230px,1fr))',
+                        gap: 12,
+                        marginTop: 24,
+                    }}
+                >
+                    {items.map((item, index) => (
+                        <article
+                            key={`${item.title}-${index}`}
+                            style={{
+                                display: 'flex',
+                                gap: 12,
+                                alignItems: 'flex-start',
+                                border: 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
+                                borderRadius: 16,
+                                background: 'var(--checkout-muted)',
+                                padding: 16,
+                            }}
+                        >
+                            <span style={{ ...numberBadge(), width: 30, height: 30 }}>✓</span>
+                            <span>
+                                <strong style={{ display: 'block', fontSize: 14 }}>{item.title}</strong>
+                                <small style={{ display: 'block', marginTop: 5, lineHeight: 1.55, opacity: 0.65 }}>
+                                    {item.description}
+                                </small>
+                            </span>
+                        </article>
+                    ))}
+                </div>
+            </section>
+        );
+    if (layout === 'feature-grid')
+        return (
+            <section
+                style={{
+                    ...card(),
+                    overflow: 'hidden',
+                    padding: 0,
+                    background:
+                        'linear-gradient(135deg, color-mix(in srgb, var(--checkout-accent) 9%, var(--checkout-surface)), var(--checkout-surface))',
+                }}
+            >
+                <div
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
+                    }}
+                >
+                    <div
+                        style={{
+                            display: 'grid',
+                            alignContent: 'center',
+                            minHeight: 260,
+                            padding: 'clamp(28px, 5vw, 54px)',
+                            borderRight: 'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
+                        }}
+                    >
+                        <span style={heroEyebrow()}>Beneficios</span>
+                        <h2 style={{ ...heading(), marginTop: 12 }}>{title}</h2>
+                        <p
+                            style={{
+                                margin: '14px 0 0',
+                                maxWidth: 360,
+                                fontSize: 14,
+                                lineHeight: 1.7,
+                                opacity: 0.64,
+                            }}
+                        >
+                            Destaques organizados para leitura rapida, sem limitar a quantidade de itens.
+                        </p>
+                    </div>
+                    <div
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: `repeat(auto-fit, minmax(${itemCount > 4 ? 190 : 220}px, 1fr))`,
+                            gap: 0,
+                        }}
+                    >
+                        {items.map((item, index) => (
+                            <article
+                                key={`${item.title}-${index}`}
+                                style={{
+                                    minHeight: 180,
+                                    padding: 24,
+                                    borderLeft:
+                                        'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
+                                    borderTop:
+                                        index > 0
+                                            ? 'var(--checkout-card-border-width) solid var(--checkout-component-divider)'
+                                            : 0,
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        display: 'inline-grid',
+                                        minWidth: 34,
+                                        height: 34,
+                                        placeItems: 'center',
+                                        borderRadius: 999,
+                                        background: 'var(--checkout-accent)',
+                                        color: '#fff',
+                                        fontSize: 12,
+                                        fontWeight: 900,
+                                        paddingInline: 10,
+                                    }}
+                                >
+                                    {String(index + 1).padStart(2, '0')}
+                                </span>
+                                <h3
+                                    style={{
+                                        margin: '18px 0 0',
+                                        fontSize: 18,
+                                        letterSpacing: '-.02em',
+                                    }}
+                                >
+                                    {item.title}
+                                </h3>
+                                <p
+                                    style={{
+                                        margin: '9px 0 0',
+                                        fontSize: 13,
+                                        lineHeight: 1.65,
+                                        opacity: 0.68,
+                                    }}
+                                >
+                                    {item.description}
+                                </p>
+                            </article>
+                        ))}
+                    </div>
+                </div>
+            </section>
+        );
+    if (layout === 'cards')
+        return (
+            <section style={{ ...fullWidth(), padding: '32px 0' }}>
+                <h2 style={{ ...heading(), textAlign: 'center' }}>{title}</h2>
+                <div
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                        gap: 16,
+                        marginTop: 28,
+                    }}
+                >
+                    {items.map((item, index) => (
+                        <article key={`${item.title}-${index}`} style={{ ...card(), padding: 24 }}>
+                            <span style={numberBadge()}>{index + 1}</span>
+                            <h3 style={{ margin: '18px 0 0', fontSize: 18 }}>{item.title}</h3>
+                            <p
+                                style={{
+                                    margin: '9px 0 0',
+                                    fontSize: 14,
+                                    lineHeight: 1.65,
+                                    opacity: 0.68,
+                                }}
+                            >
+                                {item.description}
+                            </p>
+                        </article>
+                    ))}
+                </div>
+            </section>
+        );
     if (layout === 'list')
         return (
             <section style={{ ...card(), padding: 'clamp(28px, 5vw, 48px)' }}>
@@ -1593,7 +2388,7 @@ function BenefitsSection({
                                 gridTemplateColumns: '40px minmax(0,1fr)',
                                 gap: 14,
                                 padding: '18px 0',
-                                borderTop: '1px solid var(--checkout-border)',
+                                borderTop: 'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
                             }}
                         >
                             <span style={{ ...numberBadge(), width: 36, height: 36 }}>✓</span>
@@ -1664,36 +2459,7 @@ function BenefitsSection({
                 </div>
             </section>
         );
-    return (
-        <section style={{ ...fullWidth(), padding: '32px 0' }}>
-            <h2 style={{ ...heading(), textAlign: 'center' }}>{title}</h2>
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                    gap: 16,
-                    marginTop: 28,
-                }}
-            >
-                {items.map((item, index) => (
-                    <article key={`${item.title}-${index}`} style={{ ...card(), padding: 24 }}>
-                        <span style={numberBadge()}>{index + 1}</span>
-                        <h3 style={{ margin: '18px 0 0', fontSize: 18 }}>{item.title}</h3>
-                        <p
-                            style={{
-                                margin: '9px 0 0',
-                                fontSize: 14,
-                                lineHeight: 1.65,
-                                opacity: 0.68,
-                            }}
-                        >
-                            {item.description}
-                        </p>
-                    </article>
-                ))}
-            </div>
-        </section>
-    );
+    return null;
 }
 
 type TestimonialItem = { quote: string; name: string; role: string };
@@ -1707,6 +2473,50 @@ function TestimonialsSection({
     title: string;
     items: TestimonialItem[];
 }) {
+    if (layout === 'spotlight' && items.length) {
+        const [first, ...rest] = items;
+        return (
+            <section
+                style={{
+                    ...card(),
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+                    gap: 18,
+                    padding: 'clamp(26px, 5vw, 48px)',
+                    alignItems: 'stretch',
+                }}
+            >
+                <div>
+                    <span style={heroEyebrow()}>Prova social</span>
+                    <h2 style={{ ...heading(), marginTop: 12 }}>{title}</h2>
+                    <TestimonialCard item={first} featured />
+                </div>
+                <div style={{ display: 'grid', gap: 12, alignContent: 'center' }}>
+                    {rest.map((item, index) => (
+                        <TestimonialMini key={`${item.name}-${index}`} item={item} />
+                    ))}
+                </div>
+            </section>
+        );
+    }
+    if (layout === 'wall')
+        return (
+            <section style={{ ...fullWidth(), padding: '32px 0' }}>
+                <h2 style={{ ...heading(), textAlign: 'center' }}>{title}</h2>
+                <div
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))',
+                        gap: 12,
+                        marginTop: 28,
+                    }}
+                >
+                    {items.map((item, index) => (
+                        <TestimonialMini key={`${item.name}-${index}`} item={item} tall={index % 3 === 0} />
+                    ))}
+                </div>
+            </section>
+        );
     if (layout === 'featured' && items.length)
         return (
             <section style={{ ...fullWidth(), padding: '32px 0' }}>
@@ -1714,7 +2524,7 @@ function TestimonialsSection({
                 <div
                     style={{
                         display: 'grid',
-                        gridTemplateColumns: 'minmax(0,1.35fr) minmax(240px,.65fr)',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
                         gap: 16,
                         marginTop: 28,
                     }}
@@ -1802,6 +2612,42 @@ function TestimonialCard({
     );
 }
 
+function TestimonialMini({ item, tall = false }: { item: TestimonialItem; tall?: boolean }) {
+    return (
+        <blockquote
+            style={{
+                ...card(),
+                margin: 0,
+                minHeight: tall ? 190 : undefined,
+                padding: 20,
+            }}
+        >
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7 }}>&ldquo;{item.quote}&rdquo;</p>
+            <footer style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16 }}>
+                <span
+                    style={{
+                        display: 'grid',
+                        width: 34,
+                        height: 34,
+                        placeItems: 'center',
+                        borderRadius: 999,
+                        background:
+                            'color-mix(in srgb, var(--checkout-accent) 14%, var(--checkout-muted))',
+                        color: 'var(--checkout-accent)',
+                        fontWeight: 800,
+                    }}
+                >
+                    {item.name.slice(0, 1)}
+                </span>
+                <span>
+                    <strong style={{ display: 'block', fontSize: 13 }}>{item.name}</strong>
+                    <small style={{ opacity: 0.58 }}>{item.role}</small>
+                </span>
+            </footer>
+        </blockquote>
+    );
+}
+
 type FaqItem = { question: string; answer: string };
 
 function FaqSection({
@@ -1872,7 +2718,7 @@ function FaqSection({
                     key={`${item.question}-${index}`}
                     style={{
                         borderTop: index === 0 ? '1px solid var(--checkout-border)' : 0,
-                        borderBottom: '1px solid var(--checkout-border)',
+                        borderBottom: 'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
                         padding: '18px 2px',
                     }}
                 >
@@ -2102,37 +2948,59 @@ function GuaranteeSection({
     description: string;
     days: number;
 }) {
+    const titleIncludesDays = new RegExp(`\\b${days}\\s*dias?\\b`, 'i').test(title);
+    const seal = <GuaranteeSeal days={days} compact={layout === 'minimal'} />;
+    if (layout === 'minimal')
+        return (
+            <section
+                style={{
+                    ...card(),
+                    display: 'grid',
+                    gridTemplateColumns: titleIncludesDays
+                        ? 'minmax(0, 1fr)'
+                        : 'auto minmax(0, 1fr)',
+                    alignItems: 'center',
+                    gap: 14,
+                    padding: 'clamp(16px, 4vw, 22px)',
+                    boxShadow: 'none',
+                }}
+            >
+                {!titleIncludesDays && seal}
+                <div>
+                    <h2 style={{ ...checkoutHeading(), fontSize: 17 }}>{title}</h2>
+                    <p style={{ margin: '5px 0 0', fontSize: 13, lineHeight: 1.55, opacity: 0.66 }}>
+                        {description}
+                    </p>
+                </div>
+            </section>
+        );
+    if (layout === 'boxed')
+        return (
+            <section
+                style={{
+                    ...card(),
+                    display: 'grid',
+                    gridTemplateColumns: 'auto minmax(0,1fr)',
+                    gap: 18,
+                    alignItems: 'center',
+                    padding: 'clamp(24px, 5vw, 42px)',
+                    background:
+                        'linear-gradient(135deg, color-mix(in srgb, var(--checkout-accent) 8%, var(--checkout-group-bg)), var(--checkout-group-bg))',
+                }}
+            >
+                {seal}
+                <div>
+                    <h2 style={{ ...checkoutHeading(), fontSize: 24 }}>{title}</h2>
+                    <p style={{ margin: '8px 0 0', maxWidth: 720, lineHeight: 1.7, opacity: 0.68 }}>
+                        {description}
+                    </p>
+                </div>
+            </section>
+        );
     if (layout === 'seal')
         return (
-            <section style={{ ...card(), padding: 'clamp(32px,6vw,58px)', textAlign: 'center' }}>
-                <span
-                    style={{
-                        display: 'grid',
-                        width: 94,
-                        height: 94,
-                        margin: '0 auto',
-                        placeItems: 'center',
-                        border: '2px solid var(--checkout-accent)',
-                        borderRadius: '50%',
-                        background:
-                            'color-mix(in srgb,var(--checkout-accent) 9%,var(--checkout-surface))',
-                        color: 'var(--checkout-accent)',
-                        fontSize: 28,
-                        fontWeight: 900,
-                    }}
-                >
-                    {days}
-                    <small
-                        style={{
-                            display: 'block',
-                            marginTop: -24,
-                            fontSize: 9,
-                            textTransform: 'uppercase',
-                        }}
-                    >
-                        dias
-                    </small>
-                </span>
+            <section style={{ ...card(), padding: 'clamp(28px,6vw,54px)', textAlign: 'center' }}>
+                <span style={{ display: 'inline-grid' }}>{seal}</span>
                 <h2 style={{ margin: '22px 0 0', fontSize: 25 }}>{title}</h2>
                 <p
                     style={{
@@ -2151,7 +3019,8 @@ function GuaranteeSection({
             <section
                 style={{
                     ...fullWidth(),
-                    display: 'flex',
+                    display: 'grid',
+                    gridTemplateColumns: 'auto minmax(0, 1fr)',
                     alignItems: 'center',
                     gap: 24,
                     borderRadius: 'var(--checkout-radius)',
@@ -2162,7 +3031,7 @@ function GuaranteeSection({
                     boxShadow: 'var(--checkout-shadow)',
                 }}
             >
-                <span style={{ fontSize: 42, fontWeight: 900 }}>{days}</span>
+                <GuaranteeSeal days={days} inverted />
                 <div>
                     <h2 style={{ margin: 0, fontSize: 24 }}>{title}</h2>
                     <p style={{ margin: '7px 0 0', lineHeight: 1.6, opacity: 0.78 }}>
@@ -2175,19 +3044,63 @@ function GuaranteeSection({
         <section
             style={{
                 ...card(),
-                display: 'flex',
+                display: 'grid',
+                gridTemplateColumns: 'auto minmax(0, 1fr)',
                 alignItems: 'center',
-                gap: 24,
-                padding: 28,
-                border: '1px solid color-mix(in srgb, var(--checkout-accent) 28%, white)',
+                gap: 18,
+                padding: 'clamp(22px, 5vw, 32px)',
+                border: 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
             }}
         >
-            <span style={{ ...numberBadge(), width: 64, height: 64, fontSize: 20 }}>{days}</span>
+            {seal}
             <div>
                 <h2 style={{ margin: 0, fontSize: 23 }}>{title}</h2>
                 <p style={{ margin: '8px 0 0', lineHeight: 1.65, opacity: 0.7 }}>{description}</p>
             </div>
         </section>
+    );
+}
+
+function GuaranteeSeal({
+    days,
+    compact = false,
+    inverted = false,
+}: {
+    days: number;
+    compact?: boolean;
+    inverted?: boolean;
+}) {
+    const size = compact ? 46 : 68;
+    return (
+        <span
+            aria-hidden="true"
+            style={{
+                display: 'grid',
+                width: size,
+                height: size,
+                flex: `0 0 ${size}px`,
+                placeItems: 'center',
+                border: inverted
+                    ? '1px solid rgb(255 255 255 / 42%)'
+                    : 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
+                borderRadius: 18,
+                background: inverted
+                    ? 'rgb(255 255 255 / 14%)'
+                    : 'color-mix(in srgb, var(--checkout-accent) 10%, var(--checkout-surface))',
+                color: inverted ? '#fff' : 'var(--checkout-accent)',
+                boxShadow: inverted
+                    ? 'none'
+                    : '0 12px 26px color-mix(in srgb, var(--checkout-accent) 16%, transparent)',
+                textAlign: 'center',
+            }}
+        >
+            <span style={{ display: 'grid', gap: 1, lineHeight: 1 }}>
+                <strong style={{ fontSize: compact ? 17 : 24, fontWeight: 900 }}>{days}</strong>
+                <small style={{ fontSize: compact ? 8 : 9, fontWeight: 800, textTransform: 'uppercase' }}>
+                    dias
+                </small>
+            </span>
+        </span>
     );
 }
 
@@ -2273,7 +3186,7 @@ function ProductSection({
                     gap: 16,
                     marginTop: 24,
                     paddingTop: 22,
-                    borderTop: '1px solid var(--checkout-border)',
+                    borderTop: 'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
                 }}
             >
                 {item}
@@ -2440,7 +3353,7 @@ function OrderSummarySection({ layout, title }: { layout: SummaryLayout; title: 
                     justifyContent: 'space-between',
                     marginTop: 18,
                     paddingTop: 18,
-                    borderTop: '1px solid var(--checkout-border)',
+                    borderTop: 'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
                     fontSize: 21,
                     fontWeight: 850,
                 }}
@@ -2491,15 +3404,19 @@ function PaymentMethodsSection({
         },
     ].filter((item) => item.show);
     return (
-        <section style={{ ...checkoutCard(), padding: 28 }}>
+        <section style={{ ...checkoutCard(), padding: 'clamp(20px, 5vw, 28px)' }}>
             <h2 style={checkoutHeading()}>{title}</h2>
             <p style={checkoutDescription()}>{description}</p>
             <div
                 style={{
                     display: 'grid',
                     gridTemplateColumns:
-                        layout === 'cards' ? 'repeat(auto-fit,minmax(190px,1fr))' : '1fr',
-                    gap: layout === 'segmented' ? 0 : 10,
+                        layout === 'cards'
+                            ? 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))'
+                            : layout === 'segmented'
+                              ? 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))'
+                              : 'minmax(0, 1fr)',
+                    gap: layout === 'segmented' ? 6 : 10,
                     marginTop: 22,
                     padding: layout === 'segmented' ? 5 : 0,
                     border: layout === 'segmented' ? '1px solid var(--checkout-border)' : 0,
@@ -2519,6 +3436,7 @@ function PaymentMethodsSection({
             <p
                 style={{
                     display: 'flex',
+                    flexWrap: 'wrap',
                     alignItems: 'center',
                     gap: 6,
                     margin: '14px 0 0',
@@ -2623,16 +3541,19 @@ function CardPaymentSection({
                         aria-hidden="true"
                         style={{
                             display: 'flex',
-                            aspectRatio: '1.58',
+                            width: '100%',
+                            maxWidth: 430,
+                            aspectRatio: '1.586',
                             flexDirection: 'column',
                             justifyContent: 'space-between',
-                            borderRadius: 20,
+                            justifySelf: 'center',
+                            borderRadius: 24,
                             background:
-                                'linear-gradient(135deg, var(--checkout-accent), color-mix(in srgb, var(--checkout-accent) 48%, #111322))',
+                                'radial-gradient(circle at 88% 12%, rgb(255 255 255 / 30%), transparent 26%), linear-gradient(135deg, color-mix(in srgb, var(--checkout-accent) 86%, white), var(--checkout-accent) 54%, color-mix(in srgb, var(--checkout-accent) 82%, black))',
                             boxShadow:
                                 '0 20px 44px color-mix(in srgb, var(--checkout-accent) 24%, transparent)',
                             color: '#fff',
-                            padding: 24,
+                            padding: 'clamp(18px, 4vw, 26px)',
                         }}
                     >
                         <div
@@ -2647,10 +3568,32 @@ function CardPaymentSection({
                                     width: 38,
                                     height: 28,
                                     borderRadius: 7,
-                                    background: 'linear-gradient(135deg,#f6d77b,#c99b32)',
+                                    background:
+                                        'linear-gradient(135deg,#f8dd8c 0 45%,#d1a747 45% 55%,#f6d77b 55%)',
+                                    boxShadow: 'inset 0 0 0 1px rgb(0 0 0 / 12%)',
                                 }}
                             />
-                            <span style={{ fontSize: 20, opacity: 0.8 }}>◒</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                <i
+                                    style={{
+                                        width: 21,
+                                        height: 21,
+                                        borderRadius: 999,
+                                        background: '#ff5f57',
+                                        opacity: 0.9,
+                                    }}
+                                />
+                                <i
+                                    style={{
+                                        width: 21,
+                                        height: 21,
+                                        marginLeft: -9,
+                                        borderRadius: 999,
+                                        background: '#ffbd2e',
+                                        opacity: 0.9,
+                                    }}
+                                />
+                            </span>
                         </div>
                         <strong
                             style={{ fontSize: 'clamp(16px, 2.2vw, 22px)', letterSpacing: '.12em' }}
@@ -2710,6 +3653,8 @@ const heroLayouts: { value: Exclude<HeroLayout, 'choose'>; name: string; descrip
     { value: 'centered', name: 'Centralizado', description: 'Título em destaque e CTA central.' },
     { value: 'split', name: 'Dividido', description: 'Conteúdo de um lado e imagem do outro.' },
     { value: 'compact', name: 'Compacto', description: 'Mensagem curta com CTA lateral.' },
+    { value: 'media-card', name: 'Imagem em card', description: 'Imagem ampla com conteúdo sobreposto.' },
+    { value: 'editorial', name: 'Editorial', description: 'Titulo forte, texto e imagem lateral menor.' },
 ];
 
 function HeroLayoutPicker({
@@ -2862,7 +3807,7 @@ function HeroSection({
                     role={safeHttpsUrl(imageUrl) ? 'img' : undefined}
                     aria-label={safeHttpsUrl(imageUrl) ? 'Imagem da apresentação' : undefined}
                     style={{
-                        minHeight: 360,
+                        minHeight: 'clamp(220px, 48vw, 360px)',
                         margin: 18,
                         overflow: 'hidden',
                         borderRadius: 'calc(var(--checkout-radius) - 4px)',
@@ -2919,6 +3864,67 @@ function HeroSection({
                 >
                     {buttonLabel}
                 </Button>
+            </section>
+        );
+    }
+
+    if (layout === 'media-card') {
+        return (
+            <section
+                style={{
+                    ...card(),
+                    position: 'relative',
+                    minHeight: 'clamp(360px, 78vw, 520px)',
+                    overflow: 'hidden',
+                    display: 'grid',
+                    alignItems: 'end',
+                    padding: 'clamp(20px, 4vw, 34px)',
+                    background: safeHttpsUrl(imageUrl)
+                        ? `linear-gradient(180deg, rgb(0 0 0 / 10%), rgb(0 0 0 / 68%)), url(${JSON.stringify(imageUrl)}) center / cover no-repeat`
+                        : 'linear-gradient(135deg, color-mix(in srgb, var(--checkout-accent) 20%, var(--checkout-muted)), var(--checkout-muted))',
+                    color: safeHttpsUrl(imageUrl) ? '#fff' : 'var(--checkout-text)',
+                }}
+            >
+                <div style={{ maxWidth: 760 }}>
+                    {content}
+                    <Button type="button" className="checkout-primary-button" style={primaryButton()}>
+                        {buttonLabel}
+                    </Button>
+                </div>
+            </section>
+        );
+    }
+
+    if (layout === 'editorial') {
+        return (
+            <section
+                style={{
+                    ...fullWidth(),
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0, 1.2fr) minmax(220px, .8fr)',
+                    gap: 'clamp(22px, 5vw, 54px)',
+                    alignItems: 'center',
+                    padding: 'clamp(26px, 5vw, 54px) 0',
+                }}
+            >
+                <div>
+                    {content}
+                    <Button type="button" className="checkout-primary-button" style={primaryButton()}>
+                        {buttonLabel}
+                    </Button>
+                </div>
+                <div
+                    role={safeHttpsUrl(imageUrl) ? 'img' : undefined}
+                    aria-label={safeHttpsUrl(imageUrl) ? 'Imagem da apresentacao' : undefined}
+                    style={{
+                        aspectRatio: '4/5',
+                        borderRadius: 'var(--checkout-radius)',
+                        background: safeHttpsUrl(imageUrl)
+                            ? `url(${JSON.stringify(imageUrl)}) center / cover no-repeat`
+                            : 'color-mix(in srgb, var(--checkout-accent) 10%, var(--checkout-muted))',
+                        boxShadow: 'var(--checkout-shadow)',
+                    }}
+                />
             </section>
         );
     }
@@ -3012,7 +4018,7 @@ function CountdownTemplatePreview({ layout }: { layout: CountdownLayout }) {
                     alignItems: 'center',
                     gap: 4,
                     borderRadius: 8,
-                    background: '#7566ea',
+                    background: 'var(--brand)',
                     padding: 7,
                 }}
             >
@@ -3042,21 +4048,21 @@ function CountdownTemplatePreview({ layout }: { layout: CountdownLayout }) {
                     height: 54,
                     alignItems: 'center',
                     gap: 5,
-                    border: '1px solid #e5e3ee',
+                    border: '1px solid var(--border)',
                     borderRadius: 8,
-                    background: '#fff',
+                    background: 'var(--control-bg)',
                     padding: 7,
                 }}
             >
-                <i style={{ width: 13, height: 13, borderRadius: 99, background: '#7566ea' }} />
-                <i style={{ width: 24, height: 4, borderRadius: 9, background: '#c8c4dd' }} />
+                <i style={{ width: 13, height: 13, borderRadius: 99, background: 'var(--brand)' }} />
+                <i style={{ width: 24, height: 4, borderRadius: 9, background: 'color-mix(in srgb, var(--brand) 24%, var(--border))' }} />
                 <i
                     style={{
                         width: 25,
                         height: 8,
                         marginLeft: 'auto',
                         borderRadius: 4,
-                        background: '#7566ea',
+                        background: 'var(--brand)',
                     }}
                 />
             </span>
@@ -3069,9 +4075,9 @@ function CountdownTemplatePreview({ layout }: { layout: CountdownLayout }) {
                 height: 54,
                 gridTemplateColumns: 'repeat(4, 1fr)',
                 gap: 3,
-                border: '1px solid #e5e3ee',
+                border: '1px solid var(--border)',
                 borderRadius: 8,
-                background: '#f8f7ff',
+                background: 'color-mix(in srgb, var(--brand-soft) 72%, var(--surface))',
                 padding: 7,
             }}
         >
@@ -3455,25 +4461,39 @@ function systemPalette(light: Palette, dark: Palette): Palette {
 
 function variables(theme: BuilderRootProps) {
     const palette = resolvePalette(theme);
+    const transparentComponents =
+        theme.componentBackgroundStyle === 'transparent' || theme.inputGroupStyle === 'outlined';
+    const hideComponentBorders = theme.componentBorderStyle === 'hidden';
+    const hideComponentShadow =
+        theme.componentShadowMode === 'hidden' ||
+        (theme.componentShadowMode !== 'visible' && (transparentComponents || hideComponentBorders));
+    const componentBorder = hideComponentBorders ? 'transparent' : 'var(--checkout-border)';
+    const componentBorderWidth = hideComponentBorders ? '0px' : '1px';
     return {
         '--checkout-bg': palette.background,
         '--checkout-surface': palette.surface,
         '--checkout-text': palette.text,
         '--checkout-muted': palette.muted,
         '--checkout-border': palette.border,
+        '--checkout-card-bg': transparentComponents ? 'transparent' : 'var(--checkout-surface)',
+        '--checkout-card-border': componentBorder,
+        '--checkout-card-border-width': componentBorderWidth,
+        '--checkout-component-divider':
+            hideComponentBorders ? 'transparent' : 'var(--checkout-card-border)',
+        '--checkout-visual-divider': 'color-mix(in srgb, var(--checkout-text) 18%, transparent)',
+        '--checkout-card-shadow':
+            hideComponentShadow ? 'none' : 'var(--checkout-shadow)',
         '--checkout-accent': safeColor(theme.accentColor, '#7065e8'),
         '--checkout-radius': radiusValue(theme.radius),
         '--checkout-shadow': shadowValue(theme.shadow),
+        '--checkout-heading-weight': Number(theme.headingFontWeight ?? '700'),
+        '--checkout-body-weight': Number(theme.bodyFontWeight ?? '400'),
         '--checkout-component-gap': `${spacingValue(theme.componentGap)}px`,
-        '--checkout-group-bg':
-            theme.inputGroupStyle === 'outlined' ? 'transparent' : 'var(--checkout-surface)',
-        '--checkout-group-border':
-            theme.inputGroupStyle === 'outlined'
-                ? 'color-mix(in srgb, var(--checkout-text) 24%, var(--checkout-border))'
-                : 'var(--checkout-border)',
-        '--checkout-group-border-width': theme.inputGroupStyle === 'outlined' ? '1.5px' : '1px',
+        '--checkout-group-bg': transparentComponents ? 'transparent' : 'var(--checkout-surface)',
+        '--checkout-group-border': componentBorder,
+        '--checkout-group-border-width': componentBorderWidth,
         '--checkout-group-shadow':
-            theme.inputGroupStyle === 'outlined' ? 'none' : 'var(--checkout-shadow)',
+            hideComponentShadow ? 'none' : 'var(--checkout-shadow)',
     } as React.CSSProperties;
 }
 
@@ -3505,10 +4525,10 @@ function card(): React.CSSProperties {
         width: '100%',
         minWidth: 0,
         boxSizing: 'border-box',
-        background: 'var(--checkout-surface)',
-        border: '1px solid var(--checkout-border)',
+        background: 'var(--checkout-card-bg)',
+        border: 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
         borderRadius: 'var(--checkout-radius)',
-        boxShadow: 'var(--checkout-shadow)',
+        boxShadow: 'var(--checkout-card-shadow)',
         color: 'var(--checkout-text)',
     };
 }
@@ -3530,17 +4550,259 @@ function heading(): React.CSSProperties {
     return {
         margin: 0,
         fontSize: 'clamp(26px, 4vw, 40px)',
+        fontWeight: 'var(--checkout-heading-weight)' as React.CSSProperties['fontWeight'],
         lineHeight: 1.15,
         letterSpacing: '-.035em',
     };
 }
 
+function PixPaymentSection({
+    layout,
+    title,
+    description,
+    expiresIn,
+}: {
+    layout: PaymentInstructionLayout;
+    title: string;
+    description: string;
+    expiresIn: string;
+}) {
+    const qr = <div style={qrPlaceholder()}>PIX</div>;
+    const details = (
+        <div>
+            <h2 style={checkoutHeading()}>{title}</h2>
+            <p style={checkoutDescription()}>{description}</p>
+            <p style={{ margin: '14px 0 0', fontSize: 13, opacity: 0.65 }}>
+                O código expira em {expiresIn}.
+            </p>
+            <input
+                aria-label="Código Pix"
+                readOnly
+                value="00020126••••••••••••••••"
+                style={{ ...inputControl(), width: '100%', marginTop: 12, fontFamily: 'monospace' }}
+            />
+            <Button
+                type="button"
+                onClick={() => void navigator.clipboard?.writeText('00020126')}
+                style={{ ...secondaryButton(), width: '100%', marginTop: 10 }}
+            >
+                Copiar código Pix
+            </Button>
+        </div>
+    );
+
+    if (layout === 'compact')
+        return (
+            <section style={{ ...checkoutCard(), display: 'grid', gap: 14, padding: 22 }}>
+                {details}
+            </section>
+        );
+    if (layout === 'card')
+        return (
+            <section style={{ ...checkoutCard(), padding: 28, textAlign: 'center' }}>
+                <div style={{ width: 172, maxWidth: '70%', margin: '0 auto' }}>{qr}</div>
+                <div style={{ marginTop: 22 }}>{details}</div>
+            </section>
+        );
+    return (
+        <section style={{ ...checkoutCard(), padding: 28 }}>
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))',
+                    gap: 24,
+                    alignItems: 'center',
+                }}
+            >
+                {qr}
+                {details}
+            </div>
+        </section>
+    );
+}
+
+function BoletoPaymentSection({
+    layout,
+    title,
+    description,
+    dueInDays,
+}: {
+    layout: PaymentInstructionLayout;
+    title: string;
+    description: string;
+    dueInDays: number;
+}) {
+    const barcode = (
+        <div
+            style={{
+                height: layout === 'compact' ? 34 : 48,
+                background:
+                    'repeating-linear-gradient(90deg, var(--checkout-text) 0 2px, transparent 2px 5px, var(--checkout-text) 5px 8px, transparent 8px 12px)',
+                opacity: 0.42,
+            }}
+        />
+    );
+    const info = (
+        <>
+            <h2 style={checkoutHeading()}>{title}</h2>
+            <p style={checkoutDescription()}>{description}</p>
+            <strong style={{ display: 'block', marginTop: 16 }}>Vencimento em {dueInDays} dias</strong>
+        </>
+    );
+    if (layout === 'compact')
+        return (
+            <section style={{ ...checkoutCard(), display: 'grid', gap: 14, padding: 22 }}>
+                {info}
+                {barcode}
+                <Button type="button" style={{ ...secondaryButton(), width: '100%' }}>Gerar boleto</Button>
+            </section>
+        );
+    if (layout === 'card')
+        return (
+            <section style={{ ...checkoutCard(), padding: 28, textAlign: 'center' }}>
+                {info}
+                <div style={{ marginTop: 20, padding: 18, borderRadius: 14, background: 'var(--checkout-muted)' }}>
+                    {barcode}
+                </div>
+                <Button type="button" style={{ ...secondaryButton(), width: '100%', marginTop: 12 }}>Gerar boleto</Button>
+            </section>
+        );
+    return (
+        <section style={{ ...checkoutCard(), padding: 28 }}>
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+                    gap: 22,
+                    alignItems: 'center',
+                }}
+            >
+                <div>{info}</div>
+                <div
+                    style={{
+                        padding: 18,
+                        border: 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
+                        borderRadius: 14,
+                        background: 'var(--checkout-muted)',
+                    }}
+                >
+                    {barcode}
+                </div>
+            </div>
+            <Button type="button" style={{ ...secondaryButton(), width: '100%', marginTop: 14 }}>Gerar boleto</Button>
+        </section>
+    );
+}
+
 function checkoutHeading(): React.CSSProperties {
-    return { margin: 0, fontSize: 22, fontWeight: 750, lineHeight: 1.25, letterSpacing: '-.025em' };
+    return {
+        margin: 0,
+        fontSize: 22,
+        fontWeight: 'var(--checkout-heading-weight)' as React.CSSProperties['fontWeight'],
+        lineHeight: 1.25,
+        letterSpacing: '-.025em',
+    };
 }
 
 function checkoutDescription(): React.CSSProperties {
     return { margin: '8px 0 0', fontSize: 14, lineHeight: 1.65, opacity: 0.68 };
+}
+
+function checkoutTable(minWidth: number): React.CSSProperties {
+    return {
+        width: '100%',
+        minWidth,
+        borderCollapse: 'separate',
+        borderSpacing: 0,
+        color: 'var(--checkout-text)',
+        fontSize: 13,
+    };
+}
+
+function tableHeadCell(align: 'left' | 'center' | 'right', showLines: boolean): React.CSSProperties {
+    return {
+        padding: '0 12px 12px',
+        borderBottom: showLines ? '1px solid var(--checkout-visual-divider)' : 0,
+        color: 'var(--checkout-accent)',
+        fontSize: 11,
+        fontWeight: 850,
+        letterSpacing: '.08em',
+        textAlign: align,
+        textTransform: 'uppercase',
+    };
+}
+
+function tableCell(
+    align: 'left' | 'center' | 'right',
+    index: number,
+    showLines: boolean,
+): React.CSSProperties {
+    return {
+        padding: '14px 12px',
+        borderTop: showLines && index ? '1px solid var(--checkout-visual-divider)' : 0,
+        lineHeight: 1.55,
+        opacity: 0.78,
+        textAlign: align,
+        verticalAlign: 'top',
+    };
+}
+
+function tablePill(): React.CSSProperties {
+    return {
+        display: 'inline-flex',
+        justifyContent: 'center',
+        minWidth: 84,
+        borderRadius: 999,
+        background: 'color-mix(in srgb, var(--checkout-accent) 10%, transparent)',
+        color: 'var(--checkout-accent)',
+        padding: '6px 10px',
+        fontSize: 11,
+        fontWeight: 850,
+    };
+}
+
+function textHeadingSize(size: TextSize) {
+    return {
+        sm: 'clamp(22px, 3vw, 30px)',
+        md: 'clamp(26px, 4vw, 40px)',
+        lg: 'clamp(32px, 5vw, 56px)',
+        xl: 'clamp(40px, 7vw, 76px)',
+    }[size];
+}
+
+function textBodySize(size: TextSize) {
+    return { sm: 14, md: 16, lg: 18, xl: 21 }[size];
+}
+
+function imageWidth(size: ImageSize) {
+    return { sm: 'min(100%, 360px)', md: 'min(100%, 560px)', lg: 'min(100%, 760px)', full: '100%' }[
+        size
+    ];
+}
+
+function imageMinHeight(size: ImageSize) {
+    return {
+        sm: 'clamp(160px, 42vw, 220px)',
+        md: 'clamp(190px, 48vw, 320px)',
+        lg: 'clamp(220px, 56vw, 420px)',
+        full: 'clamp(220px, 56vw, 420px)',
+    }[size];
+}
+
+function imageAspectRatio(ratio: ImageRatio, shape: ImageShape) {
+    if (shape === 'circle' || shape === 'square') return '1/1';
+    if (shape === 'pill') return '21/9';
+    return ratio === 'auto' ? undefined : ratio;
+}
+
+function imageRadius(shape: ImageShape) {
+    return {
+        rectangle: '0px',
+        soft: 'calc(var(--checkout-radius) - 6px)',
+        square: 'calc(var(--checkout-radius) - 6px)',
+        circle: '999px',
+        pill: '999px',
+    }[shape];
 }
 
 function heroEyebrow(): React.CSSProperties {
@@ -3577,9 +4839,9 @@ function secondaryButton(): React.CSSProperties {
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: 44,
-        border: '1px solid var(--checkout-border)',
+        border: 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
         borderRadius: 10,
-        background: 'var(--checkout-surface)',
+        background: 'var(--checkout-card-bg)',
         color: 'var(--checkout-text)',
         padding: '0 16px',
         fontSize: 13,
@@ -3675,13 +4937,16 @@ function PaymentOption({
             style={{
                 display: 'flex',
                 minWidth: 0,
+                width: '100%',
                 alignItems: 'center',
                 gap: compact ? 8 : 12,
                 minHeight: compact ? 54 : 82,
-                border: compact ? '1px solid transparent' : '1px solid var(--checkout-border)',
+                border: compact
+                    ? '1px solid transparent'
+                    : 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
                 borderRadius: compact ? 10 : 13,
                 padding: compact ? '9px 10px' : 14,
-                background: compact ? 'transparent' : 'var(--checkout-surface)',
+                background: compact ? 'transparent' : 'var(--checkout-card-bg)',
                 cursor: 'pointer',
             }}
         >
@@ -3709,8 +4974,10 @@ function PaymentOption({
             >
                 {icon}
             </span>
-            <span style={{ minWidth: 0 }}>
-                <strong style={{ display: 'block', fontSize: compact ? 12 : 14 }}>{title}</strong>
+            <span style={{ minWidth: 0, flex: '1 1 auto' }}>
+                <strong style={{ display: 'block', fontSize: compact ? 12 : 14, lineHeight: 1.25 }}>
+                    {title}
+                </strong>
                 {!compact && (
                     <small
                         style={{
@@ -3774,6 +5041,148 @@ function summaryRow(): React.CSSProperties {
     return { display: 'flex', justifyContent: 'space-between', gap: 18 };
 }
 
+function CouponSection({
+    layout,
+    title,
+    placeholder,
+    buttonLabel,
+}: {
+    layout: CouponLayout;
+    title: string;
+    placeholder: string;
+    buttonLabel: string;
+}) {
+    const control = (
+        <div
+            style={{
+                display: 'grid',
+                gridTemplateColumns: layout === 'minimal' ? '1fr' : 'minmax(0, 1fr) auto',
+                gap: 10,
+                marginTop: layout === 'minimal' ? 12 : 18,
+            }}
+        >
+            <input name="coupon" placeholder={placeholder} style={{ ...inputControl(), width: '100%' }} />
+            <Button type="button" style={{ ...secondaryButton(), width: layout === 'minimal' ? '100%' : undefined }}>
+                {buttonLabel}
+            </Button>
+        </div>
+    );
+    if (layout === 'minimal')
+        return (
+            <section style={{ ...fullWidth(), padding: '8px 0' }}>
+                <details style={{ ...checkoutCard(), padding: 18 }}>
+                    <summary style={{ cursor: 'pointer', fontWeight: 'var(--checkout-heading-weight)' as React.CSSProperties['fontWeight'] }}>
+                        {title}
+                    </summary>
+                    {control}
+                </details>
+            </section>
+        );
+    if (layout === 'card')
+        return (
+            <section
+                style={{
+                    ...checkoutCard(),
+                    padding: 28,
+                    background:
+                        'linear-gradient(135deg, color-mix(in srgb,var(--checkout-accent) 7%, var(--checkout-group-bg)), var(--checkout-group-bg))',
+                }}
+            >
+                <span style={heroEyebrow()}>Oferta</span>
+                <h2 style={{ ...checkoutHeading(), marginTop: 8 }}>{title}</h2>
+                {control}
+            </section>
+        );
+    return (
+        <section style={{ ...checkoutCard(), padding: 28 }}>
+            <h2 style={checkoutHeading()}>{title}</h2>
+            {control}
+        </section>
+    );
+}
+
+function TrustSection({
+    layout,
+    title,
+    showEncryption,
+    showGuarantee,
+    showPrivacy,
+}: {
+    layout: TrustLayout;
+    title: string;
+    showEncryption: boolean;
+    showGuarantee: boolean;
+    showPrivacy: boolean;
+}) {
+    const badges = [
+        showEncryption ? 'Dados criptografados' : '',
+        showGuarantee ? 'Compra garantida' : '',
+        showPrivacy ? 'Privacidade protegida' : '',
+    ].filter(Boolean);
+    if (layout === 'strip')
+        return (
+            <section style={{ ...card(), display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: 18 }}>
+                <strong>{title}</strong>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {badges.map((label) => <TrustBadge key={label} label={label} />)}
+                </div>
+            </section>
+        );
+    if (layout === 'cards')
+        return (
+            <section style={{ ...fullWidth(), padding: '28px 0' }}>
+                <h2 style={{ ...checkoutHeading(), textAlign: 'center', fontSize: 20 }}>{title}</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12, marginTop: 16 }}>
+                    {badges.map((label) => (
+                        <article key={label} style={{ ...card(), padding: 18, textAlign: 'center' }}>
+                            <span style={{ ...numberBadge(), margin: '0 auto' }}>✓</span>
+                            <strong style={{ display: 'block', marginTop: 12, fontSize: 13 }}>{label}</strong>
+                        </article>
+                    ))}
+                </div>
+            </section>
+        );
+    return (
+        <section style={{ ...fullWidth(), textAlign: 'center', padding: '28px 0' }}>
+            <h2 style={{ ...checkoutHeading(), fontSize: 18 }}>{title}</h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 16 }}>
+                {badges.map((label) => <TrustBadge key={label} label={label} />)}
+            </div>
+        </section>
+    );
+}
+
+function FooterSection({
+    layout,
+    text,
+    showSecurity,
+}: {
+    layout: FooterLayout;
+    text: string;
+    showSecurity: boolean;
+}) {
+    if (layout === 'columns')
+        return (
+            <footer style={{ ...card(), display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 18, padding: 24, fontSize: 12, lineHeight: 1.6 }}>
+                <div><strong>Astro</strong><p style={{ margin: '8px 0 0', opacity: 0.62 }}>{text}</p></div>
+                <div><strong>Suporte</strong><p style={{ margin: '8px 0 0', opacity: 0.62 }}>Acesso e compra protegidos.</p></div>
+                {showSecurity && <div><strong>Seguranca</strong><p style={{ margin: '8px 0 0', opacity: 0.62 }}>Ambiente protegido e pagamento criptografado.</p></div>}
+            </footer>
+        );
+    if (layout === 'minimal')
+        return (
+            <footer style={{ ...fullWidth(), borderTop: 'var(--checkout-card-border-width) solid var(--checkout-component-divider)', padding: '18px 0', textAlign: 'center', fontSize: 11, opacity: 0.58 }}>
+                {text}{showSecurity ? ' · Pagamento seguro' : ''}
+            </footer>
+        );
+    return (
+        <footer style={{ ...fullWidth(), padding: '28px 16px', textAlign: 'center', fontSize: 12, lineHeight: 1.6, opacity: 0.62 }}>
+            <p style={{ margin: 0 }}>{text}</p>
+            {showSecurity && <p style={{ margin: '8px 0 0' }}>Ambiente protegido e pagamento criptografado</p>}
+        </footer>
+    );
+}
+
 function TrustBadge({ label }: { label: string }) {
     return (
         <span
@@ -3781,9 +5190,9 @@ function TrustBadge({ label }: { label: string }) {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 7,
-                border: '1px solid var(--checkout-border)',
+                border: 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
                 borderRadius: 999,
-                background: 'var(--checkout-surface)',
+                background: 'var(--checkout-card-bg)',
                 padding: '9px 13px',
                 fontSize: 12,
                 fontWeight: 700,
@@ -3809,6 +5218,163 @@ function shadowValue(size: ShadowPreset) {
             lg: '0 26px 70px rgba(30,31,48,.13)',
         }[size] ?? 'none'
     );
+}
+
+function PlanComparisonSection({
+    layout,
+    title,
+    plans,
+}: {
+    layout: PlanComparisonLayout;
+    title: string;
+    plans: { name: string; price: string; description: string; featured: boolean }[];
+}) {
+    if (layout === 'compact')
+        return (
+            <section style={{ ...checkoutCard(), padding: 'clamp(18px, 5vw, 28px)' }}>
+                <h2 style={checkoutHeading()}>{title}</h2>
+                <div style={{ display: 'grid', gap: 10, marginTop: 18 }}>
+                    {plans.map((plan, index) => (
+                        <div key={`${plan.name}-${index}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', gap: 14, alignItems: 'center', borderTop: index ? 'var(--checkout-card-border-width) solid var(--checkout-component-divider)' : 0, paddingTop: index ? 12 : 0 }}>
+                            <span><strong>{plan.name}</strong><small style={{ display: 'block', marginTop: 3, opacity: 0.62 }}>{plan.description}</small></span>
+                            <strong style={{ color: plan.featured ? 'var(--checkout-accent)' : 'var(--checkout-text)' }}>{plan.price}</strong>
+                        </div>
+                    ))}
+                </div>
+            </section>
+        );
+    return (
+        <section style={{ ...fullWidth(), padding: '28px 0' }}>
+            <h2 style={{ ...heading(), textAlign: 'center' }}>{title}</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: layout === 'columns' ? `repeat(${Math.min(Math.max(plans.length, 1), 4)}, minmax(0,1fr))` : 'repeat(auto-fit,minmax(min(100%,220px),1fr))', gap: 14, marginTop: 24 }}>
+                {plans.map((plan, index) => (
+                    <article key={`${plan.name}-${index}`} style={{ ...card(), padding: 22, borderColor: plan.featured ? 'var(--checkout-accent)' : undefined, background: plan.featured ? 'color-mix(in srgb,var(--checkout-accent) 7%,var(--checkout-card-bg))' : undefined }}>
+                        {plan.featured && <span style={heroEyebrow()}>Mais escolhido</span>}
+                        <h3 style={{ margin: plan.featured ? '10px 0 0' : 0, fontSize: 20 }}>{plan.name}</h3>
+                        <strong style={{ display: 'block', marginTop: 12, fontSize: 28, color: 'var(--checkout-accent)' }}>{plan.price}</strong>
+                        <p style={{ margin: '10px 0 0', fontSize: 13, lineHeight: 1.6, opacity: 0.68 }}>{plan.description}</p>
+                    </article>
+                ))}
+            </div>
+        </section>
+    );
+}
+
+function DataTableSection({
+    layout,
+    title,
+    showLines,
+    rows,
+}: {
+    layout: DataTableLayout;
+    title: string;
+    showLines: boolean;
+    rows: { label: string; value: string; detail: string }[];
+}) {
+    if (layout === 'matrix') {
+        return (
+            <section style={{ ...checkoutCard(), padding: 'clamp(18px,5vw,28px)' }}>
+                <h2 style={checkoutHeading()}>{title}</h2>
+                <div style={{ marginTop: 18, overflowX: 'auto' }}>
+                    <table style={checkoutTable(520)}>
+                        <thead>
+                            <tr>
+                                <th style={tableHeadCell('left', showLines)}>Item</th>
+                                <th style={tableHeadCell('center', showLines)}>Status</th>
+                                <th style={tableHeadCell('left', showLines)}>Detalhe</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows.map((row, index) => (
+                                <tr key={`${row.label}-${index}`}>
+                                    <td style={tableCell('left', index, showLines)}><strong>{row.label}</strong></td>
+                                    <td style={tableCell('center', index, showLines)}><span style={tablePill()}>{row.value}</span></td>
+                                    <td style={tableCell('left', index, showLines)}>{row.detail}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        );
+    }
+    if (layout === 'specs') {
+        return (
+            <section style={{ ...checkoutCard(), padding: 'clamp(18px,5vw,28px)' }}>
+                <h2 style={checkoutHeading()}>{title}</h2>
+                <div style={{ marginTop: 18, overflowX: 'auto' }}>
+                    <table style={checkoutTable(460)}>
+                        <tbody>
+                            {rows.map((row, index) => (
+                                <tr key={`${row.label}-${index}`}>
+                                    <th style={{ ...tableCell('left', index, showLines), width: '34%', fontWeight: 850 }}>{row.label}</th>
+                                    <td style={{ ...tableCell('left', index, showLines), color: 'var(--checkout-accent)', fontWeight: 850 }}>{row.value}</td>
+                                    <td style={tableCell('left', index, showLines)}>{row.detail}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        );
+    }
+    return (
+        <section style={{ ...checkoutCard(), padding: 'clamp(18px,5vw,28px)' }}>
+            <h2 style={checkoutHeading()}>{title}</h2>
+            <div style={{ marginTop: 18, overflowX: 'auto' }}>
+                <table style={checkoutTable(520)}>
+                    <thead>
+                        <tr>
+                            <th style={tableHeadCell('left', showLines)}>Nome</th>
+                            <th style={tableHeadCell('left', showLines)}>Descrição</th>
+                            <th style={tableHeadCell('right', showLines)}>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows.map((row, index) => (
+                            <tr key={`${row.label}-${index}`}>
+                                <td style={tableCell('left', index, showLines)}><strong>{row.label}</strong></td>
+                                <td style={tableCell('left', index, showLines)}>{row.detail}</td>
+                                <td style={{ ...tableCell('right', index, showLines), fontWeight: 850 }}>{row.value}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    );
+}
+
+function StatsSection({ layout, title, items }: { layout: StatsLayout; title: string; items: { value: string; label: string; detail: string }[] }) {
+    if (layout === 'editorial' && items.length) {
+        const [first, ...rest] = items;
+        return <section style={{ ...card(), display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', gap: 20, padding: 'clamp(22px,5vw,38px)' }}><div><span style={heroEyebrow()}>Numeros</span><h2 style={{ ...heading(), marginTop: 10 }}>{title}</h2><strong style={{ display: 'block', marginTop: 20, fontSize: 46, color: 'var(--checkout-accent)' }}>{first.value}</strong><span>{first.label}</span><p style={{ margin: '6px 0 0', opacity: 0.62 }}>{first.detail}</p></div><div style={{ display: 'grid', gap: 10 }}>{rest.map((item, index) => <StatMini key={`${item.label}-${index}`} item={item} />)}</div></section>;
+    }
+    return <section style={{ ...fullWidth(), padding: layout === 'strip' ? '12px 0' : '28px 0' }}><h2 style={{ ...checkoutHeading(), textAlign: layout === 'strip' ? 'left' : 'center', fontSize: 24 }}>{title}</h2><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,160px),1fr))', gap: layout === 'strip' ? 0 : 12, marginTop: 18 }}>{items.map((item, index) => <StatMini key={`${item.label}-${index}`} item={item} framed={layout === 'cards'} />)}</div></section>;
+}
+
+function StatMini({ item, framed = true }: { item: { value: string; label: string; detail: string }; framed?: boolean }) {
+    return <article style={{ ...(framed ? card() : fullWidth()), padding: framed ? 18 : '12px 0', textAlign: 'center' }}><strong style={{ display: 'block', fontSize: 28, color: 'var(--checkout-accent)' }}>{item.value}</strong><span style={{ display: 'block', marginTop: 4, fontWeight: 800 }}>{item.label}</span><small style={{ display: 'block', marginTop: 3, opacity: 0.58 }}>{item.detail}</small></article>;
+}
+
+function BeforeAfterSection({ layout, title, beforeTitle, beforeText, afterTitle, afterText }: BuilderProps['before_after']) {
+    const item = (name: string, text: string, positive: boolean) => <article style={{ ...card(), padding: 22, borderColor: positive ? 'var(--checkout-accent)' : undefined }}><span style={{ ...numberBadge(), background: positive ? 'var(--checkout-accent)' : undefined, color: positive ? '#fff' : undefined }}>{positive ? '✓' : '−'}</span><h3 style={{ margin: '16px 0 0', fontSize: 20 }}>{name}</h3><p style={{ margin: '8px 0 0', lineHeight: 1.65, opacity: 0.68 }}>{text}</p></article>;
+    if (layout === 'timeline') return <section style={{ ...checkoutCard(), padding: 'clamp(20px,5vw,34px)' }}><h2 style={checkoutHeading()}>{title}</h2><div style={{ display: 'grid', gap: 12, marginTop: 20 }}>{item(beforeTitle, beforeText, false)}{item(afterTitle, afterText, true)}</div></section>;
+    return <section style={{ ...fullWidth(), padding: '28px 0' }}><h2 style={{ ...heading(), textAlign: 'center' }}>{title}</h2><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', gap: 14, marginTop: 24 }}>{item(beforeTitle, beforeText, false)}{item(afterTitle, afterText, true)}</div></section>;
+}
+
+function ClientLogosSection({ layout, title, logos }: { layout: ClientLogosLayout; title: string; logos: { name: string; imageUrl: string }[] }) {
+    return <section style={{ ...(layout === 'strip' ? checkoutCard() : fullWidth()), padding: layout === 'strip' ? 20 : '28px 0', textAlign: 'center' }}><h2 style={{ ...checkoutHeading(), fontSize: 20 }}>{title}</h2><div style={{ display: 'grid', gridTemplateColumns: layout === 'strip' ? 'repeat(auto-fit,minmax(110px,1fr))' : 'repeat(auto-fit,minmax(min(100%,130px),1fr))', gap: layout === 'cloud' ? 18 : 10, alignItems: 'center', marginTop: 18 }}>{logos.map((logo, index) => <div key={`${logo.name}-${index}`} style={{ ...card(), display: 'grid', minHeight: layout === 'cloud' && index % 2 === 0 ? 86 : 68, placeItems: 'center', padding: 12, opacity: 0.82 }}>{safeHttpsUrl(logo.imageUrl) ? <img src={logo.imageUrl} alt={logo.name} style={{ maxHeight: 38, objectFit: 'contain' }} /> : <strong style={{ fontSize: 13 }}>{logo.name}</strong>}</div>)}</div></section>;
+}
+
+function FloatingCtaSection({ layout, text, buttonLabel }: { layout: FloatingCtaLayout; text: string; buttonLabel: string }) {
+    return <section style={{ ...fullWidth(), position: 'sticky', bottom: 12, zIndex: 5, display: 'flex', justifyContent: layout === 'pill' ? 'center' : 'stretch', pointerEvents: 'none' }}><div style={{ ...(layout === 'card' ? card() : checkoutCard()), display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: layout === 'pill' ? 'auto' : '100%', padding: layout === 'pill' ? '10px 10px 10px 16px' : 14, borderRadius: layout === 'pill' ? 999 : 'var(--checkout-radius)', pointerEvents: 'auto' }}><strong style={{ fontSize: 13 }}>{text}</strong><Button type="button" className="checkout-primary-button" style={{ ...primaryButton(), marginTop: 0, padding: '11px 16px' }}>{buttonLabel}</Button></div></section>;
+}
+
+function SpacerDividerSection({ layout, size, label }: { layout: SpacerDividerLayout; size: SizePreset; label: string }) {
+    const height = spacingValue(size) * 2;
+    if (layout === 'space') return <div aria-hidden="true" style={{ ...fullWidth(), height }} />;
+    return <div style={{ ...fullWidth(), display: 'grid', gridTemplateColumns: layout === 'label' ? '1fr auto 1fr' : '1fr', alignItems: 'center', gap: 12, minHeight: height }}><span style={{ height: 1, background: 'var(--checkout-visual-divider)' }} />{layout === 'label' && <><span style={{ color: 'var(--checkout-accent)', fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>{label}</span><span style={{ height: 1, background: 'var(--checkout-visual-divider)' }} /></>}</div>;
 }
 
 function widthValue(size: WidthPreset) {

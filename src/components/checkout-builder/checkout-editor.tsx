@@ -1,11 +1,10 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { Button, ButtonLink, buttonClassName } from '@/components/ui/button';
 
 import '@puckeditor/core/puck.css';
 
 import { Puck } from '@puckeditor/core';
-import Link from 'next/link';
 import { useRef, useState } from 'react';
 
 import { checkoutBuilderConfig, type BuilderData } from '@/components/checkout-builder/config';
@@ -39,6 +38,13 @@ const componentIcons: Record<string, IconName> = {
     faq: 'code',
     guarantee: 'check',
     countdown: 'clock',
+    plan_comparison: 'layout',
+    data_table: 'layout',
+    stats: 'bolt',
+    before_after: 'layout',
+    client_logos: 'users',
+    floating_cta: 'bolt',
+    spacer_divider: 'layout',
     product_summary: 'cart',
     checkout_form: 'user',
     order_summary: 'cart',
@@ -183,7 +189,7 @@ export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft:
     }
 
     return (
-        <div className="astro-checkout-editor min-h-screen overflow-hidden bg-[#f7f7fa]">
+        <div className="astro-checkout-editor min-h-screen overflow-hidden bg-background">
             <Puck
                 config={checkoutBuilderConfig}
                 data={initialData}
@@ -208,13 +214,14 @@ export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft:
                 renderHeader={({ children }) => (
                     <header className="checkout-editor-header">
                         <div className="flex min-w-0 items-center gap-3">
-                            <Link
+                            <ButtonLink
                                 href="/checkouts"
+                                variant="icon"
                                 aria-label="Voltar para checkouts"
-                                className="grid size-9 shrink-0 place-items-center rounded-xl border border-[#e6e4ee] bg-white/75 text-muted transition hover:border-brand/20 hover:bg-brand-soft hover:text-brand-strong"
+                                className="size-9 shrink-0 rounded-xl"
                             >
                                 <Icon name="arrow-right" className="size-3.5 rotate-180" />
-                            </Link>
+                            </ButtonLink>
                             <div className="min-w-0">
                                 <p className="truncate text-[13px] font-semibold tracking-[-0.015em] text-foreground">
                                     {checkout.name}
@@ -258,7 +265,10 @@ export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft:
                                     href={publicUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#e2e0eb] bg-white px-3 text-[11px] font-semibold text-foreground transition hover:border-brand/25 hover:bg-brand-soft hover:text-brand-strong"
+                                    className={buttonClassName(
+                                        'secondary',
+                                        'h-9 rounded-xl px-3 text-[11px]',
+                                    )}
                                 >
                                     Abrir checkout{' '}
                                     <Icon name="arrow-right" className="size-3.5 -rotate-45" />

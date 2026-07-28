@@ -1,17 +1,22 @@
-import { forwardRef, type ButtonHTMLAttributes } from 'react';
+import Link, { type LinkProps } from 'next/link';
+import { forwardRef, type AnchorHTMLAttributes, type ButtonHTMLAttributes } from 'react';
 
 export type ButtonVariant = 'unstyled' | 'primary' | 'secondary' | 'ghost' | 'danger' | 'icon';
 
 const variants: Record<ButtonVariant, string> = {
     unstyled: '',
     primary:
-        'glass-interactive inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand px-5 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] hover:-translate-y-0.5 hover:bg-brand-strong',
+        'dashboard-primary-action glass-interactive group inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(to_right,var(--brand),var(--brand-strong))] px-5 text-[13px] font-semibold text-white transition duration-300 hover:-translate-y-0.5',
     secondary:
-        'inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#d9d7e8] bg-white/70 px-5 text-[13px] font-semibold text-muted hover:bg-white hover:text-foreground',
+        'inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border bg-[var(--control-bg)] px-5 text-[13px] font-semibold text-muted hover:border-brand/24 hover:bg-surface-muted/55 hover:text-foreground',
     ghost: 'inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-[12px] font-semibold text-brand-strong hover:bg-brand-soft',
     danger: 'inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-[#f2cbd0] px-3 text-[12px] font-semibold text-danger hover:bg-[#fff0f2]',
-    icon: 'inline-grid size-9 place-items-center rounded-full border border-[#dedbea] bg-white text-muted hover:bg-white hover:text-foreground',
+    icon: 'inline-grid size-9 place-items-center rounded-full border border-border bg-[var(--control-bg)] text-muted hover:border-brand/24 hover:bg-surface-muted/55 hover:text-foreground',
 };
+
+export function buttonClassName(variant: ButtonVariant = 'unstyled', className = '') {
+    return `ui-button ${variants[variant]} ${className}`;
+}
 
 export const Button = forwardRef<
     HTMLButtonElement,
@@ -21,8 +26,19 @@ export const Button = forwardRef<
         <button
             ref={ref}
             data-variant={variant}
-            className={`ui-button ${variants[variant]} ${className}`}
+            className={buttonClassName(variant, className)}
             {...props}
         />
     );
 });
+
+export function ButtonLink({
+    variant = 'primary',
+    className = '',
+    ...props
+}: LinkProps &
+    Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof LinkProps> & {
+        variant?: ButtonVariant;
+    }) {
+    return <Link data-variant={variant} className={buttonClassName(variant, className)} {...props} />;
+}

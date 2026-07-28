@@ -17,7 +17,7 @@ import {
 import { createPortal } from 'react-dom';
 
 import { FileUploadAction } from '@/components/resources/create-actions';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClassName } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 import { showToast } from '@/components/ui/toast';
@@ -962,7 +962,7 @@ function PreviewDialog({ file, onClose }: { file: MediaFile; onClose: () => void
             <div className="mt-5 flex justify-end">
                 <a
                     href={`${contentUrl(file)}?download=1`}
-                    className="glass-interactive inline-flex h-11 items-center gap-2 rounded-xl bg-brand px-5 text-[13px] font-semibold text-white hover:bg-brand-strong"
+                    className={buttonClassName('primary')}
                 >
                     <Icon name="download" className="size-4" />
                     Baixar arquivo

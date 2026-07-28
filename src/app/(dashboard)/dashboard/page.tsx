@@ -5,6 +5,7 @@ import {
     RevenueAreaChart,
     type GatewayDatum,
 } from '@/components/dashboard/dashboard-charts';
+import { ButtonLink } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
@@ -73,9 +74,9 @@ export default async function DashboardPage() {
                 }
                 description="Acompanhe e gerencie sua operação de pagamentos."
                 actions={
-                    <Link
+                    <ButtonLink
                         href="/checkouts"
-                        className="dashboard-primary-action glass-interactive group inline-flex h-12 items-center gap-3 rounded-2xl bg-gradient-to-r from-brand to-brand-strong px-5 text-[13px] font-semibold text-white transition duration-300 hover:-translate-y-0.5"
+                        className="h-12 gap-3"
                     >
                         <Icon name="plus" className="size-4" />
                         Criar checkout
@@ -83,7 +84,7 @@ export default async function DashboardPage() {
                             name="arrow-right"
                             className="size-3.5 opacity-70 transition-transform group-hover:translate-x-0.5"
                         />
-                    </Link>
+                    </ButtonLink>
                 }
             />
 
@@ -249,13 +250,13 @@ function OnboardingCard({
                     <SetupStep done={hasGateway} label="Gateway conectado" href="/gateways" />
                     <SetupStep done={hasProduct} label="Produto cadastrado" href="/products" />
                 </ol>
-                <Link
+                <ButtonLink
                     href={nextAction.href}
-                    className="dashboard-primary-action glass-interactive mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-brand px-4 text-[13px] font-semibold text-white transition hover:-translate-y-0.5 hover:bg-brand-strong"
+                    className="mt-5 w-full rounded-full px-4"
                 >
                     {nextAction.label}
                     <Icon name="arrow-right" className="size-3.5" />
-                </Link>
+                </ButtonLink>
             </div>
         </article>
     );

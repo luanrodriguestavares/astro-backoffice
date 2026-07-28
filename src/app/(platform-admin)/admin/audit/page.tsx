@@ -3,6 +3,7 @@ import {
     AdminEmpty,
     formatAdminDate,
 } from '@/components/platform-admin/admin-ui';
+import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { PageHeader } from '@/components/ui/page-header';
 import { apiFetch } from '@/lib/api/server';
@@ -43,12 +44,9 @@ export default async function AdminAuditPage({
                         className="h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] pl-10 pr-3.5 text-[12px] outline-none"
                     />
                 </label>
-                <button
-                    type="submit"
-                    className="h-11 rounded-xl bg-brand px-5 text-[12px] font-semibold text-white transition hover:bg-brand-strong"
-                >
+                <Button type="submit" variant="primary">
                     Buscar
-                </button>
+                </Button>
             </form>
 
             <section className="glass-panel overflow-hidden rounded-[26px]">

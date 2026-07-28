@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { Button, ButtonLink } from '@/components/ui/button';
 
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
@@ -177,11 +177,7 @@ export function CheckoutManager({
                         Crie e edite suas páginas de conversão
                     </p>
                 </div>
-                <Button
-                    type="button"
-                    onClick={openCreate}
-                    className="glass-interactive inline-flex h-10 items-center gap-2 rounded-xl bg-brand px-4 text-[13px] font-semibold text-white shadow-[0_10px_24px_rgba(98,75,255,.2)]"
-                >
+                <Button type="button" variant="primary" onClick={openCreate} className="h-10 px-4">
                     <Icon name="plus" className="size-3.5" /> Criar checkout
                 </Button>
             </div>
@@ -236,9 +232,10 @@ export function CheckoutManager({
                                 </div>
                                 <Button
                                     type="button"
+                                    variant="icon"
                                     aria-label="Fechar"
                                     onClick={closeCreate}
-                                    className="grid size-9 place-items-center rounded-full border border-white/80 bg-white/45 text-muted transition hover:bg-white/75 hover:text-foreground"
+                                    className="size-9"
                                 >
                                     <Icon name="close" className="size-4" />
                                 </Button>
@@ -254,10 +251,10 @@ export function CheckoutManager({
                                                 disabled={!item.available}
                                                 data-selected={template === item.id}
                                                 onClick={() => setTemplate(item.id)}
-                                                className={`checkout-template-option relative min-h-36 rounded-[20px] border p-5 text-left transition ${template === item.id ? 'border-brand/40 bg-brand-soft/70 shadow-[0_0_0_3px_rgba(109,93,244,.08)]' : 'border-white/85 bg-white/48 hover:bg-white/75'} disabled:cursor-not-allowed disabled:opacity-55`}
+                                                className={`checkout-template-option relative min-h-36 rounded-[20px] border p-5 text-left transition ${template === item.id ? 'border-brand/40 bg-brand-soft/70 shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_8%,transparent)]' : 'border-border bg-[var(--control-bg)] hover:border-brand/24 hover:bg-surface-muted/55'} disabled:cursor-not-allowed disabled:opacity-55`}
                                             >
                                                 <span
-                                                    className={`grid size-10 place-items-center rounded-xl ${template === item.id ? 'bg-brand text-white' : 'bg-white/75 text-brand'}`}
+                                                    className={`grid size-10 place-items-center rounded-xl ${template === item.id ? 'bg-brand text-white' : 'bg-surface-muted/55 text-brand'}`}
                                                 >
                                                     <Icon name={item.icon} className="size-4" />
                                                 </span>
@@ -268,7 +265,7 @@ export function CheckoutManager({
                                                     {item.description}
                                                 </p>
                                                 {!item.available && (
-                                                    <span className="absolute right-4 top-4 rounded-full bg-white/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
+                                                    <span className="absolute right-4 top-4 rounded-full border border-border bg-[var(--control-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
                                                         Em breve
                                                     </span>
                                                 )}
@@ -278,16 +275,17 @@ export function CheckoutManager({
                                     <div className="mt-7 flex justify-end gap-2">
                                         <Button
                                             type="button"
+                                            variant="secondary"
                                             onClick={closeCreate}
-                                            className="h-11 rounded-xl border border-white/85 bg-white/42 px-5 text-[13px] font-semibold text-muted"
                                         >
                                             Cancelar
                                         </Button>
                                         <Button
                                             type="button"
+                                            variant="primary"
                                             disabled={!template}
                                             onClick={() => setStep('details')}
-                                            className="h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] disabled:cursor-not-allowed disabled:opacity-50"
+                                            className="px-6"
                                         >
                                             Continuar
                                         </Button>
@@ -325,16 +323,13 @@ export function CheckoutManager({
                                     <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                         <Button
                                             type="button"
+                                            variant="secondary"
                                             disabled={loading}
                                             onClick={() => setStep('template')}
-                                            className="h-11 rounded-xl border border-white/85 bg-white/42 px-5 text-[13px] font-semibold text-muted"
                                         >
                                             Voltar
                                         </Button>
-                                        <Button
-                                            disabled={loading}
-                                            className="h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] disabled:opacity-55"
-                                        >
+                                        <Button variant="primary" disabled={loading} className="px-6">
                                             {loading ? 'Criando...' : 'Criar e abrir editor'}
                                         </Button>
                                     </div>
@@ -360,7 +355,7 @@ export function CheckoutManager({
                             aria-modal="true"
                             aria-labelledby="delete-checkout-title"
                         >
-                            <span className="grid size-11 place-items-center rounded-full bg-[#fff0f2] text-danger">
+                            <span className="grid size-11 place-items-center rounded-full border border-danger/20 bg-danger/10 text-danger">
                                 <Icon name="trash" className="size-4.5" />
                             </span>
                             <h2
@@ -377,17 +372,18 @@ export function CheckoutManager({
                             <div className="mt-6 flex justify-end gap-2">
                                 <Button
                                     type="button"
+                                    variant="secondary"
                                     disabled={deleting}
                                     onClick={() => setDeleteTarget(undefined)}
-                                    className="h-11 rounded-xl border border-[#d9d7e8] bg-white/70 px-5 text-[13px] font-semibold text-muted transition hover:bg-white disabled:opacity-50"
                                 >
                                     Cancelar
                                 </Button>
                                 <Button
                                     type="button"
+                                    variant="danger"
                                     disabled={deleting}
                                     onClick={removeCheckout}
-                                    className="h-11 rounded-xl bg-danger px-5 text-[13px] font-semibold text-white shadow-[0_10px_24px_rgba(203,63,86,.2)] disabled:opacity-55"
+                                    className="h-11 rounded-xl px-5"
                                 >
                                     {deleting ? 'Excluindo...' : 'Excluir checkout'}
                                 </Button>
@@ -410,7 +406,7 @@ export function CheckoutManager({
                             aria-modal="true"
                             className="theme-modal modal-surface glass-panel my-6 w-full max-w-md rounded-[26px] p-6 shadow-[0_30px_90px_rgba(37,31,76,.2)]"
                         >
-                            <span className="grid size-11 place-items-center rounded-full bg-[#fff8ee] text-warning">
+                            <span className="grid size-11 place-items-center rounded-full border border-warning/20 bg-warning/10 text-warning">
                                 <Icon name="box" className="size-4.5" />
                             </span>
                             <h2 className="mt-4 text-xl font-semibold tracking-[-0.03em]">
@@ -422,17 +418,14 @@ export function CheckoutManager({
                             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                 <Button
                                     type="button"
+                                    variant="secondary"
                                     onClick={() => setMissingProductAlert(false)}
-                                    className="h-11 rounded-xl border border-[#d9d7e8] bg-white/70 px-5 text-[13px] font-semibold text-muted transition hover:bg-white hover:text-foreground"
                                 >
                                     Fechar
                                 </Button>
-                                <Link
-                                    href="/products"
-                                    className="glass-interactive inline-flex h-11 items-center justify-center rounded-xl bg-brand px-5 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:-translate-y-0.5 hover:bg-brand-strong"
-                                >
+                                <ButtonLink href="/products">
                                     Cadastrar produto
-                                </Link>
+                                </ButtonLink>
                             </div>
                         </section>
                     </div>,
@@ -495,29 +488,32 @@ function CheckoutCard({ checkout, onDelete }: { checkout: Checkout; onDelete: ()
                 <div className="flex items-center gap-1">
                     <Button
                         type="button"
+                        variant="icon"
                         onClick={onDelete}
                         aria-label={`Excluir ${checkout.name}`}
-                        className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-[#fff0f2] hover:text-danger"
+                        className="size-8 rounded-lg hover:border-danger/20 hover:bg-danger/10 hover:text-danger"
                     >
                         <Icon name="trash" className="size-3.5" />
                     </Button>
                     {checkout.status === 'published' && (
                         <Button
                             type="button"
+                            variant="icon"
                             onClick={() => void navigator.clipboard.writeText(publicUrl)}
                             aria-label={`Copiar link público de ${checkout.name}`}
                             title="Copiar link público"
-                            className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-brand-soft hover:text-brand-strong"
+                            className="size-8 rounded-lg"
                         >
                             <Icon name="link" className="size-3.5" />
                         </Button>
                     )}
-                    <Link
+                    <ButtonLink
                         href={`/checkouts/${checkout.id}/builder`}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold text-brand-strong transition hover:bg-brand-soft"
+                        variant="ghost"
+                        className="h-8 rounded-lg px-2.5"
                     >
                         Editar <Icon name="arrow-right" className="size-3.5" />
-                    </Link>
+                    </ButtonLink>
                 </div>
             </div>
         </article>
@@ -533,7 +529,7 @@ function Field({
             {label}
             <input
                 {...input}
-                className="mt-2 h-11 w-full rounded-xl border border-white/80 bg-white/48 px-3.5 font-normal outline-none transition placeholder:text-[#aaaabd] focus:border-brand/25 focus:bg-white/70 focus:shadow-[0_0_0_3px_rgba(109,93,244,.07)]"
+                className="mt-2 h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] px-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]"
             />
         </label>
     );

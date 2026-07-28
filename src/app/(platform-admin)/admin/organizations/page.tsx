@@ -1,4 +1,5 @@
 import { OrganizationAdminTable } from '@/components/platform-admin/organization-admin-table';
+import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 import { PageHeader } from '@/components/ui/page-header';
@@ -57,12 +58,9 @@ export default async function AdminOrganizationsPage({
                         { value: 'closed', label: 'Encerradas' },
                     ]}
                 />
-                <button
-                    type="submit"
-                    className="h-11 rounded-xl bg-brand px-5 text-[12px] font-semibold text-white transition hover:bg-brand-strong"
-                >
+                <Button type="submit" variant="primary">
                     Filtrar
-                </button>
+                </Button>
             </form>
             <div className="mb-3 flex justify-end">
                 <p className="text-[10px] font-medium text-muted">

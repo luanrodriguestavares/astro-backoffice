@@ -406,7 +406,7 @@ function Field({
                 type={secret ? 'password' : 'text'}
                 required={required}
                 defaultValue={defaultValue}
-                className="mt-2 h-11 w-full rounded-xl border border-[#d9d7e8] bg-white px-3.5 font-normal outline-none transition focus:border-brand/70 focus:shadow-[0_0_0_3px_rgba(109,93,244,.16)]"
+                className="mt-2 h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] px-3.5 font-normal outline-none transition focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]"
             />
         </label>
     );

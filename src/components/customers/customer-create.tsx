@@ -63,11 +63,7 @@ export function CustomerCreate() {
 
     return (
         <>
-            <Button
-                type="button"
-                onClick={openForm}
-                className="glass-interactive inline-flex h-11 items-center gap-2 rounded-xl bg-brand px-5 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:-translate-y-0.5 hover:bg-brand-strong"
-            >
+            <Button type="button" variant="primary" onClick={openForm}>
                 <Icon name="plus" className="size-3.5" />
                 Adicionar cliente
             </Button>
@@ -99,10 +95,11 @@ export function CustomerCreate() {
                                 </div>
                                 <Button
                                     type="button"
+                                    variant="icon"
                                     aria-label="Fechar"
                                     disabled={loading}
                                     onClick={closeForm}
-                                    className="grid size-9 place-items-center rounded-full border border-white/80 bg-white/45 text-muted transition hover:bg-white/75 hover:text-foreground disabled:opacity-50"
+                                    className="size-9"
                                 >
                                     <Icon name="close" className="size-4" />
                                 </Button>
@@ -137,16 +134,13 @@ export function CustomerCreate() {
                             <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                 <Button
                                     type="button"
+                                    variant="secondary"
                                     disabled={loading}
                                     onClick={closeForm}
-                                    className="h-11 rounded-xl border border-white/85 bg-white/42 px-5 text-[13px] font-semibold text-muted transition hover:bg-white/70 hover:text-foreground disabled:opacity-50"
                                 >
                                     Cancelar
                                 </Button>
-                                <Button
-                                    disabled={loading}
-                                    className="glass-interactive h-11 rounded-xl bg-brand px-6 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(91,69,223,.22)] transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-55"
-                                >
+                                <Button variant="primary" disabled={loading} className="px-6">
                                     {loading ? 'Cadastrando...' : 'Cadastrar cliente'}
                                 </Button>
                             </div>
@@ -169,7 +163,7 @@ function Field({
             {label}
             <input
                 {...input}
-                className="mt-2 h-11 w-full rounded-xl border border-white/80 bg-white/48 px-3.5 font-normal outline-none transition placeholder:text-[#aaaabd] focus:border-brand/25 focus:bg-white/70 focus:shadow-[0_0_0_3px_rgba(109,93,244,.07)]"
+                className="mt-2 h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] px-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]"
             />
         </label>
     );

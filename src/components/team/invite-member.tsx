@@ -102,7 +102,7 @@ export function InviteMember() {
                                         Em ambiente local, compartilhe este token com o convidado.
                                         Ele é exibido somente agora.
                                     </p>
-                                    <code className="mt-3 block overflow-x-auto rounded-xl border border-[#d9d7e8] bg-white/70 p-3 text-xs">
+                                    <code className="mt-3 block overflow-x-auto rounded-xl border border-border bg-[var(--control-bg)] p-3 text-xs">
                                         {token}
                                     </code>
                                     <div className="mt-6 flex justify-end">
@@ -121,7 +121,7 @@ export function InviteMember() {
                                                 type="email"
                                                 required
                                                 placeholder="nome@empresa.com"
-                                                className="mt-2 h-11 w-full rounded-xl border border-[#d9d7e8] bg-white/70 px-3.5 font-normal outline-none transition placeholder:text-[#aaaabd] focus:border-brand/70 focus:bg-white focus:shadow-[0_0_0_3px_rgba(109,93,244,.16)]"
+                                                className="mt-2 h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] px-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]"
                                             />
                                         </label>
                                         <label className="text-[13px] font-semibold">
