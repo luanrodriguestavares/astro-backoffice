@@ -24,16 +24,6 @@ export const blankCheckoutDocument: CheckoutDocument = {
     },
     sections: [
         {
-            id: 'product-required',
-            type: 'product_summary',
-            visible: true,
-            props: {
-                layout: 'card',
-                title: 'Itens do carrinho',
-                description: 'Confira o produto e o valor antes de continuar.',
-            },
-        },
-        {
             id: 'form-required',
             type: 'checkout_form',
             visible: true,
@@ -41,7 +31,6 @@ export const blankCheckoutDocument: CheckoutDocument = {
                 layout: 'card',
                 title: 'Dados pessoais',
                 description: 'Preencha as informações para concluir a compra.',
-                buttonLabel: 'Finalizar compra',
                 showPhone: false,
                 showDocument: false,
             },
@@ -60,10 +49,15 @@ export const blankCheckoutDocument: CheckoutDocument = {
             },
         },
         {
-            id: 'order-required',
-            type: 'order_summary',
+            id: 'product-required',
+            type: 'product_summary',
             visible: true,
-            props: { layout: 'card', title: 'Resumo do pedido' },
+            props: {
+                layout: 'card',
+                title: 'Carrinho e resumo',
+                description: 'Revise os itens e valores antes de finalizar.',
+                buttonLabel: 'Finalizar compra',
+            },
         },
     ],
     settings: { showPoweredBy: true },
@@ -103,6 +97,8 @@ export const defaultCheckoutDocument: CheckoutDocument = {
                 title: 'Transforme seus resultados hoje',
                 description: 'Uma solução completa, simples e segura para você avançar.',
                 buttonLabel: 'Quero começar agora',
+                buttonAction: 'payment',
+                buttonUrl: '',
                 imageUrl: '',
                 alignment: 'center',
             },
@@ -143,13 +139,26 @@ export const defaultCheckoutDocument: CheckoutDocument = {
             },
         },
         {
+            id: 'form-initial',
+            type: 'checkout_form',
+            visible: true,
+            props: {
+                layout: 'card',
+                title: 'Dados pessoais',
+                description: 'Preencha as informações para concluir a compra.',
+                showPhone: false,
+                showDocument: false,
+            },
+        },
+        {
             id: 'product-initial',
             type: 'product_summary',
             visible: true,
             props: {
                 layout: 'card',
-                title: 'Itens do carrinho',
-                description: 'Confira o produto e o valor antes de continuar.',
+                title: 'Carrinho e resumo',
+                description: 'Revise os itens e valores antes de finalizar.',
+                buttonLabel: 'Finalizar compra',
             },
         },
         {
@@ -164,25 +173,6 @@ export const defaultCheckoutDocument: CheckoutDocument = {
                 showPix: true,
                 showBoleto: false,
             },
-        },
-        {
-            id: 'form-initial',
-            type: 'checkout_form',
-            visible: true,
-            props: {
-                layout: 'card',
-                title: 'Dados pessoais',
-                description: 'Preencha as informações para concluir a compra.',
-                buttonLabel: 'Finalizar compra',
-                showPhone: false,
-                showDocument: false,
-            },
-        },
-        {
-            id: 'order-initial',
-            type: 'order_summary',
-            visible: true,
-            props: { layout: 'card', title: 'Resumo do pedido' },
         },
         {
             id: 'footer-initial',

@@ -8,7 +8,6 @@ export const paymentMethods: readonly CheckoutPaymentMethod[] = ['card', 'pix', 
 export const requiredCheckoutComponents = [
     'product_summary',
     'checkout_form',
-    'order_summary',
     'payment_methods',
 ] as const;
 export type RequiredCheckoutComponent = (typeof requiredCheckoutComponents)[number];

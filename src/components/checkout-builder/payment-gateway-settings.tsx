@@ -27,16 +27,12 @@ const componentCopy: Record<
     { label: string; description: string }
 > = {
     product_summary: {
-        label: 'Itens do carrinho',
-        description: 'Mostra o produto, quantidade e valor da oferta.',
+        label: 'Carrinho e finalização',
+        description: 'Reúne itens, composição financeira, total e ação final.',
     },
     checkout_form: {
         label: 'Dados pessoais',
         description: 'Coleta nome, e-mail e os campos necessários do comprador.',
-    },
-    order_summary: {
-        label: 'Resumo do pedido',
-        description: 'Confirma subtotal, descontos e total antes do pagamento.',
     },
     payment_methods: {
         label: 'Formas de pagamento',

@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import type { Config, Data, Slot } from '@puckeditor/core';
 import { useEffect, useState } from 'react';
 import { checkoutThemeVariables } from '@astro/checkout-renderer/theme';
+import { checkoutDesignSystemStyles } from '@astro/checkout-renderer/design-system';
 import {
     CheckoutDataTable,
     CheckoutBenefits,
     CheckoutCardPayment,
+    CheckoutCartSummary,
     CheckoutCoupon,
     CheckoutFaq,
     CheckoutGuarantee,
@@ -19,7 +21,6 @@ import {
     CheckoutPaymentInstruction,
     CheckoutParagraphText,
     CheckoutPaymentMethods,
-    CheckoutProductSummary,
     CheckoutTestimonials,
     CheckoutTextBlock,
     CheckoutTrustBadges,
@@ -49,6 +50,8 @@ type BuilderProps = {
         title: string;
         description: string;
         buttonLabel: string;
+        buttonAction: 'payment' | 'cart' | 'url';
+        buttonUrl: string;
         imageUrl: string;
     };
     heading_text: { text: string; alignment: 'left' | 'center' | 'right'; size: TextSize };
@@ -133,14 +136,13 @@ type BuilderProps = {
         title: string;
         logos: { name: string; imageUrl: string }[];
     };
-    floating_cta: { layout: FloatingCtaLayout; text: string; buttonLabel: string };
+    floating_cta: { layout: FloatingCtaLayout; text: string; buttonLabel: string; buttonAction: 'payment' | 'cart' | 'url'; buttonUrl: string };
     spacer_divider: { layout: SpacerDividerLayout; size: SizePreset; label: string };
-    product_summary: { layout: ProductLayout; title: string; description: string };
+    product_summary: { layout: ProductLayout; title: string; description: string; buttonLabel: string };
     checkout_form: {
         layout: FormLayout;
         title: string;
         description: string;
-        buttonLabel: string;
         showPhone: boolean;
         showDocument: boolean;
     };
@@ -697,7 +699,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
         },
         checkout: {
             title: 'Checkout',
-            components: ['product_summary', 'checkout_form', 'order_summary', 'coupon_field'],
+            components: ['product_summary', 'checkout_form', 'coupon_field'],
             defaultExpanded: false,
         },
         payment: {
@@ -861,6 +863,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                         padding: spacingValue(theme.pagePadding),
                     }}
                 >
+                    <style>{checkoutDesignSystemStyles}</style>
                     <style>{checkoutPageStyles}</style>
                     <main
                         className="checkout-page-content"
@@ -888,6 +891,16 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 title: { type: 'textarea', label: 'Título', contentEditable: true },
                 description: { type: 'textarea', label: 'Descrição', contentEditable: true },
                 buttonLabel: { type: 'text', label: 'Texto do botão' },
+                buttonAction: {
+                    type: 'select',
+                    label: 'Ação do botão',
+                    options: [
+                        { label: 'Ir para pagamento', value: 'payment' },
+                        { label: 'Ir para carrinho e resumo', value: 'cart' },
+                        { label: 'Abrir URL', value: 'url' },
+                    ],
+                },
+                buttonUrl: { type: 'text', label: 'URL HTTPS (quando aplicável)' },
                 imageUrl: { type: 'text', label: 'Imagem do template (opcional)' },
             },
             defaultProps: {
@@ -897,9 +910,11 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 description:
                     'Apresente de forma clara o principal resultado que seu produto entrega.',
                 buttonLabel: 'Quero começar',
+                buttonAction: 'payment',
+                buttonUrl: '',
                 imageUrl: '',
             },
-            render: ({ layout, eyebrow, title, description, buttonLabel, imageUrl }) => (
+            render: ({ layout, eyebrow, title, description, buttonLabel, buttonAction, buttonUrl, imageUrl }) => (
                 <CheckoutHero
                     layout={layout ?? 'centered'}
                     eyebrow={eyebrow}
@@ -907,6 +922,8 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                     description={description}
                     buttonLabel={buttonLabel}
                     imageUrl={imageUrl}
+                    ctaHref={buttonAction === 'url' ? safeHttpsUrl(buttonUrl) ? buttonUrl : '#payment' : buttonAction === 'cart' ? '#cart-summary' : '#payment'}
+                    ctaTarget={buttonAction === 'url' && safeHttpsUrl(buttonUrl) ? '_blank' : '_self'}
                 />
             ),
         },
@@ -1404,23 +1421,32 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             ),
         },
         product_summary: {
-            label: 'Itens do carrinho',
+            label: 'Carrinho e finalização',
             fields: {
                 layout: productLayoutField,
                 title: { type: 'text', label: 'Título', contentEditable: true },
                 description: { type: 'textarea', label: 'Descrição', contentEditable: true },
+                buttonLabel: { type: 'text', label: 'Texto da ação final' },
             },
             defaultProps: {
                 layout: 'card',
-                title: 'Itens do carrinho',
+                title: 'Carrinho e resumo',
                 description: 'Confira o produto selecionado e suas condições.',
+                buttonLabel: 'Finalizar compra',
             },
-            render: ({ layout, title, description }) => (
-                <CheckoutProductSummary
+            render: ({ layout, title, description, buttonLabel }) => (
+                <CheckoutCartSummary
                     layout={layout ?? 'card'}
                     title={title}
                     description={description}
                     product={{ name: 'Produto selecionado', quantity: '1 unidade', price: 'R$ —' }}
+                    lines={[
+                        { label: 'Subtotal', value: 'R$ —' },
+                        { label: 'Desconto', value: 'R$ 0,00', emphasis: 'discount' },
+                    ]}
+                    total="R$ —"
+                    buttonLabel={buttonLabel}
+                    onSubmit={() => undefined}
                 />
             ),
         },
@@ -1431,7 +1457,6 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 layout: formLayoutField,
                 title: { type: 'text', label: 'Título', contentEditable: true },
                 description: { type: 'textarea', label: 'Descrição', contentEditable: true },
-                buttonLabel: { type: 'text', label: 'Texto do botão' },
                 showPhone: { type: 'radio', label: 'Telefone opcional', options: booleanOptions },
                 showDocument: {
                     type: 'radio',
@@ -1443,16 +1468,14 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 layout: 'card',
                 title: 'Dados pessoais',
                 description: 'Preencha as informações para concluir a compra.',
-                buttonLabel: 'Finalizar compra',
                 showPhone: false,
                 showDocument: false,
             },
-            render: ({ layout, title, description, buttonLabel, showPhone, showDocument }) => (
+            render: ({ layout, title, description, showPhone, showDocument }) => (
                 <CustomerFormPreview
                     layout={layout ?? 'card'}
                     title={title}
                     description={description}
-                    buttonLabel={buttonLabel}
                     showPhone={showPhone ?? false}
                     showDocument={showDocument ?? false}
                 />
@@ -1933,14 +1956,26 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 layout: floatingCtaLayoutField,
                 text: { type: 'text', label: 'Texto' },
                 buttonLabel: { type: 'text', label: 'Botão' },
+                buttonAction: {
+                    type: 'select',
+                    label: 'Ação',
+                    options: [
+                        { label: 'Ir para pagamento', value: 'payment' },
+                        { label: 'Ir para carrinho e resumo', value: 'cart' },
+                        { label: 'Abrir URL', value: 'url' },
+                    ],
+                },
+                buttonUrl: { type: 'text', label: 'URL HTTPS' },
             },
             defaultProps: {
                 layout: 'bar',
                 text: 'Pronto para finalizar?',
                 buttonLabel: 'Comprar agora',
+                buttonAction: 'cart',
+                buttonUrl: '',
             },
-            render: ({ layout, text, buttonLabel }) => (
-                <CheckoutFloatingCta layout={layout ?? 'bar'} text={text} buttonLabel={buttonLabel} />
+            render: ({ layout, text, buttonLabel, buttonAction, buttonUrl }) => (
+                <CheckoutFloatingCta layout={layout ?? 'bar'} text={text} buttonLabel={buttonLabel} href={buttonAction === 'url' && safeHttpsUrl(buttonUrl) ? buttonUrl : buttonAction === 'payment' ? '#payment' : '#cart-summary'} />
             ),
         },
         spacer_divider: {
@@ -3087,7 +3122,6 @@ function CustomerFormPreview({
     layout,
     title,
     description,
-    buttonLabel,
     showPhone,
     showDocument,
 }: BuilderProps['checkout_form']) {
@@ -3097,12 +3131,10 @@ function CustomerFormPreview({
             layout={layout}
             title={title}
             description={description}
-            buttonLabel={buttonLabel}
             showPhone={showPhone}
             showDocument={showDocument}
             values={values}
             onChange={(field, value) => setValues((current) => ({ ...current, [field]: value }))}
-            onSubmit={() => undefined}
         />
     );
 }

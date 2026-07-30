@@ -86,7 +86,7 @@ describe('gateway bindings', () => {
                     },
                 },
             ]),
-            ['product_summary', 'checkout_form', 'order_summary', 'payment_methods'],
+            ['product_summary', 'checkout_form', 'payment_methods'],
         );
     });
 
@@ -105,7 +105,6 @@ describe('gateway bindings', () => {
         assert.deepEqual(issues, [
             'component:product_summary',
             'component:checkout_form',
-            'component:order_summary',
             'payment:card:binding',
         ]);
     });
