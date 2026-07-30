@@ -317,6 +317,8 @@ export type CheckoutSectionType =
     | 'grid'
     | 'image'
     | 'video'
+    | 'heading_text'
+    | 'paragraph_text'
     | 'text'
     | 'features'
     | 'benefits'
@@ -355,8 +357,17 @@ export interface CheckoutDocument {
         visible: boolean;
         props: Record<string, unknown>;
     }[];
-    settings: Record<string, unknown>;
+    settings: CheckoutSettings;
     seo: Record<string, unknown>;
+}
+
+export type CheckoutPaymentMethod = 'card' | 'pix' | 'boleto';
+export type CheckoutEnvironment = 'sandbox' | 'production';
+
+export interface CheckoutSettings extends Record<string, unknown> {
+    environment?: CheckoutEnvironment;
+    paymentGatewayBindings?: Partial<Record<CheckoutPaymentMethod, string>>;
+    showPoweredBy?: boolean;
 }
 
 export interface Checkout {

@@ -189,7 +189,7 @@ export function GatewayCenter({
                                         <h3 className="truncate text-[12px] font-semibold">
                                             {item.name}
                                         </h3>
-                                        <span className="shrink-0 rounded-full bg-[#fff5e9] px-1.5 py-0.5 text-[8px] font-semibold uppercase text-warning">
+                                        <span className="coming-soon-badge shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-semibold uppercase">
                                             Em breve
                                         </span>
                                     </div>

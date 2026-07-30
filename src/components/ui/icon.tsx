@@ -15,6 +15,7 @@ export type IconName =
     | 'chevron-down'
     | 'plus'
     | 'search'
+    | 'eye'
     | 'check'
     | 'dots'
     | 'layout'
@@ -130,6 +131,12 @@ const paths: Record<IconName, React.ReactNode> = {
         <>
             <circle cx="11" cy="11" r="7" />
             <path d="m20 20-4-4" />
+        </>
+    ),
+    eye: (
+        <>
+            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+            <circle cx="12" cy="12" r="2.5" />
         </>
     ),
     check: (

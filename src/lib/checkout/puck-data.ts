@@ -8,6 +8,8 @@ const supported = new Set<CheckoutSectionType>([
     'grid',
     'image',
     'video',
+    'heading_text',
+    'paragraph_text',
     'text',
     'benefits',
     'testimonials',
@@ -44,6 +46,8 @@ export function documentToPuck(document: CheckoutDocument): BuilderData {
                 themeMode: themeModeValue(theme.themeMode ?? theme.themePreset),
                 grayTone: grayToneValue(theme.grayTone ?? theme.themePreset),
                 fontFamily: fontValue(theme.fontFamily),
+                headingFontWeight: fontWeightValue(theme.headingFontWeight, '700'),
+                bodyFontWeight: fontWeightValue(theme.bodyFontWeight, '400'),
                 backgroundColor: stringValue(theme.backgroundColor, '#f7f7fb'),
                 surfaceColor: stringValue(theme.surfaceColor, '#ffffff'),
                 textColor: stringValue(theme.textColor, '#202235'),
@@ -81,6 +85,8 @@ export function puckToDocument(data: BuilderData, previous: CheckoutDocument): C
             themeMode: themeModeValue(root.themeMode),
             grayTone: grayToneValue(root.grayTone),
             fontFamily: fontValue(root.fontFamily),
+            headingFontWeight: fontWeightValue(root.headingFontWeight, '700'),
+            bodyFontWeight: fontWeightValue(root.bodyFontWeight, '400'),
             backgroundColor: safeColor(root.backgroundColor, '#f7f7fb'),
             surfaceColor: safeColor(root.surfaceColor, '#ffffff'),
             textColor: safeColor(root.textColor, '#202235'),
@@ -115,6 +121,20 @@ export function puckToDocument(data: BuilderData, previous: CheckoutDocument): C
 
 function stringValue(value: unknown, fallback: string) {
     return typeof value === 'string' ? value : fallback;
+}
+
+function fontWeightValue(
+    value: unknown,
+    fallback: BuilderRootProps['headingFontWeight'],
+): BuilderRootProps['headingFontWeight'] {
+    return value === '400' ||
+        value === '500' ||
+        value === '600' ||
+        value === '700' ||
+        value === '800' ||
+        value === '900'
+        ? value
+        : fallback;
 }
 
 function themeModeValue(value: unknown): BuilderRootProps['themeMode'] {

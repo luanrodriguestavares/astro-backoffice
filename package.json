@@ -9,14 +9,20 @@
     "start": "next start --port 3001",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "check": "pnpm lint && pnpm typecheck && pnpm build"
+    "test": "tsx --test tests/**/*.test.ts",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "smoke:production": "node scripts/smoke-production.mjs",
+    "docker:build": "docker build -t astro-backoffice ."
   },
   "dependencies": {
+    "@astro/checkout-renderer": "file:../checkout-renderer",
     "@puckeditor/core": "0.22.2",
-    "next": "16.2.10",
+    "next": "16.2.11",
+    "postcss": "8.5.18",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "recharts": "^3.9.2"
+    "recharts": "^3.9.2",
+    "sharp": "0.35.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -24,8 +30,15 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.2.11",
     "tailwindcss": "^4",
+    "tsx": "4.20.6",
     "typescript": "^5"
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss": "8.5.18",
+      "sharp": "0.35.0"
+    }
   }
 }

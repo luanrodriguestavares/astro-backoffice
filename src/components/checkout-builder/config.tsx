@@ -4,6 +4,41 @@ import { Button } from '@/components/ui/button';
 
 import type { Config, Data, Slot } from '@puckeditor/core';
 import { useEffect, useState } from 'react';
+import { checkoutThemeVariables } from '@astro/checkout-renderer/theme';
+import {
+    CheckoutDataTable,
+    CheckoutBenefits,
+    CheckoutCardPayment,
+    CheckoutCoupon,
+    CheckoutFaq,
+    CheckoutGuarantee,
+    CheckoutHeadingText,
+    CheckoutHero,
+    CheckoutCustomerForm,
+    CheckoutOrderSummary,
+    CheckoutPaymentInstruction,
+    CheckoutParagraphText,
+    CheckoutPaymentMethods,
+    CheckoutProductSummary,
+    CheckoutTestimonials,
+    CheckoutTextBlock,
+    CheckoutTrustBadges,
+} from '@astro/checkout-renderer/components';
+import {
+    CheckoutBeforeAfter,
+    CheckoutClientLogos,
+    CheckoutCountdown,
+    CheckoutDivider,
+    CheckoutFloatingCta,
+    CheckoutFooter,
+    CheckoutGrid,
+    CheckoutImage,
+    CheckoutLogo,
+    CheckoutBanner,
+    CheckoutPlans,
+    CheckoutStats,
+    CheckoutVideo,
+} from '@astro/checkout-renderer/content-components';
 
 import { ColorPickerField } from '@/components/checkout-builder/color-picker-field';
 
@@ -865,7 +900,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 imageUrl: '',
             },
             render: ({ layout, eyebrow, title, description, buttonLabel, imageUrl }) => (
-                <HeroSection
+                <CheckoutHero
                     layout={layout ?? 'centered'}
                     eyebrow={eyebrow}
                     title={title}
@@ -919,64 +954,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 overlapBanner: false,
             },
             render: ({ url, alt, alignment, size, radius, overlapBanner }) => (
-                <div
-                    style={{
-                        width: '100%',
-                        minWidth: 0,
-                        boxSizing: 'border-box',
-                        position: 'relative',
-                        zIndex: overlapBanner ? 3 : undefined,
-                        display: 'flex',
-                        justifyContent:
-                            alignment === 'left'
-                                ? 'flex-start'
-                                : alignment === 'right'
-                                  ? 'flex-end'
-                                  : 'center',
-                        marginTop: overlapBanner
-                            ? `calc((var(--checkout-component-gap) + ${logoSize(size) / 2 + spacingValue('sm')}px) * -1)`
-                            : undefined,
-                        padding: spacingValue('sm'),
-                    }}
-                >
-                    <div
-                        role={safeHttpsUrl(url) ? 'img' : undefined}
-                        aria-label={safeHttpsUrl(url) ? alt : undefined}
-                        style={{
-                            display: 'grid',
-                            width: logoSize(size),
-                            maxWidth: '100%',
-                            aspectRatio: '1',
-                            placeItems: 'center',
-                            overflow: 'hidden',
-                            border: 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
-                            borderRadius: logoRadiusValue(radius),
-                            background: safeHttpsUrl(url)
-                                ? `var(--checkout-surface) url(${JSON.stringify(url)}) center / contain no-repeat`
-                                : 'linear-gradient(145deg, var(--checkout-surface), var(--checkout-muted))',
-                            boxShadow: 'var(--checkout-shadow)',
-                            color: 'var(--checkout-text)',
-                        }}
-                    >
-                        {!safeHttpsUrl(url) && (
-                            <div style={{ textAlign: 'center', opacity: 0.55 }}>
-                                <span style={{ display: 'block', fontSize: 24, lineHeight: 1 }}>
-                                    ◇
-                                </span>
-                                <span
-                                    style={{
-                                        display: 'block',
-                                        marginTop: 8,
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                    }}
-                                >
-                                    Sua logo
-                                </span>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                <CheckoutLogo url={url} alt={alt} alignment={alignment} size={size} radius={radius} overlap={overlapBanner} />
             ),
         },
         banner: {
@@ -1012,50 +990,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 fit: 'cover',
             },
             render: ({ imageUrl, alt, aspectRatio, fit }) => (
-                <figure
-                    style={{
-                        ...card(),
-                        position: 'relative',
-                        aspectRatio,
-                        margin: 0,
-                        overflow: 'hidden',
-                        background: 'var(--checkout-muted)',
-                    }}
-                >
-                    {safeHttpsUrl(imageUrl) ? (
-                        <div
-                            role="img"
-                            aria-label={alt}
-                            style={{
-                                position: 'absolute',
-                                inset: 0,
-                                background: `url(${JSON.stringify(imageUrl)}) center / ${fit} no-repeat`,
-                            }}
-                        />
-                    ) : (
-                        <div
-                            style={{
-                                position: 'absolute',
-                                inset: 0,
-                                display: 'grid',
-                                placeItems: 'center',
-                                background:
-                                    'linear-gradient(135deg, color-mix(in srgb, var(--checkout-accent) 8%, var(--checkout-surface)), var(--checkout-muted))',
-                                color: 'var(--checkout-text)',
-                            }}
-                        >
-                            <div style={{ textAlign: 'center', opacity: 0.55 }}>
-                                <span style={{ display: 'block', fontSize: 30 }}>▧</span>
-                                <strong style={{ display: 'block', marginTop: 8, fontSize: 13 }}>
-                                    Banner retangular
-                                </strong>
-                                <small style={{ display: 'block', marginTop: 4 }}>
-                                    Adicione uma imagem horizontal
-                                </small>
-                            </div>
-                        </div>
-                    )}
-                </figure>
+                <CheckoutBanner imageUrl={imageUrl} alt={alt} aspectRatio={aspectRatio} fit={fit} />
             ),
         },
         grid: {
@@ -1099,23 +1034,18 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 column2: Column2,
                 column3: Column3,
             }) => (
-                <section
-                    data-checkout-grid
-                    style={{
-                        width: '100%',
-                        boxSizing: 'border-box',
-                        display: 'grid',
-                        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-                        gap: spacingValue(columnGap),
-                        alignItems: 'stretch',
-                        paddingBlock: spacingValue(padding),
-                        paddingInline: 0,
-                    }}
+                <CheckoutGrid
+                    columns={columns}
+                    columnGap={columnGap}
+                    itemGap={itemGap}
+                    padding={padding}
                 >
-                    <Column1 minEmptyHeight={160} style={slotStyle(itemGap)} />
-                    {columns !== '1' && <Column2 minEmptyHeight={160} style={slotStyle(itemGap)} />}
-                    {columns === '3' && <Column3 minEmptyHeight={160} style={slotStyle(itemGap)} />}
-                </section>
+                    {[
+                        <Column1 key="column-1" minEmptyHeight={160} />,
+                        <Column2 key="column-2" minEmptyHeight={160} />,
+                        <Column3 key="column-3" minEmptyHeight={160} />,
+                    ]}
+                </CheckoutGrid>
             ),
         },
         heading_text: {
@@ -1139,9 +1069,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 size: 'lg',
             },
             render: ({ text, alignment, size }) => (
-                <section style={{ ...fullWidth(), textAlign: alignment, padding: '10px 0' }}>
-                    <h2 style={{ ...heading(), fontSize: textHeadingSize(size ?? 'lg') }}>{text}</h2>
-                </section>
+                <CheckoutHeadingText text={text} alignment={alignment} size={size ?? 'lg'} />
             ),
         },
         paragraph_text: {
@@ -1166,20 +1094,9 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 size: 'md',
             },
             render: ({ content, alignment, size }) => (
-                <section style={{ ...fullWidth(), textAlign: alignment, padding: '6px 0' }}>
-                    <p
-                        style={{
-                            margin: alignment === 'center' ? '0 auto' : 0,
-                            maxWidth: 820,
-                            whiteSpace: 'pre-wrap',
-                            fontSize: textBodySize(size ?? 'md'),
-                            lineHeight: 1.8,
-                            opacity: 0.72,
-                        }}
-                    >
-                        {content}
-                    </p>
-                </section>
+                <CheckoutParagraphText alignment={alignment} size={size ?? 'md'}>
+                    {content}
+                </CheckoutParagraphText>
             ),
         },
         text: {
@@ -1196,24 +1113,9 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 alignment: 'left',
             },
             render: ({ title, content, alignment }) => (
-                <section
-                    style={{ ...card(), padding: 'clamp(28px, 5vw, 56px)', textAlign: alignment }}
-                >
-                    <h2 style={heading()}>{title}</h2>
-                    <p
-                        style={{
-                            margin: '14px auto 0',
-                            maxWidth: 780,
-                            whiteSpace: 'pre-wrap',
-                            fontSize: 16,
-                            lineHeight: 1.8,
-                            fontWeight: 'var(--checkout-body-weight)' as React.CSSProperties['fontWeight'],
-                            opacity: 0.72,
-                        }}
-                    >
-                        {content}
-                    </p>
-                </section>
+                <CheckoutTextBlock title={title} alignment={alignment}>
+                    {content}
+                </CheckoutTextBlock>
             ),
         },
         image: {
@@ -1285,75 +1187,16 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 alignment: 'center',
             },
             render: ({ url, alt, caption, aspectRatio, shape, size, fit, alignment }) => (
-                <figure
-                    style={{
-                        ...card(),
-                        width: imageWidth(size ?? 'full'),
-                        maxWidth: '100%',
-                        minWidth: 0,
-                        justifySelf:
-                            alignment === 'left'
-                                ? 'start'
-                                : alignment === 'right'
-                                  ? 'end'
-                                  : 'center',
-                        margin: 0,
-                        padding: 12,
-                        overflow: 'hidden',
-                    }}
-                >
-                    {safeHttpsUrl(url) ? (
-                        <div
-                            role="img"
-                            aria-label={alt}
-                            style={{
-                                width: '100%',
-                                maxWidth: '100%',
-                                minWidth: 0,
-                                minHeight:
-                                    aspectRatio === 'auto'
-                                        ? imageMinHeight(size ?? 'full')
-                                        : undefined,
-                                aspectRatio: imageAspectRatio(aspectRatio ?? '16/9', shape ?? 'soft'),
-                                backgroundImage: `url(${JSON.stringify(url)})`,
-                                backgroundPosition: 'center',
-                                backgroundSize: fit ?? 'cover',
-                                backgroundRepeat: 'no-repeat',
-                                borderRadius: imageRadius(shape ?? 'soft'),
-                            }}
-                        />
-                    ) : (
-                        <div
-                            style={{
-                                display: 'grid',
-                                width: '100%',
-                                maxWidth: '100%',
-                                minWidth: 0,
-                                minHeight: imageMinHeight(size ?? 'full'),
-                                aspectRatio: imageAspectRatio(aspectRatio ?? '16/9', shape ?? 'soft'),
-                                placeItems: 'center',
-                                borderRadius: imageRadius(shape ?? 'soft'),
-                                background: 'var(--checkout-muted)',
-                                color: 'var(--checkout-text)',
-                                opacity: 0.72,
-                            }}
-                        >
-                            Informe uma URL HTTPS para a imagem
-                        </div>
-                    )}
-                    {caption && (
-                        <figcaption
-                            style={{
-                                padding: '12px 8px 4px',
-                                textAlign: 'center',
-                                fontSize: 13,
-                                opacity: 0.65,
-                            }}
-                        >
-                            {caption}
-                        </figcaption>
-                    )}
-                </figure>
+                <CheckoutImage
+                    url={url}
+                    alt={alt}
+                    caption={caption}
+                    aspectRatio={aspectRatio ?? '16/9'}
+                    shape={shape ?? 'soft'}
+                    size={size ?? 'full'}
+                    fit={fit ?? 'cover'}
+                    alignment={alignment}
+                />
             ),
         },
         video: {
@@ -1390,7 +1233,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 controls: true,
             },
             render: ({ url, title, caption, posterUrl, aspectRatio, autoplay, controls }) => (
-                <VideoPlayer
+                <CheckoutVideo
                     url={url}
                     title={title}
                     caption={caption}
@@ -1438,7 +1281,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 ],
             },
             render: ({ layout, title, items }) => (
-                <BenefitsSection layout={layout ?? 'cards'} title={title} items={items} />
+                <CheckoutBenefits layout={layout ?? 'cards'} title={title} items={items} />
             ),
         },
         testimonials: {
@@ -1481,7 +1324,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 ],
             },
             render: ({ layout, title, items }) => (
-                <TestimonialsSection layout={layout ?? 'cards'} title={title} items={items} />
+                <CheckoutTestimonials layout={layout ?? 'cards'} title={title} items={items} />
             ),
         },
         faq: {
@@ -1517,7 +1360,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 ],
             },
             render: ({ layout, title, items }) => (
-                <FaqSection layout={layout ?? 'accordion'} title={title} items={items} />
+                <CheckoutFaq layout={layout ?? 'accordion'} title={title} items={items} />
             ),
         },
         guarantee: {
@@ -1536,7 +1379,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 days: 7,
             },
             render: ({ layout, title, description, days }) => (
-                <GuaranteeSection
+                <CheckoutGuarantee
                     layout={layout ?? 'horizontal'}
                     title={title}
                     description={description}
@@ -1557,7 +1400,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 deadline: '2026-12-31T23:59:59-03:00',
             },
             render: ({ layout, title, deadline }) => (
-                <CountdownSection layout={layout ?? 'cards'} title={title} deadline={deadline} />
+                <CheckoutCountdown layout={layout ?? 'cards'} title={title} deadline={deadline} />
             ),
         },
         product_summary: {
@@ -1573,7 +1416,12 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 description: 'Confira o produto selecionado e suas condições.',
             },
             render: ({ layout, title, description }) => (
-                <ProductSection layout={layout ?? 'card'} title={title} description={description} />
+                <CheckoutProductSummary
+                    layout={layout ?? 'card'}
+                    title={title}
+                    description={description}
+                    product={{ name: 'Produto selecionado', quantity: '1 unidade', price: 'R$ —' }}
+                />
             ),
         },
         checkout_form: {
@@ -1600,7 +1448,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 showDocument: false,
             },
             render: ({ layout, title, description, buttonLabel, showPhone, showDocument }) => (
-                <CheckoutFormSection
+                <CustomerFormPreview
                     layout={layout ?? 'card'}
                     title={title}
                     description={description}
@@ -1618,7 +1466,16 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             },
             defaultProps: { layout: 'card', title: 'Resumo do pedido' },
             render: ({ layout, title }) => (
-                <OrderSummarySection layout={layout ?? 'card'} title={title} />
+                <CheckoutOrderSummary
+                    layout={layout ?? 'card'}
+                    title={title}
+                    lines={[
+                        { label: 'Subtotal', value: 'R$ —' },
+                        { label: 'Desconto', value: 'R$ 0,00' },
+                        { label: 'Frete', value: 'A calcular' },
+                    ]}
+                    total="R$ —"
+                />
             ),
         },
         payment_methods: {
@@ -1640,7 +1497,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 showBoleto: true,
             },
             render: ({ layout, title, description, showCard, showPix, showBoleto }) => (
-                <PaymentMethodsSection
+                <PaymentMethodsPreview
                     layout={layout ?? 'cards'}
                     title={title}
                     description={description}
@@ -1665,11 +1522,16 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 showInstallments: true,
             },
             render: ({ layout, title, description, showInstallments }) => (
-                <CardPaymentSection
+                <CheckoutCardPayment
                     layout={layout ?? 'standard'}
                     title={title}
                     description={description}
-                    showInstallments={showInstallments}
+                    secureElement={
+                        <CardPaymentFields
+                            compact={layout === 'compact'}
+                            showInstallments={showInstallments}
+                        />
+                    }
                 />
             ),
         },
@@ -1688,11 +1550,14 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 expiresIn: '30 minutos',
             },
             render: ({ layout, title, description, expiresIn }) => (
-                <PixPaymentSection
+                <CheckoutPaymentInstruction
+                    kind="pix"
                     layout={layout ?? 'split'}
                     title={title}
                     description={description}
-                    expiresIn={expiresIn}
+                    code="00020126••••••••••••••••"
+                    codeLabel="Código Pix copia e cola"
+                    footer={<p style={{ fontSize: 12, opacity: 0.62 }}>Expira em {expiresIn}.</p>}
                 />
             ),
         },
@@ -1711,11 +1576,14 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 dueInDays: 3,
             },
             render: ({ layout, title, description, dueInDays }) => (
-                <BoletoPaymentSection
+                <CheckoutPaymentInstruction
+                    kind="boleto"
                     layout={layout ?? 'split'}
                     title={title}
                     description={description}
-                    dueInDays={dueInDays}
+                    code="00190.00009 01234.567890 12345.678901 1 00000000000000"
+                    codeLabel="Código de barras"
+                    footer={<p style={{ fontSize: 12, opacity: 0.62 }}>Vencimento em {dueInDays} dias.</p>}
                 />
             ),
         },
@@ -1859,7 +1727,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 buttonLabel: 'Aplicar',
             },
             render: ({ layout, title, placeholder, buttonLabel }) => (
-                <CouponSection
+                <CouponPreview
                     layout={layout ?? 'inline'}
                     title={title}
                     placeholder={placeholder}
@@ -1884,12 +1752,14 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 showPrivacy: true,
             },
             render: ({ layout, title, showEncryption, showGuarantee, showPrivacy }) => (
-                <TrustSection
+                <CheckoutTrustBadges
                     layout={layout ?? 'pills'}
                     title={title}
-                    showEncryption={showEncryption}
-                    showGuarantee={showGuarantee}
-                    showPrivacy={showPrivacy}
+                    badges={[
+                        ...(showEncryption ? [{ id: 'encryption', label: 'Dados criptografados' }] : []),
+                        ...(showGuarantee ? [{ id: 'guarantee', label: 'Compra garantida' }] : []),
+                        ...(showPrivacy ? [{ id: 'privacy', label: 'Privacidade protegida' }] : []),
+                    ]}
                 />
             ),
         },
@@ -1927,7 +1797,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 ],
             },
             render: ({ layout, title, plans }) => (
-                <PlanComparisonSection layout={layout ?? 'cards'} title={title} plans={plans} />
+                <CheckoutPlans layout={layout ?? 'cards'} title={title} plans={plans} />
             ),
         },
         data_table: {
@@ -1960,7 +1830,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 ],
             },
             render: ({ layout, title, showLines, rows }) => (
-                <DataTableSection
+                <CheckoutDataTable
                     layout={layout ?? 'table'}
                     title={title}
                     showLines={showLines ?? true}
@@ -1996,7 +1866,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 ],
             },
             render: ({ layout, title, items }) => (
-                <StatsSection layout={layout ?? 'cards'} title={title} items={items} />
+                <CheckoutStats layout={layout ?? 'cards'} title={title} items={items} />
             ),
         },
         before_after: {
@@ -2017,7 +1887,14 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 afterTitle: 'Depois',
                 afterText: 'Fluxo organizado, rápido e previsível.',
             },
-            render: (props) => <BeforeAfterSection {...props} layout={props.layout ?? 'split'} />,
+            render: (props) => (
+                <CheckoutBeforeAfter
+                    layout={props.layout ?? 'split'}
+                    title={props.title}
+                    before={{ title: props.beforeTitle, text: props.beforeText }}
+                    after={{ title: props.afterTitle, text: props.afterText }}
+                />
+            ),
         },
         client_logos: {
             label: 'Logos de clientes',
@@ -2047,7 +1924,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 ],
             },
             render: ({ layout, title, logos }) => (
-                <ClientLogosSection layout={layout ?? 'grid'} title={title} logos={logos} />
+                <CheckoutClientLogos layout={layout ?? 'grid'} title={title} logos={logos} />
             ),
         },
         floating_cta: {
@@ -2063,7 +1940,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 buttonLabel: 'Comprar agora',
             },
             render: ({ layout, text, buttonLabel }) => (
-                <FloatingCtaSection layout={layout ?? 'bar'} text={text} buttonLabel={buttonLabel} />
+                <CheckoutFloatingCta layout={layout ?? 'bar'} text={text} buttonLabel={buttonLabel} />
             ),
         },
         spacer_divider: {
@@ -2075,7 +1952,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             },
             defaultProps: { layout: 'line', size: 'md', label: 'Continuar' },
             render: ({ layout, size, label }) => (
-                <SpacerDividerSection layout={layout ?? 'line'} size={size ?? 'md'} label={label} />
+                <CheckoutDivider layout={layout ?? 'line'} size={size ?? 'md'} label={label} />
             ),
         },
         footer: {
@@ -2098,7 +1975,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 showSecurity: true,
             },
             render: ({ layout, text, showSecurity }) => (
-                <FooterSection
+                <CheckoutFooter
                     layout={layout ?? 'centered'}
                     text={text}
                     showSecurity={showSecurity}
@@ -2195,6 +2072,8 @@ function TemplatePicker<T extends string>({
 
 type BenefitItem = { title: string; description: string };
 
+// Temporary visual migration reference; the builder renders CheckoutBenefits.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function BenefitsSection({
     layout,
     title,
@@ -2464,6 +2343,8 @@ function BenefitsSection({
 
 type TestimonialItem = { quote: string; name: string; role: string };
 
+// Temporary visual migration reference; the builder renders CheckoutTestimonials.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function TestimonialsSection({
     layout,
     title,
@@ -2650,6 +2531,8 @@ function TestimonialMini({ item, tall = false }: { item: TestimonialItem; tall?:
 
 type FaqItem = { question: string; answer: string };
 
+// Temporary visual migration reference; the builder renders CheckoutFaq.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function FaqSection({
     layout,
     title,
@@ -2778,6 +2661,7 @@ function FaqSection({
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function VideoPlayer({
     url,
     title,
@@ -2937,6 +2821,8 @@ function resolveVideoSource(
     }
 }
 
+// Temporary visual migration reference; the builder renders CheckoutGuarantee.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function GuaranteeSection({
     layout,
     title,
@@ -3104,6 +2990,8 @@ function GuaranteeSeal({
     );
 }
 
+// Temporary visual migration reference; the builder renders CheckoutProductSummary.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ProductSection({
     layout,
     title,
@@ -3195,6 +3083,32 @@ function ProductSection({
     );
 }
 
+function CustomerFormPreview({
+    layout,
+    title,
+    description,
+    buttonLabel,
+    showPhone,
+    showDocument,
+}: BuilderProps['checkout_form']) {
+    const [values, setValues] = useState({ name: '', email: '', phone: '', document: '' });
+    return (
+        <CheckoutCustomerForm
+            layout={layout}
+            title={title}
+            description={description}
+            buttonLabel={buttonLabel}
+            showPhone={showPhone}
+            showDocument={showDocument}
+            values={values}
+            onChange={(field, value) => setValues((current) => ({ ...current, [field]: value }))}
+            onSubmit={() => undefined}
+        />
+    );
+}
+
+// Temporary visual migration reference; the builder renders CheckoutCustomerForm.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function CheckoutFormSection({
     layout,
     title,
@@ -3284,6 +3198,8 @@ function CheckoutFormSection({
     );
 }
 
+// Temporary visual migration reference; the builder renders CheckoutOrderSummary.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function OrderSummarySection({ layout, title }: { layout: SummaryLayout; title: string }) {
     const rows = (
         <div style={{ display: 'grid', gap: 13, fontSize: 14 }}>
@@ -3365,6 +3281,37 @@ function OrderSummarySection({ layout, title }: { layout: SummaryLayout; title: 
     );
 }
 
+function PaymentMethodsPreview({
+    layout,
+    title,
+    description,
+    showCard,
+    showPix,
+    showBoleto,
+}: BuilderProps['payment_methods']) {
+    const options = [
+        ...(showCard ? [{ id: 'card', icon: '▣', title: 'Cartão de crédito', description: 'Pague com segurança e parcele sua compra' }] : []),
+        ...(showPix ? [{ id: 'pix', icon: '◇', title: 'Pix', description: 'Aprovação imediata e pagamento por QR Code' }] : []),
+        ...(showBoleto ? [{ id: 'boleto', icon: '▤', title: 'Boleto bancário', description: 'Compensação em até 3 dias úteis' }] : []),
+    ];
+    const [selectedId, setSelectedId] = useState(options[0]?.id);
+    const effectiveSelectedId = options.some((option) => option.id === selectedId)
+        ? selectedId
+        : options[0]?.id;
+    return (
+        <CheckoutPaymentMethods
+            layout={layout}
+            title={title}
+            description={description}
+            options={options}
+            selectedId={effectiveSelectedId}
+            onSelect={setSelectedId}
+        />
+    );
+}
+
+// Temporary visual migration reference; the builder renders CheckoutPaymentMethods.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function PaymentMethodsSection({
     layout,
     title,
@@ -3512,6 +3459,8 @@ function CardPaymentFields({
     );
 }
 
+// Temporary visual migration reference; the builder renders CheckoutCardPayment.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function CardPaymentSection({
     layout,
     title,
@@ -3699,6 +3648,8 @@ function HeroLayoutPicker({
     );
 }
 
+// Kept temporarily only as a migration reference until all hero templates have visual snapshots.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function HeroSection({
     layout,
     eyebrow,
@@ -4095,6 +4046,7 @@ function CountdownTemplatePreview({ layout }: { layout: CountdownLayout }) {
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function CountdownSection({
     layout,
     title,
@@ -4460,40 +4412,10 @@ function systemPalette(light: Palette, dark: Palette): Palette {
 }
 
 function variables(theme: BuilderRootProps) {
-    const palette = resolvePalette(theme);
-    const transparentComponents =
-        theme.componentBackgroundStyle === 'transparent' || theme.inputGroupStyle === 'outlined';
-    const hideComponentBorders = theme.componentBorderStyle === 'hidden';
-    const hideComponentShadow =
-        theme.componentShadowMode === 'hidden' ||
-        (theme.componentShadowMode !== 'visible' && (transparentComponents || hideComponentBorders));
-    const componentBorder = hideComponentBorders ? 'transparent' : 'var(--checkout-border)';
-    const componentBorderWidth = hideComponentBorders ? '0px' : '1px';
+    const shared = checkoutThemeVariables(theme, theme);
     return {
-        '--checkout-bg': palette.background,
-        '--checkout-surface': palette.surface,
-        '--checkout-text': palette.text,
-        '--checkout-muted': palette.muted,
-        '--checkout-border': palette.border,
-        '--checkout-card-bg': transparentComponents ? 'transparent' : 'var(--checkout-surface)',
-        '--checkout-card-border': componentBorder,
-        '--checkout-card-border-width': componentBorderWidth,
-        '--checkout-component-divider':
-            hideComponentBorders ? 'transparent' : 'var(--checkout-card-border)',
-        '--checkout-visual-divider': 'color-mix(in srgb, var(--checkout-text) 18%, transparent)',
-        '--checkout-card-shadow':
-            hideComponentShadow ? 'none' : 'var(--checkout-shadow)',
-        '--checkout-accent': safeColor(theme.accentColor, '#7065e8'),
-        '--checkout-radius': radiusValue(theme.radius),
-        '--checkout-shadow': shadowValue(theme.shadow),
-        '--checkout-heading-weight': Number(theme.headingFontWeight ?? '700'),
-        '--checkout-body-weight': Number(theme.bodyFontWeight ?? '400'),
-        '--checkout-component-gap': `${spacingValue(theme.componentGap)}px`,
-        '--checkout-group-bg': transparentComponents ? 'transparent' : 'var(--checkout-surface)',
-        '--checkout-group-border': componentBorder,
-        '--checkout-group-border-width': componentBorderWidth,
-        '--checkout-group-shadow':
-            hideComponentShadow ? 'none' : 'var(--checkout-shadow)',
+        ...shared,
+        '--checkout-muted': shared['--checkout-muted-bg'],
     } as React.CSSProperties;
 }
 
@@ -4556,6 +4478,8 @@ function heading(): React.CSSProperties {
     };
 }
 
+// Temporary visual migration reference; the builder renders CheckoutPaymentInstruction.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function PixPaymentSection({
     layout,
     title,
@@ -4621,6 +4545,8 @@ function PixPaymentSection({
     );
 }
 
+// Temporary visual migration reference; the builder renders CheckoutPaymentInstruction.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function BoletoPaymentSection({
     layout,
     title,
@@ -4761,25 +4687,14 @@ function tablePill(): React.CSSProperties {
     };
 }
 
-function textHeadingSize(size: TextSize) {
-    return {
-        sm: 'clamp(22px, 3vw, 30px)',
-        md: 'clamp(26px, 4vw, 40px)',
-        lg: 'clamp(32px, 5vw, 56px)',
-        xl: 'clamp(40px, 7vw, 76px)',
-    }[size];
-}
-
-function textBodySize(size: TextSize) {
-    return { sm: 14, md: 16, lg: 18, xl: 21 }[size];
-}
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function imageWidth(size: ImageSize) {
     return { sm: 'min(100%, 360px)', md: 'min(100%, 560px)', lg: 'min(100%, 760px)', full: '100%' }[
         size
     ];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function imageMinHeight(size: ImageSize) {
     return {
         sm: 'clamp(160px, 42vw, 220px)',
@@ -4789,12 +4704,14 @@ function imageMinHeight(size: ImageSize) {
     }[size];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function imageAspectRatio(ratio: ImageRatio, shape: ImageShape) {
     if (shape === 'circle' || shape === 'square') return '1/1';
     if (shape === 'pill') return '21/9';
     return ratio === 'auto' ? undefined : ratio;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function imageRadius(shape: ImageShape) {
     return {
         rectangle: '0px',
@@ -5041,6 +4958,33 @@ function summaryRow(): React.CSSProperties {
     return { display: 'flex', justifyContent: 'space-between', gap: 18 };
 }
 
+function CouponPreview({
+    layout,
+    title,
+    placeholder,
+    buttonLabel,
+}: BuilderProps['coupon_field']) {
+    const [value, setValue] = useState('');
+    const [message, setMessage] = useState('');
+    return (
+        <CheckoutCoupon
+            layout={layout}
+            title={title}
+            placeholder={placeholder}
+            buttonLabel={buttonLabel}
+            value={value}
+            message={message && <p style={{ fontSize: 12, color: 'var(--checkout-accent)' }}>{message}</p>}
+            onChange={(next) => {
+                setValue(next);
+                setMessage('');
+            }}
+            onApply={() => setMessage('Cupom de demonstração aplicado.')}
+        />
+    );
+}
+
+// Temporary visual migration reference; the builder renders CheckoutCoupon.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function CouponSection({
     layout,
     title,
@@ -5101,6 +5045,8 @@ function CouponSection({
     );
 }
 
+// Temporary visual migration reference; the builder renders CheckoutTrustBadges.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function TrustSection({
     layout,
     title,
@@ -5152,6 +5098,7 @@ function TrustSection({
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function FooterSection({
     layout,
     text,
@@ -5204,22 +5151,7 @@ function TrustBadge({ label }: { label: string }) {
     );
 }
 
-function radiusValue(size: SizePreset) {
-    return { xs: '4px', sm: '8px', md: '12px', lg: '18px', xl: '26px' }[size] ?? '12px';
-}
-
-function shadowValue(size: ShadowPreset) {
-    return (
-        {
-            none: 'none',
-            xs: '0 2px 8px rgba(30,31,48,.04)',
-            sm: '0 10px 30px rgba(30,31,48,.06)',
-            md: '0 18px 48px rgba(30,31,48,.09)',
-            lg: '0 26px 70px rgba(30,31,48,.13)',
-        }[size] ?? 'none'
-    );
-}
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function PlanComparisonSection({
     layout,
     title,
@@ -5260,6 +5192,8 @@ function PlanComparisonSection({
     );
 }
 
+// Kept temporarily only as a migration reference until all table templates have visual snapshots.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function DataTableSection({
     layout,
     title,
@@ -5345,6 +5279,7 @@ function DataTableSection({
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function StatsSection({ layout, title, items }: { layout: StatsLayout; title: string; items: { value: string; label: string; detail: string }[] }) {
     if (layout === 'editorial' && items.length) {
         const [first, ...rest] = items;
@@ -5357,20 +5292,28 @@ function StatMini({ item, framed = true }: { item: { value: string; label: strin
     return <article style={{ ...(framed ? card() : fullWidth()), padding: framed ? 18 : '12px 0', textAlign: 'center' }}><strong style={{ display: 'block', fontSize: 28, color: 'var(--checkout-accent)' }}>{item.value}</strong><span style={{ display: 'block', marginTop: 4, fontWeight: 800 }}>{item.label}</span><small style={{ display: 'block', marginTop: 3, opacity: 0.58 }}>{item.detail}</small></article>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function BeforeAfterSection({ layout, title, beforeTitle, beforeText, afterTitle, afterText }: BuilderProps['before_after']) {
     const item = (name: string, text: string, positive: boolean) => <article style={{ ...card(), padding: 22, borderColor: positive ? 'var(--checkout-accent)' : undefined }}><span style={{ ...numberBadge(), background: positive ? 'var(--checkout-accent)' : undefined, color: positive ? '#fff' : undefined }}>{positive ? '✓' : '−'}</span><h3 style={{ margin: '16px 0 0', fontSize: 20 }}>{name}</h3><p style={{ margin: '8px 0 0', lineHeight: 1.65, opacity: 0.68 }}>{text}</p></article>;
     if (layout === 'timeline') return <section style={{ ...checkoutCard(), padding: 'clamp(20px,5vw,34px)' }}><h2 style={checkoutHeading()}>{title}</h2><div style={{ display: 'grid', gap: 12, marginTop: 20 }}>{item(beforeTitle, beforeText, false)}{item(afterTitle, afterText, true)}</div></section>;
     return <section style={{ ...fullWidth(), padding: '28px 0' }}><h2 style={{ ...heading(), textAlign: 'center' }}>{title}</h2><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', gap: 14, marginTop: 24 }}>{item(beforeTitle, beforeText, false)}{item(afterTitle, afterText, true)}</div></section>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function ClientLogosSection({ layout, title, logos }: { layout: ClientLogosLayout; title: string; logos: { name: string; imageUrl: string }[] }) {
-    return <section style={{ ...(layout === 'strip' ? checkoutCard() : fullWidth()), padding: layout === 'strip' ? 20 : '28px 0', textAlign: 'center' }}><h2 style={{ ...checkoutHeading(), fontSize: 20 }}>{title}</h2><div style={{ display: 'grid', gridTemplateColumns: layout === 'strip' ? 'repeat(auto-fit,minmax(110px,1fr))' : 'repeat(auto-fit,minmax(min(100%,130px),1fr))', gap: layout === 'cloud' ? 18 : 10, alignItems: 'center', marginTop: 18 }}>{logos.map((logo, index) => <div key={`${logo.name}-${index}`} style={{ ...card(), display: 'grid', minHeight: layout === 'cloud' && index % 2 === 0 ? 86 : 68, placeItems: 'center', padding: 12, opacity: 0.82 }}>{safeHttpsUrl(logo.imageUrl) ? <img src={logo.imageUrl} alt={logo.name} style={{ maxHeight: 38, objectFit: 'contain' }} /> : <strong style={{ fontSize: 13 }}>{logo.name}</strong>}</div>)}</div></section>;
+    return <section style={{ ...(layout === 'strip' ? checkoutCard() : fullWidth()), padding: layout === 'strip' ? 20 : '28px 0', textAlign: 'center' }}><h2 style={{ ...checkoutHeading(), fontSize: 20 }}>{title}</h2><div style={{ display: 'grid', gridTemplateColumns: layout === 'strip' ? 'repeat(auto-fit,minmax(110px,1fr))' : 'repeat(auto-fit,minmax(min(100%,130px),1fr))', gap: layout === 'cloud' ? 18 : 10, alignItems: 'center', marginTop: 18 }}>{logos.map((logo, index) => <div key={`${logo.name}-${index}`} style={{ ...card(), display: 'grid', minHeight: layout === 'cloud' && index % 2 === 0 ? 86 : 68, placeItems: 'center', padding: 12, opacity: 0.82 }}>{safeHttpsUrl(logo.imageUrl) ? <>
+        {/* The merchant-controlled URL is runtime data and cannot use Next's static image allowlist. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={logo.imageUrl} alt={logo.name} loading="lazy" decoding="async" style={{ maxHeight: 38, objectFit: 'contain' }} />
+    </> : <strong style={{ fontSize: 13 }}>{logo.name}</strong>}</div>)}</div></section>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function FloatingCtaSection({ layout, text, buttonLabel }: { layout: FloatingCtaLayout; text: string; buttonLabel: string }) {
     return <section style={{ ...fullWidth(), position: 'sticky', bottom: 12, zIndex: 5, display: 'flex', justifyContent: layout === 'pill' ? 'center' : 'stretch', pointerEvents: 'none' }}><div style={{ ...(layout === 'card' ? card() : checkoutCard()), display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: layout === 'pill' ? 'auto' : '100%', padding: layout === 'pill' ? '10px 10px 10px 16px' : 14, borderRadius: layout === 'pill' ? 999 : 'var(--checkout-radius)', pointerEvents: 'auto' }}><strong style={{ fontSize: 13 }}>{text}</strong><Button type="button" className="checkout-primary-button" style={{ ...primaryButton(), marginTop: 0, padding: '11px 16px' }}>{buttonLabel}</Button></div></section>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function SpacerDividerSection({ layout, size, label }: { layout: SpacerDividerLayout; size: SizePreset; label: string }) {
     const height = spacingValue(size) * 2;
     if (layout === 'space') return <div aria-hidden="true" style={{ ...fullWidth(), height }} />;
@@ -5385,6 +5328,7 @@ function spacingValue(size: SizePreset) {
     return { xs: 6, sm: 12, md: 20, lg: 28, xl: 40 }[size] ?? 20;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function slotStyle(gap: SizePreset) {
     return {
         '--checkout-component-gap': `${spacingValue(gap)}px`,
@@ -5398,10 +5342,12 @@ function slotStyle(gap: SizePreset) {
     } as React.CSSProperties;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function logoSize(size: SizePreset) {
     return { xs: 72, sm: 104, md: 144, lg: 192, xl: 256 }[size] ?? 144;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function logoRadiusValue(radius: LogoRadius) {
     return { none: 0, sm: 8, md: 16, lg: 28, full: '50%' }[radius] ?? 16;
 }

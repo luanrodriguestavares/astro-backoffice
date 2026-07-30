@@ -19,6 +19,7 @@ export function applySessionCookies(response: NextResponse, session: SessionData
         secure,
         path: '/',
         maxAge: session.expiresIn,
+        priority: 'high',
     });
     response.cookies.set('astro_refresh', session.refreshToken, {
         httpOnly: true,
@@ -26,6 +27,7 @@ export function applySessionCookies(response: NextResponse, session: SessionData
         secure,
         path: '/',
         maxAge: 30 * 24 * 60 * 60,
+        priority: 'high',
     });
     return response;
 }

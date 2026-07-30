@@ -5,6 +5,8 @@ import type { ApiEnvelope, SessionData } from '@/lib/api/types';
 import { applySessionCookies } from '@/lib/auth/session';
 
 export async function proxy(request: NextRequest) {
+    if (request.nextUrl.pathname.startsWith('/api/')) return protectBffRequest(request);
+
     const accessToken = request.cookies.get('astro_access')?.value;
     if (accessToken !== undefined && !isExpiring(accessToken)) return NextResponse.next();
 
@@ -34,6 +36,16 @@ export async function proxy(request: NextRequest) {
     return response;
 }
 
+function protectBffRequest(request: NextRequest) {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return NextResponse.next();
+    if (request.headers.get('sec-fetch-site') === 'cross-site')
+        return NextResponse.json({ detail: 'Cross-site request rejected.' }, { status: 403 });
+    const origin = request.headers.get('origin');
+    if (origin !== null && origin !== request.nextUrl.origin)
+        return NextResponse.json({ detail: 'Invalid request origin.' }, { status: 403 });
+    return NextResponse.next();
+}
+
 function isExpiring(token: string) {
     try {
         const payload = JSON.parse(
@@ -49,6 +61,7 @@ function isExpiring(token: string) {
 
 export const config = {
     matcher: [
+        '/api/:path*',
         '/dashboard/:path*',
         '/products/:path*',
         '/checkouts/:path*',

@@ -40,6 +40,8 @@ export function ProductManager({
     const [loading, setLoading] = useState(false);
     const [query, setQuery] = useState('');
     const [status, setStatus] = useState<StatusFilter>('all');
+    const [pageSize, setPageSize] = useState(10);
+    const [page, setPage] = useState(1);
     const [pricingType, setPricingType] = useState('one_time');
     const [statusChanging, setStatusChanging] = useState<string>();
     const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
@@ -57,6 +59,12 @@ export function ProductManager({
             return matchesStatus && matchesQuery;
         });
     }, [products, query, status]);
+    const pageCount = Math.max(1, Math.ceil(visibleProducts.length / pageSize));
+    const currentPage = Math.min(page, pageCount);
+    const pagedProducts = visibleProducts.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize,
+    );
     const selectedImageFile = files.find((file) => file.id === selectedImageFileId);
 
     async function submit(event: FormEvent<HTMLFormElement>) {
@@ -266,7 +274,10 @@ export function ProductManager({
                         <Icon name="search" className="size-3.5 shrink-0 text-muted" />
                         <input
                             value={query}
-                            onChange={(event) => setQuery(event.target.value)}
+                            onChange={(event) => {
+                                setQuery(event.target.value);
+                                setPage(1);
+                            }}
                             placeholder="Buscar produto..."
                             className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted"
                         />
@@ -274,7 +285,10 @@ export function ProductManager({
                             <Button
                                 type="button"
                                 aria-label="Limpar busca"
-                                onClick={() => setQuery('')}
+                                onClick={() => {
+                                    setQuery('');
+                                    setPage(1);
+                                }}
                                 className="text-muted transition hover:text-foreground"
                             >
                                 <Icon name="close" className="size-3" />
@@ -294,13 +308,30 @@ export function ProductManager({
                             <Button
                                 key={value}
                                 type="button"
-                                onClick={() => setStatus(value)}
+                                onClick={() => {
+                                    setStatus(value);
+                                    setPage(1);
+                                }}
                                 data-active={status === value}
                                 className="shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-muted transition hover:text-foreground"
                             >
                                 {label}
                             </Button>
                         ))}
+                    </div>
+                    <div className="w-40">
+                        <CustomSelect
+                            name="products-page-size"
+                            value={String(pageSize)}
+                            onValueChange={(value) => {
+                                setPageSize(Number(value));
+                                setPage(1);
+                            }}
+                            options={[10, 20, 50, 100].map((value) => ({
+                                value: String(value),
+                                label: `${value} por página`,
+                            }))}
+                        />
                     </div>
                 </div>
 
@@ -319,18 +350,31 @@ export function ProductManager({
                 <EmptyProducts onCreate={openCreate} />
             ) : (
                 <ProductTable
-                    products={visibleProducts}
+                    products={pagedProducts}
                     prices={prices}
                     hasFilters={Boolean(query) || status !== 'all'}
                     onClear={() => {
                         setQuery('');
                         setStatus('all');
+                        setPage(1);
                     }}
                     onEdit={openEdit}
                     onRemove={setDeleteTarget}
                     onStatusChange={changeStatus}
                     statusChanging={statusChanging}
                 />
+            )}
+            {products.length > 0 && visibleProducts.length > 0 && (
+                <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-white/65 bg-white/25 px-4 py-3 text-[12px] text-muted sm:flex-row sm:items-center sm:justify-between">
+                    <span>
+                        {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, visibleProducts.length)} de {visibleProducts.length}
+                    </span>
+                    <div className="flex items-center gap-2">
+                        <Button type="button" variant="icon" aria-label="Página anterior" title="Página anterior" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}><Icon name="arrow-right" className="size-3.5 rotate-180" /></Button>
+                        <span>Página {currentPage} de {pageCount}</span>
+                        <Button type="button" variant="icon" aria-label="Próxima página" title="Próxima página" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}><Icon name="arrow-right" className="size-3.5" /></Button>
+                    </div>
+                </div>
             )}
 
             {open &&

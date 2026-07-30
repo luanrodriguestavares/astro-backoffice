@@ -20,19 +20,24 @@ import {
 
 type RevenuePoint = { date: string; label: string; value: number };
 
-type Period = '7D' | '30D' | '90D' | '12M';
+type Period = '24H' | '7D' | '30D' | '90D' | '12M';
 
-const periods: Period[] = ['7D', '30D', '90D', '12M'];
+const periods: Period[] = ['24H', '7D', '30D', '90D', '12M'];
 
 export function RevenueAreaChart({
     points,
+    hourlyPoints,
     currency,
 }: {
     points: RevenuePoint[];
+    hourlyPoints: RevenuePoint[];
     currency: string;
 }) {
     const [period, setPeriod] = useState<Period>('30D');
-    const data = useMemo(() => periodData(points, period), [period, points]);
+    const data = useMemo(
+        () => (period === '24H' ? hourlyPoints : periodData(points, period)),
+        [hourlyPoints, period, points],
+    );
     const empty = data.every((point) => point.value === 0);
 
     return (
@@ -61,13 +66,6 @@ export function RevenueAreaChart({
                                 <stop offset="72%" stopColor="var(--brand)" stopOpacity={0.06} />
                                 <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
                             </linearGradient>
-                            <filter id="lineGlow" x="-20%" y="-40%" width="140%" height="180%">
-                                <feGaussianBlur stdDeviation="2.4" result="blur" />
-                                <feMerge>
-                                    <feMergeNode in="blur" />
-                                    <feMergeNode in="SourceGraphic" />
-                                </feMerge>
-                            </filter>
                         </defs>
                         <CartesianGrid
                             vertical={false}
@@ -104,7 +102,6 @@ export function RevenueAreaChart({
                             stroke="var(--brand)"
                             strokeWidth={2.2}
                             fill="url(#revenueArea)"
-                            filter="url(#lineGlow)"
                             animationDuration={850}
                             activeDot={{
                                 r: 4.5,
@@ -172,7 +169,7 @@ function RevenueTooltip({
 
 function formatChartDate(value: string | undefined) {
     if (!value) return '—';
-    const date = new Date(`${value}T12:00:00`);
+    const date = new Date(value.includes('T') ? value : `${value}T12:00:00`);
     if (Number.isNaN(date.getTime())) return value;
     return new Intl.DateTimeFormat('pt-BR', {
         day: '2-digit',
@@ -204,7 +201,7 @@ export function GatewayDonut({ data, currency }: { data: GatewayDatum[]; currenc
 
     return (
         <div className="mt-4 grid min-h-[280px] flex-1 content-center items-center gap-5 sm:grid-cols-[minmax(180px,.95fr)_minmax(180px,1.05fr)]">
-            <div className="dashboard-chart relative mx-auto h-[230px] w-full max-w-[250px]">
+            <div className="dashboard-chart relative z-10 mx-auto h-[230px] w-full max-w-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie
@@ -231,6 +228,7 @@ export function GatewayDonut({ data, currency }: { data: GatewayDatum[]; currenc
                         </Pie>
                         {data.length > 0 && (
                             <Tooltip
+                                wrapperStyle={{ zIndex: 50, pointerEvents: 'none' }}
                                 content={<GatewayTooltip currency={currency} total={total} />}
                             />
                         )}
@@ -245,7 +243,7 @@ export function GatewayDonut({ data, currency }: { data: GatewayDatum[]; currenc
                     </div>
                 </div>
             </div>
-            <div className="space-y-1.5">
+            <div className="relative z-0 space-y-1.5">
                 {data.length ? (
                     data.slice(0, 4).map((item, index) => (
                         <div
@@ -330,24 +328,12 @@ export function MetricChart({
                     </BarChart>
                 ) : (
                     <AreaChart data={data}>
-                        <defs>
-                            <linearGradient
-                                id={`metric-${color.replace('#', '')}`}
-                                x1="0"
-                                y1="0"
-                                x2="0"
-                                y2="1"
-                            >
-                                <stop offset="0" stopColor={color} stopOpacity={0.18} />
-                                <stop offset="1" stopColor={color} stopOpacity={0} />
-                            </linearGradient>
-                        </defs>
                         <Area
                             type="monotone"
                             dataKey="value"
                             stroke={color}
                             strokeWidth={1.7}
-                            fill={`url(#metric-${color.replace('#', '')})`}
+                            fill="none"
                             dot={false}
                             animationDuration={650}
                         />

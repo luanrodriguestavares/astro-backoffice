@@ -5,8 +5,26 @@ import { apiFetch } from '@/lib/api/server';
 import type { Customer } from '@/lib/api/types';
 
 export default async function CustomersPage() {
-    const customers = await apiFetch<Customer[]>('/api/v1/customers');
-    const buyers = customers.filter((customer) => customer.firstPurchaseAt !== null);
+    const [customers, orders] = await Promise.all([
+        apiFetch<Customer[]>('/api/v1/customers'),
+        apiFetch<Array<{ customerId: string; paidMinor: number; paidAt: string | null; placedAt: string }>>('/api/v1/orders'),
+    ]);
+    const purchaseDates = new Map<string, string[]>();
+    for (const order of orders) {
+        if (order.paidMinor <= 0) continue;
+        const dates = purchaseDates.get(order.customerId) ?? [];
+        dates.push(order.paidAt ?? order.placedAt);
+        purchaseDates.set(order.customerId, dates);
+    }
+    const enrichedCustomers = customers.map((customer) => {
+        const dates = purchaseDates.get(customer.id)?.sort() ?? [];
+        return {
+            ...customer,
+            firstPurchaseAt: customer.firstPurchaseAt ?? dates[0] ?? null,
+            lastPurchaseAt: customer.lastPurchaseAt ?? dates.at(-1) ?? null,
+        };
+    });
+    const buyers = enrichedCustomers.filter((customer) => customer.firstPurchaseAt !== null);
     const returning = buyers.filter(
         (customer) => customer.firstPurchaseAt !== customer.lastPurchaseAt,
     );
@@ -42,16 +60,25 @@ export default async function CustomersPage() {
             <ResourceTable
                 title="Base de clientes"
                 description="Contatos e histórico de relacionamento"
-                rows={customers}
+                rows={enrichedCustomers}
                 empty="Nenhum cliente cadastrado."
                 columns={[
                     { label: 'Cliente', value: (row) => row.name },
                     { label: 'E-mail', value: (row) => row.email },
-                    { label: 'Primeira compra', value: (row) => date(row.firstPurchaseAt) },
-                    { label: 'Última compra', value: (row) => date(row.lastPurchaseAt) },
+                    { label: 'Primeira compra', value: (row) => dateTime(row.firstPurchaseAt) },
+                    { label: 'Última compra', value: (row) => dateTime(row.lastPurchaseAt) },
                     { label: 'Cadastro', value: (row) => date(row.createdAt) },
                 ]}
             />
         </>
     );
+}
+
+function dateTime(value: string | null) {
+    return value
+        ? new Intl.DateTimeFormat('pt-BR', {
+              dateStyle: 'short',
+              timeStyle: 'short',
+          }).format(new Date(value))
+        : '—';
 }

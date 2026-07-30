@@ -9,11 +9,25 @@ import { useRef, useState } from 'react';
 
 import { checkoutBuilderConfig, type BuilderData } from '@/components/checkout-builder/config';
 import { CheckoutSelectField } from '@/components/checkout-builder/checkout-select-field';
+import { PaymentGatewaySettings } from '@/components/checkout-builder/payment-gateway-settings';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { showToast } from '@/components/ui/toast';
 import { documentToPuck, puckToDocument } from '@/lib/checkout/puck-data';
+import {
+    checkoutReadinessIssues,
+    enabledPaymentMethods,
+    presentRequiredComponents,
+    type RequiredCheckoutComponent,
+} from '@/lib/checkout/gateway-bindings';
 import { checkoutPublicUrl } from '@/lib/checkout/public-url';
-import type { Checkout, CheckoutDocument, CheckoutDraft } from '@/lib/api/types';
+import type {
+    Checkout,
+    CheckoutDocument,
+    CheckoutDraft,
+    CheckoutEnvironment,
+    CheckoutPaymentMethod,
+    GatewayConnection,
+} from '@/lib/api/types';
 
 const checkoutEditorPlugins = [
     {
@@ -93,13 +107,41 @@ function CheckoutDrawerItem({ children, name }: { children: React.ReactNode; nam
     );
 }
 
-export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft: CheckoutDraft }) {
+export function CheckoutEditor({
+    checkout,
+    draft,
+    gatewayConnections,
+}: {
+    checkout: Checkout;
+    draft: CheckoutDraft;
+    gatewayConnections: GatewayConnection[];
+}) {
     const publicUrl = checkoutPublicUrl(checkout.slug);
     const [initialData] = useState<BuilderData>(() => documentToPuck(draft.document));
     const current = useRef<BuilderData>(initialData);
     const revision = useRef(draft.revision);
     const document = useRef<CheckoutDocument>(draft.document);
     const saving = useRef(false);
+    const [paymentSettingsOpen, setPaymentSettingsOpen] = useState(false);
+    const [environment, setEnvironment] = useState<CheckoutEnvironment>(
+        draft.document.settings.environment ?? 'sandbox',
+    );
+    const [bindings, setBindings] = useState<
+        Partial<Record<CheckoutPaymentMethod, string>>
+    >(draft.document.settings.paymentGatewayBindings ?? {});
+    const [enabledMethods, setEnabledMethods] = useState<CheckoutPaymentMethod[]>(() =>
+        enabledPaymentMethods(initialData.content),
+    );
+    const [builderContent, setBuilderContent] = useState(initialData.content);
+    const [presentComponents, setPresentComponents] = useState<RequiredCheckoutComponent[]>(() =>
+        presentRequiredComponents(initialData.content),
+    );
+    const readinessIssues = checkoutReadinessIssues({
+        content: builderContent,
+        environment,
+        bindings,
+        connections: gatewayConnections,
+    });
     const [state, setState] = useState<'saved' | 'changed' | 'saving' | 'published' | 'error'>(
         'saved',
     );
@@ -109,6 +151,11 @@ export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft:
         saving.current = true;
         setState('saving');
         const nextDocument = puckToDocument(data, document.current);
+        nextDocument.settings = {
+            ...nextDocument.settings,
+            environment,
+            paymentGatewayBindings: bindings,
+        };
         const response = await fetch(`/api/checkouts/${checkout.id}/draft`, {
             method: 'PUT',
             headers: { 'content-type': 'application/json' },
@@ -137,13 +184,47 @@ export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft:
         return true;
     }
 
+    function changeEnvironment(next: CheckoutEnvironment) {
+        setEnvironment(next);
+        setBindings({});
+        setState('changed');
+    }
+
+    function changeBinding(method: CheckoutPaymentMethod, connectionId: string | undefined) {
+        setBindings((currentBindings) => {
+            const next = { ...currentBindings };
+            if (connectionId === undefined) delete next[method];
+            else next[method] = connectionId;
+            return next;
+        });
+        setState('changed');
+    }
+
     async function publish(data: BuilderData) {
         current.current = data as BuilderData;
+        const issues = checkoutReadinessIssues({
+            content: data.content,
+            environment,
+            bindings,
+            connections: gatewayConnections,
+        });
+        if (issues.length > 0) {
+            setPaymentSettingsOpen(true);
+            showToast({
+                tone: 'warning',
+                title: 'Checkout ainda não está pronto',
+                description:
+                    'Confira os componentes obrigatórios e o processamento de pagamentos antes de publicar.',
+                duration: 7_000,
+            });
+            return;
+        }
         if (!(await save(data, false))) return;
         setState('saving');
         const response = await fetch(`/api/checkouts/${checkout.id}/publish`, { method: 'POST' });
         const body = (await response.json()) as { code?: string; detail?: string };
         if (!response.ok) {
+            if (isReadinessError(body.code)) setPaymentSettingsOpen(true);
             setState('error');
             showToast({
                 tone: 'error',
@@ -208,6 +289,9 @@ export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft:
                 iframe={{ enabled: true, syncHostStyles: false }}
                 onChange={(data) => {
                     current.current = data as BuilderData;
+                    setBuilderContent(data.content);
+                    setEnabledMethods(enabledPaymentMethods(data.content));
+                    setPresentComponents(presentRequiredComponents(data.content));
                     setState('changed');
                 }}
                 onPublish={publish}
@@ -279,6 +363,23 @@ export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft:
                             type="button"
                             variant="secondary"
                             className="h-9 rounded-xl px-3 text-[11px]"
+                            onClick={() => setPaymentSettingsOpen(true)}
+                        >
+                            <Icon
+                                name={readinessIssues.length === 0 ? 'check' : 'bolt'}
+                                className="size-3.5"
+                            />
+                            Prontidão
+                            {readinessIssues.length > 0 && (
+                                <span className="grid min-w-5 place-items-center rounded-full bg-warning/15 px-1.5 py-0.5 text-[9px] font-semibold text-warning">
+                                    {readinessIssues.length}
+                                </span>
+                            )}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            className="h-9 rounded-xl px-3 text-[11px]"
                             disabled={state === 'saving'}
                             onClick={() => void openPreview()}
                         >
@@ -304,6 +405,17 @@ export function CheckoutEditor({ checkout, draft }: { checkout: Checkout; draft:
                         </Button>
                     </>
                 )}
+            />
+            <PaymentGatewaySettings
+                open={paymentSettingsOpen}
+                environment={environment}
+                bindings={bindings}
+                enabledMethods={enabledMethods}
+                presentComponents={presentComponents}
+                connections={gatewayConnections}
+                onEnvironmentChange={changeEnvironment}
+                onBindingChange={changeBinding}
+                onClose={() => setPaymentSettingsOpen(false)}
             />
         </div>
     );
@@ -340,9 +452,35 @@ function publishErrorMessage(code?: string, detail?: string) {
     }
     if (code === 'CHECKOUT_PAYMENT_CONFIGURATION_INVALID')
         return 'Nenhum gateway ativo atende às formas de pagamento selecionadas. Configure um gateway compatível ou desative os métodos indisponíveis em Formas de pagamento.';
+    if (code === 'CHECKOUT_GATEWAY_BINDING_REQUIRED')
+        return 'Escolha uma conexão para cada forma de pagamento habilitada antes de publicar em produção.';
+    if (code === 'CHECKOUT_GATEWAY_BINDING_UNAVAILABLE')
+        return 'Uma conexão selecionada não está ativa neste ambiente. Escolha outra conexão na central de prontidão.';
+    if (code === 'CHECKOUT_GATEWAY_BINDING_INCOMPATIBLE')
+        return 'Uma conexão selecionada não suporta o método ou a moeda deste checkout.';
+    if (code === 'PRODUCTION_GATEWAY_NOT_VERIFIED')
+        return 'Teste a conexão na área Gateways antes de publicar. O último teste precisa estar válido e recente.';
+    if (code === 'PRODUCTION_GATEWAY_CAPABILITIES_STALE')
+        return 'As capacidades do gateway estão desatualizadas. Execute um novo teste da conexão.';
+    if (code === 'PRODUCTION_GATEWAY_WEBHOOK_SECRET_REQUIRED')
+        return 'Configure o segredo de webhook desta conexão antes de receber pagamentos reais.';
+    if (code === 'PRODUCTION_MOCK_GATEWAY_FORBIDDEN')
+        return 'O gateway de testes não pode ser usado em produção. Selecione uma conexão real.';
+    if (code === 'PRODUCTION_PHYSICAL_PRODUCT_UNSUPPORTED')
+        return 'Produtos físicos e frete ainda não fazem parte da V1 de produção.';
     if (code === 'CHECKOUT_NOT_PUBLISHABLE')
         return 'Todos os produtos e preços deste checkout precisam estar ativos antes da publicação.';
     return detail ?? 'Revise a configuração do checkout e tente publicar novamente.';
+}
+
+function isReadinessError(code?: string) {
+    return (
+        code === 'CHECKOUT_RUNTIME_COMPONENTS_MISSING' ||
+        code === 'CHECKOUT_PAYMENT_CONFIGURATION_INVALID' ||
+        code?.startsWith('CHECKOUT_GATEWAY_') === true ||
+        code?.startsWith('PRODUCTION_GATEWAY_') === true ||
+        code === 'PRODUCTION_MOCK_GATEWAY_FORBIDDEN'
+    );
 }
 
 function joinLabels(labels: string[]) {

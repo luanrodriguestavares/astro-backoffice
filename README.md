@@ -1,11 +1,15 @@
 # Astro Backoffice
 
+O checkout builder consome `@astro/checkout-renderer` a partir de
+`../checkout-renderer`. O backoffice mantém edição e dados de preview; tema,
+componentes e variantes visuais pertencem ao renderer compartilhado.
+
 Frontend interno da plataforma Astro, usado pelas organizações para administrar produtos, checkouts,
 gateways, vendas, clientes e assinaturas.
 
 ## Stack
 
-- Next.js 16.2.10 com App Router e Turbopack;
+- Next.js 16.2.11 com App Router e Turbopack;
 - React 19;
 - TypeScript estrito;
 - Tailwind CSS 4;
@@ -49,6 +53,10 @@ src/
 Login e cadastro são enviados pelo servidor Next para a API. Access e refresh tokens ficam em cookies
 `HttpOnly`, nunca em `localStorage`. O proxy renova a sessão antes de abrir rotas protegidas.
 
+No editor de checkout, **Pagamentos** define o ambiente e vincula explicitamente uma conexão ativa
+para cada método habilitado. Em produção, a API recusa publicações sem esses vínculos ou com gateway
+mock, não testado, incompatível, desatualizado ou sem segredo de webhook.
+
 Produtos, preços, checkouts, cupons, clientes, gateways, arquivos, inventário, frete, assinaturas,
 equipe, notificações, developer API keys, roadmap e administração da plataforma já possuem
 integrações com endpoints da API. Algumas telas de consulta ainda podem apresentar estados vazios ou
@@ -59,9 +67,38 @@ conteúdo de apoio enquanto seus fluxos completos são finalizados.
 ```bash
 pnpm lint
 pnpm typecheck
+pnpm test
 pnpm build
 ```
 
-Ainda não existe suíte automatizada de testes unitários, de integração ou end-to-end neste projeto.
-Os requisitos de deploy e go-live estão em
+`pnpm check` executa todos os gates. A suíte atual cobre contratos de configuração e seleção de
+gateway; jornadas de navegador continuam sendo requisito de staging.
+
+## Produção
+
+Variáveis obrigatórias:
+
+```env
+ASTRO_API_URL=http://api:3000
+NEXT_PUBLIC_APP_NAME=Astro
+NEXT_PUBLIC_CHECKOUT_URL=https://checkout.example.com
+```
+
+`ASTRO_API_URL` é server-side e pode usar a rede privada do cluster. A URL pública do checkout deve
+usar HTTPS. A imagem standalone, sem processo root, inclui healthcheck em `/api/health`, que só
+responde `ready` quando a readiness da API também está verde:
+
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_CHECKOUT_URL=https://checkout.example.com \
+  -t astro-backoffice .
+
+ASTRO_BACKOFFICE_URL=https://app.example.com pnpm smoke:production
+```
+
+O workflow `.github/workflows/ci.yml` usa lockfile congelado, auditoria de dependências, lint, typecheck,
+testes, build e imagem. A aplicação envia CSP e demais headers defensivos; cookies de sessão são
+`HttpOnly`, `Secure` em produção, `SameSite=Strict` e de alta prioridade.
+
+Os requisitos restantes de deploy e go-live estão em
 [`PRODUCTION_READINESS.md`](../PRODUCTION_READINESS.md).

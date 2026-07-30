@@ -41,6 +41,7 @@ export default async function DashboardPage() {
     ).length;
     const currency = payments[0]?.currency ?? 'BRL';
     const timeline = revenueTimeline(approved, 365);
+    const hourlyTimeline = revenueHourlyTimeline(approved);
     const recentTimeline = timeline.slice(-12);
     const salesTimeline = countTimeline(approved, 12);
     const ticketTimeline = recentTimeline.map((point, index) =>
@@ -163,7 +164,11 @@ export default async function DashboardPage() {
                             </span>
                         </p>
                     </div>
-                    <RevenueAreaChart points={timeline} currency={currency} />
+                    <RevenueAreaChart
+                        points={timeline}
+                        hourlyPoints={hourlyTimeline}
+                        currency={currency}
+                    />
                 </article>
 
                 {setupDone < 3 ? (
@@ -573,6 +578,28 @@ function revenueTimeline(payments: Payment[], length: number) {
         if (bucket) bucket.value += capturedValue(payment);
     }
     return days.map(({ key, ...day }) => ({ ...day, date: key }));
+}
+
+function revenueHourlyTimeline(payments: Payment[]) {
+    const now = new Date();
+    now.setMinutes(0, 0, 0);
+    const hours = Array.from({ length: 24 }, (_, index) => {
+        const date = new Date(now);
+        date.setHours(date.getHours() - (23 - index));
+        return {
+            key: date.toISOString().slice(0, 13),
+            date: date.toISOString(),
+            label: new Intl.DateTimeFormat('pt-BR', { hour: '2-digit' }).format(date),
+            value: 0,
+        };
+    });
+    const byHour = new Map(hours.map((hour) => [hour.key, hour]));
+    for (const payment of payments) {
+        const date = new Date(payment.approvedAt ?? payment.createdAt);
+        const bucket = byHour.get(date.toISOString().slice(0, 13));
+        if (bucket) bucket.value += capturedValue(payment);
+    }
+    return hours.map((hour) => ({ date: hour.date, label: hour.label, value: hour.value }));
 }
 
 function countTimeline(payments: Payment[], length: number) {

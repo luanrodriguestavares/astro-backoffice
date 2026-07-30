@@ -1,7 +1,5 @@
-const publicCheckoutBaseUrl = (
-    process.env.NEXT_PUBLIC_CHECKOUT_URL ?? 'http://localhost:3002'
-).replace(/\/$/, '');
+import { checkoutPublicBaseUrl } from '@/lib/api/config';
 
 export function checkoutPublicUrl(slug: string) {
-    return `${publicCheckoutBaseUrl}/${encodeURIComponent(slug)}`;
+    return `${checkoutPublicBaseUrl()}/${encodeURIComponent(slug)}`;
 }

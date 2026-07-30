@@ -1,3 +1,6 @@
+import { Icon, type IconName } from '@/components/ui/icon';
+import { ResourceTableControls } from '@/components/ui/resource-table-controls';
+
 type ResourceValue = string | number | boolean | null | undefined;
 
 export type ResourceColumn<T> = {
@@ -13,13 +16,17 @@ export function ResourceTable<T>({
     empty,
     title,
     description,
+    searchable = true,
 }: {
     rows: T[];
     columns: ResourceColumn<T>[];
     empty: string;
     title?: string;
     description?: string;
+    searchable?: boolean;
 }) {
+    const tableId = `resource-${title?.toLocaleLowerCase('pt-BR').replace(/[^a-z0-9]+/g, '-') ?? 'table'}`;
+
     return (
         <section className="resource-table glass-panel overflow-hidden rounded-[28px]">
             {(title || description) && (
@@ -37,6 +44,9 @@ export function ResourceTable<T>({
                     </span>
                 </div>
             )}
+            {searchable && rows.length > 0 && (
+                <ResourceTableControls tableId={tableId} total={rows.length} position="top" />
+            )}
             {rows.length === 0 ? (
                 <div className="px-5 py-14 text-center">
                     <span className="mx-auto grid size-11 place-items-center rounded-full bg-brand-soft/75 text-brand">
@@ -47,7 +57,7 @@ export function ResourceTable<T>({
                 </div>
             ) : (
                 <div className="overflow-x-auto">
-                    <table className="w-full min-w-[760px] text-left">
+                    <table id={tableId} className="w-full min-w-[760px] text-left">
                         <thead className="bg-white/24 text-[12px] uppercase tracking-[0.09em] text-muted">
                             <tr>
                                 {columns.map((column) => (
@@ -61,6 +71,8 @@ export function ResourceTable<T>({
                             {rows.map((row, index) => (
                                 <tr
                                     key={String((row as { id?: string }).id ?? index)}
+                                    data-resource-row
+                                    data-search={columns.map((column) => String(column.value(row) ?? '')).join(' ').toLocaleLowerCase('pt-BR')}
                                     className="text-[13px] transition hover:bg-white/34"
                                 >
                                     {columns.map((column) => (
@@ -79,6 +91,7 @@ export function ResourceTable<T>({
                     </table>
                 </div>
             )}
+            {rows.length > 0 && <ResourceTableControls tableId={tableId} total={rows.length} position="bottom" />}
         </section>
     );
 }
@@ -129,5 +142,3 @@ function formatResourceValue(value: ResourceValue) {
     if (typeof value === 'boolean') return value ? 'Sim' : 'Não';
     return String(value);
 }
-
-import { Icon, type IconName } from '@/components/ui/icon';

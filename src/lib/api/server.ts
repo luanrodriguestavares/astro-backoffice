@@ -76,6 +76,7 @@ function persistSession(cookieStore: Awaited<ReturnType<typeof cookies>>, sessio
             secure,
             path: '/',
             maxAge: session.expiresIn,
+            priority: 'high',
         });
         cookieStore.set('astro_refresh', session.refreshToken, {
             httpOnly: true,
@@ -83,6 +84,7 @@ function persistSession(cookieStore: Awaited<ReturnType<typeof cookies>>, sessio
             secure,
             path: '/',
             maxAge: 30 * 24 * 60 * 60,
+            priority: 'high',
         });
     } catch {
         // Server Components cannot mutate cookies; the proxy persists them on navigation.

@@ -676,9 +676,18 @@ input[type='number'] {
 .dashboard-chart .recharts-wrapper:focus-visible,
 .dashboard-chart .recharts-surface:focus-visible,
 .dashboard-chart .recharts-sector:focus-visible {
-    border-radius: 12px;
-    outline: 2px solid color-mix(in srgb, var(--brand) 35%, transparent);
-    outline-offset: 2px;
+    outline: none;
+}
+
+.dashboard-chart .recharts-tooltip-wrapper {
+    z-index: 50 !important;
+}
+
+table tbody,
+table tbody strong,
+table tbody [class*='font-semibold'],
+table tbody [class*='font-bold'] {
+    font-weight: 400;
 }
 
 .dashboard-list {
