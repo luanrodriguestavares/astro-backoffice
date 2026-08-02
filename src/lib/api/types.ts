@@ -187,43 +187,39 @@ export interface StorageUsage {
     availableBytes: number;
 }
 
-export type RoadmapStage =
-  | "backlog"
-  | "planned"
-  | "in_progress"
-  | "completed";
+export type RoadmapStage = 'backlog' | 'planned' | 'in_progress' | 'completed';
 
 export interface RoadmapIdea {
-  id: string;
-  title: string;
-  description: string;
-  stage: RoadmapStage;
-  position: number;
-  likesCount: number;
-  likedByMe: boolean;
-  adminEdited: boolean;
-  publishedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  version: number;
+    id: string;
+    title: string;
+    description: string;
+    stage: RoadmapStage;
+    position: number;
+    likesCount: number;
+    likedByMe: boolean;
+    adminEdited: boolean;
+    publishedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    version: number;
 }
 
 export interface RoadmapSubmission extends RoadmapIdea {
-  moderationStatus: "pending" | "approved" | "rejected";
+    moderationStatus: 'pending' | 'approved' | 'rejected';
 }
 
 export interface RoadmapModerationIdea extends RoadmapSubmission {
-  submittedTitle: string;
-  submittedDescription: string;
-  submitterName: string;
-  organizationName: string;
+    submittedTitle: string;
+    submittedDescription: string;
+    submitterName: string;
+    organizationName: string;
 }
 
 export interface RoadmapDashboard {
-  canModerate: boolean;
-  board: RoadmapIdea[];
-  mySubmissions: RoadmapSubmission[];
-  moderationQueue: RoadmapModerationIdea[];
+    canModerate: boolean;
+    board: RoadmapIdea[];
+    mySubmissions: RoadmapSubmission[];
+    moderationQueue: RoadmapModerationIdea[];
 }
 
 export interface Price {
@@ -362,6 +358,7 @@ export interface CheckoutDocument {
 }
 
 export type CheckoutPaymentMethod = 'card' | 'pix' | 'boleto';
+
 export type CheckoutEnvironment = 'sandbox' | 'production';
 
 export interface CheckoutSettings extends Record<string, unknown> {

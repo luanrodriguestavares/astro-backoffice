@@ -64,7 +64,8 @@ export default async function AdminOrganizationsPage({
             </form>
             <div className="mb-3 flex justify-end">
                 <p className="text-[10px] font-medium text-muted">
-                    {result.total} {result.total === 1 ? 'empresa encontrada' : 'empresas encontradas'}
+                    {result.total}{' '}
+                    {result.total === 1 ? 'empresa encontrada' : 'empresas encontradas'}
                 </p>
             </div>
             <OrganizationAdminTable organizations={result.items} plans={plans} />

@@ -11,6 +11,15 @@ export function checkoutPublicBaseUrl() {
     );
 }
 
+export function publicAssetApiUrl() {
+    return validatedUrl(
+        'ASTRO_PUBLIC_API_URL',
+        process.env.ASTRO_PUBLIC_API_URL ?? process.env.ASTRO_API_URL,
+        'http://localhost:3000',
+        true,
+    );
+}
+
 export function validatedUrl(
     name: string,
     value: string | undefined,
@@ -27,8 +36,7 @@ export function validatedUrl(
     }
     if (!['http:', 'https:'].includes(parsed.protocol))
         throw new Error(`${name} must use http or https`);
-    if (parsed.username || parsed.password)
-        throw new Error(`${name} must not contain credentials`);
+    if (parsed.username || parsed.password) throw new Error(`${name} must not contain credentials`);
     if (publicUrl && process.env.NODE_ENV === 'production' && parsed.protocol !== 'https:')
         throw new Error(`${name} must use https in production`);
     return parsed.toString().replace(/\/$/, '');

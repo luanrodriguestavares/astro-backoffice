@@ -132,7 +132,7 @@ export const defaultCheckoutDocument: CheckoutDocument = {
             visible: true,
             props: {
                 layout: 'horizontal',
-                title: 'Garantia de 7 dias',
+                title: 'Compre com tranquilidade',
                 description:
                     'Experimente sem riscos. Se não fizer sentido para você, solicite o reembolso dentro do prazo.',
                 days: 7,

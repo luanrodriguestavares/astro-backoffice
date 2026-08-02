@@ -213,8 +213,7 @@ export function FileLibrary({
         event.preventDefault();
         event.stopPropagation();
         const menuWidth = 210;
-        const menuHeight =
-            target.kind === 'area' ? 54 : target.kind === 'folder' ? 190 : 210;
+        const menuHeight = target.kind === 'area' ? 54 : target.kind === 'folder' ? 190 : 210;
         setContextMenu({
             ...target,
             x: Math.min(event.clientX, window.innerWidth - menuWidth - 12),
@@ -960,10 +959,7 @@ function PreviewDialog({ file, onClose }: { file: MediaFile; onClose: () => void
                 </div>
             )}
             <div className="mt-5 flex justify-end">
-                <a
-                    href={`${contentUrl(file)}?download=1`}
-                    className={buttonClassName('primary')}
-                >
+                <a href={`${contentUrl(file)}?download=1`} className={buttonClassName('primary')}>
                     <Icon name="download" className="size-4" />
                     Baixar arquivo
                 </a>

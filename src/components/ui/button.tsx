@@ -40,5 +40,7 @@ export function ButtonLink({
     Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof LinkProps> & {
         variant?: ButtonVariant;
     }) {
-    return <Link data-variant={variant} className={buttonClassName(variant, className)} {...props} />;
+    return (
+        <Link data-variant={variant} className={buttonClassName(variant, className)} {...props} />
+    );
 }

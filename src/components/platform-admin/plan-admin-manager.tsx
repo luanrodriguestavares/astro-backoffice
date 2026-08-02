@@ -93,10 +93,7 @@ export function PlanAdminManager({ initialPlans }: { initialPlans: PlatformAdmin
         }
     }
 
-    async function saveEntitlements(
-        entitlements: PlatformAdminEntitlement[],
-        reason: string,
-    ) {
+    async function saveEntitlements(entitlements: PlatformAdminEntitlement[], reason: string) {
         if (!editing) return;
         setPending(true);
         try {
@@ -166,10 +163,16 @@ export function PlanAdminManager({ initialPlans }: { initialPlans: PlatformAdmin
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
                             <span className="rounded-full bg-surface-muted px-2.5 py-1 text-[9px] font-medium text-muted">
-                                {plan.entitlements.filter((item) => item.enabled).length} recursos ativos
+                                {plan.entitlements.filter((item) => item.enabled).length} recursos
+                                ativos
                             </span>
                             <span className="rounded-full bg-surface-muted px-2.5 py-1 text-[9px] font-medium text-muted">
-                                {plan.entitlements.filter((item) => quotaFeatures.has(item.feature)).length} limites operacionais
+                                {
+                                    plan.entitlements.filter((item) =>
+                                        quotaFeatures.has(item.feature),
+                                    ).length
+                                }{' '}
+                                limites operacionais
                             </span>
                         </div>
                         <p className="mt-5">
@@ -304,10 +307,7 @@ function PlanEditor({
                 </div>
 
                 {tab === 'general' ? (
-                    <form
-                        action={onSaveGeneral}
-                        className="flex min-h-0 flex-1 flex-col"
-                    >
+                    <form action={onSaveGeneral} className="flex min-h-0 flex-1 flex-col">
                         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5 sm:p-6">
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <Field label="Nome">
@@ -403,15 +403,18 @@ function PlanEditor({
                                 Como essas configurações funcionam
                             </p>
                             <p className="mt-1 text-[10px] leading-5 text-muted">
-                                Limites controlam volume e bloqueios. Recursos apenas definem se uma funcionalidade faz parte do plano.
-                                Alterações afetam todos os workspaces desse plano.
+                                Limites controlam volume e bloqueios. Recursos apenas definem se uma
+                                funcionalidade faz parte do plano. Alterações afetam todos os
+                                workspaces desse plano.
                             </p>
                         </div>
                         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
                             <EntitlementSection
                                 title="Limites de uso"
                                 description="Quantidades máximas permitidas antes de alertar ou impedir novas ações."
-                                items={entitlements.filter((item) => quotaFeatures.has(item.feature))}
+                                items={entitlements.filter((item) =>
+                                    quotaFeatures.has(item.feature),
+                                )}
                                 onChange={(next) =>
                                     setEntitlements((current) =>
                                         current.map((candidate) =>
@@ -423,7 +426,9 @@ function PlanEditor({
                             <EntitlementSection
                                 title="Recursos incluídos"
                                 description="Funcionalidades disponíveis ou indisponíveis para quem assina o plano."
-                                items={entitlements.filter((item) => !quotaFeatures.has(item.feature))}
+                                items={entitlements.filter(
+                                    (item) => !quotaFeatures.has(item.feature),
+                                )}
                                 onChange={(next) =>
                                     setEntitlements((current) =>
                                         current.map((candidate) =>
@@ -493,9 +498,7 @@ function EntitlementRow({
                 </span>
                 <span
                     className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${
-                        item.enabled
-                            ? 'bg-success/10 text-success'
-                            : 'bg-surface-muted text-muted'
+                        item.enabled ? 'bg-success/10 text-success' : 'bg-surface-muted text-muted'
                     }`}
                 >
                     {item.enabled ? 'Ativo' : 'Inativo'}
@@ -505,57 +508,57 @@ function EntitlementRow({
     return (
         <div className="rounded-2xl border border-border bg-surface-muted/25 p-3.5">
             <div className="grid items-center gap-3 sm:grid-cols-[minmax(190px,1fr)_130px_150px]">
-            <label className="flex min-w-0 items-center gap-3">
-                <input
-                    type="checkbox"
-                    checked={item.enabled}
-                    onChange={(event) => onChange({ ...item, enabled: event.target.checked })}
-                    className="size-4 accent-[var(--brand)]"
-                />
-                <span className="min-w-0">
-                    <span className="block truncate text-[11px] font-semibold">
-                        {featureLabel(item)}
+                <label className="flex min-w-0 items-center gap-3">
+                    <input
+                        type="checkbox"
+                        checked={item.enabled}
+                        onChange={(event) => onChange({ ...item, enabled: event.target.checked })}
+                        className="size-4 accent-[var(--brand)]"
+                    />
+                    <span className="min-w-0">
+                        <span className="block truncate text-[11px] font-semibold">
+                            {featureLabel(item)}
+                        </span>
+                        <span className="mt-0.5 block truncate font-mono text-[9px] text-muted">
+                            {item.feature}
+                        </span>
                     </span>
-                    <span className="mt-0.5 block truncate font-mono text-[9px] text-muted">
-                        {item.feature}
-                    </span>
-                </span>
-            </label>
-            <label className="relative">
-                <input
-                    type="number"
-                    min="0"
-                    value={displayLimit}
+                </label>
+                <label className="relative">
+                    <input
+                        type="number"
+                        min="0"
+                        value={displayLimit}
+                        disabled={!item.enabled}
+                        placeholder={isCustom(item) ? 'Personalizado' : 'Sem limite'}
+                        onChange={(event) =>
+                            onChange({
+                                ...item,
+                                limit:
+                                    event.target.value === ''
+                                        ? null
+                                        : Number(event.target.value) * (storage ? 1024 ** 3 : 1),
+                            })
+                        }
+                        className="h-9 w-full rounded-lg border border-border bg-[var(--control-bg)] px-3 text-[11px] outline-none disabled:opacity-50"
+                    />
+                    {storage && (
+                        <span className="pointer-events-none absolute right-2.5 top-2.5 text-[9px] text-muted">
+                            GB
+                        </span>
+                    )}
+                </label>
+                <CustomSelect
+                    name={`reset-${item.feature}`}
+                    value={item.resetPeriod}
                     disabled={!item.enabled}
-                    placeholder={isCustom(item) ? 'Personalizado' : 'Sem limite'}
-                    onChange={(event) =>
-                        onChange({
-                            ...item,
-                            limit:
-                                event.target.value === ''
-                                    ? null
-                                    : Number(event.target.value) * (storage ? 1024 ** 3 : 1),
-                        })
-                    }
-                    className="h-9 w-full rounded-lg border border-border bg-[var(--control-bg)] px-3 text-[11px] outline-none disabled:opacity-50"
+                    onValueChange={(resetPeriod) => onChange({ ...item, resetPeriod })}
+                    options={[
+                        { value: 'none', label: 'Sem renovação' },
+                        { value: 'day', label: 'Por dia' },
+                        { value: 'month', label: 'Por mês' },
+                    ]}
                 />
-                {storage && (
-                    <span className="pointer-events-none absolute right-2.5 top-2.5 text-[9px] text-muted">
-                        GB
-                    </span>
-                )}
-            </label>
-            <CustomSelect
-                name={`reset-${item.feature}`}
-                value={item.resetPeriod}
-                disabled={!item.enabled}
-                onValueChange={(resetPeriod) => onChange({ ...item, resetPeriod })}
-                options={[
-                    { value: 'none', label: 'Sem renovação' },
-                    { value: 'day', label: 'Por dia' },
-                    { value: 'month', label: 'Por mês' },
-                ]}
-            />
             </div>
             <p className="mt-2 border-t border-border/70 pt-2 text-[9px] leading-4 text-muted">
                 {limitExplanation(item)}
@@ -631,8 +634,7 @@ function primaryEntitlements(items: PlatformAdminEntitlement[]) {
 function formatLimit(item: PlatformAdminEntitlement) {
     if (!item.enabled) return 'Não incluso';
     if (item.limit === null) return isCustom(item) ? 'Personalizado' : 'Sem limite';
-    if (item.feature === 'media.storage_bytes')
-        return `${Math.round(item.limit / 1024 ** 3)} GB`;
+    if (item.feature === 'media.storage_bytes') return `${Math.round(item.limit / 1024 ** 3)} GB`;
     return new Intl.NumberFormat('pt-BR').format(item.limit);
 }
 

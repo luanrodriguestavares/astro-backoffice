@@ -87,7 +87,9 @@ export function UserAdminTable({ users }: { users: PlatformAdminUser[] }) {
                                             </span>
                                             <div>
                                                 <p className="font-semibold">{user.name}</p>
-                                                <p className="mt-1 text-[10px] text-muted">{user.email}</p>
+                                                <p className="mt-1 text-[10px] text-muted">
+                                                    {user.email}
+                                                </p>
                                             </div>
                                         </div>
                                     </td>
@@ -115,7 +117,9 @@ export function UserAdminTable({ users }: { users: PlatformAdminUser[] }) {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <Button
-                                            variant={user.status === 'blocked' ? 'secondary' : 'danger'}
+                                            variant={
+                                                user.status === 'blocked' ? 'secondary' : 'danger'
+                                            }
                                             className="h-9"
                                             onClick={() => setTarget(user)}
                                         >

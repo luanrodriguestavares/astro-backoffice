@@ -37,8 +37,7 @@
     --color-danger: var(--danger);
     --font-sans: 'Geist', 'Inter', 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif;
     --shadow-panel:
-        0 1px 1px rgb(31 31 38 / 2%),
-        0 18px 60px color-mix(in srgb, var(--brand) 6%, transparent);
+        0 1px 1px rgb(31 31 38 / 2%), 0 18px 60px color-mix(in srgb, var(--brand) 6%, transparent);
 }
 
 * {
@@ -318,7 +317,10 @@ form.modal-surface > div:last-child > button[type='button']:not([aria-label]):no
 }
 
 form.modal-surface > div:last-child > button[type='button']:not([aria-label]):not(.ui-button):hover,
-.modal-surface form > div:last-child > button[type='button']:not([aria-label]):not(.ui-button):hover {
+.modal-surface
+    form
+    > div:last-child
+    > button[type='button']:not([aria-label]):not(.ui-button):hover {
     background: #fff;
     color: var(--foreground);
 }

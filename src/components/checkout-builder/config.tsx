@@ -1,9 +1,11 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { MediaPicker } from '@/components/files/media-picker';
 
 import type { Config, Data, Slot } from '@puckeditor/core';
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import type { MediaFile } from '@/lib/api/types';
 import { checkoutThemeVariables } from '@astro/checkout-renderer/theme';
 import { checkoutDesignSystemStyles } from '@astro/checkout-renderer/design-system';
 import {
@@ -17,7 +19,6 @@ import {
     CheckoutHeadingText,
     CheckoutHero,
     CheckoutCustomerForm,
-    CheckoutOrderSummary,
     CheckoutPaymentInstruction,
     CheckoutParagraphText,
     CheckoutPaymentMethods,
@@ -43,15 +44,26 @@ import {
 
 import { ColorPickerField } from '@/components/checkout-builder/color-picker-field';
 
-type BuilderProps = {
+type BuilderMediaContextValue = {
+    files: MediaFile[];
+    apiUrl: string;
+};
+
+export const CheckoutBuilderMediaContext = createContext<BuilderMediaContextValue>({
+    files: [],
+    apiUrl: '',
+});
+
+type BuilderPropsBase = {
     hero: {
         layout: HeroLayout;
         eyebrow: string;
         title: string;
         description: string;
         buttonLabel: string;
-        buttonAction: 'payment' | 'cart' | 'url';
+        buttonAction: CtaAction;
         buttonUrl: string;
+        buttonNewTab: boolean;
         imageUrl: string;
     };
     heading_text: { text: string; alignment: 'left' | 'center' | 'right'; size: TextSize };
@@ -102,7 +114,14 @@ type BuilderProps = {
     testimonials: {
         layout: TestimonialsLayout;
         title: string;
-        items: { quote: string; name: string; role: string }[];
+        items: {
+            quote: string;
+            name: string;
+            role: string;
+            avatarUrl: string;
+            rating: number;
+            verified: boolean;
+        }[];
     };
     faq: { layout: FaqLayout; title: string; items: { question: string; answer: string }[] };
     guarantee: { layout: GuaranteeLayout; title: string; description: string; days: number };
@@ -128,17 +147,34 @@ type BuilderProps = {
         title: string;
         beforeTitle: string;
         beforeText: string;
+        beforeImageUrl: string;
         afterTitle: string;
         afterText: string;
+        afterImageUrl: string;
     };
     client_logos: {
         layout: ClientLogosLayout;
         title: string;
         logos: { name: string; imageUrl: string }[];
     };
-    floating_cta: { layout: FloatingCtaLayout; text: string; buttonLabel: string; buttonAction: 'payment' | 'cart' | 'url'; buttonUrl: string };
+    floating_cta: {
+        layout: FloatingCtaLayout;
+        text: string;
+        buttonLabel: string;
+        buttonAction: CtaAction;
+        buttonUrl: string;
+        buttonNewTab: boolean;
+    };
     spacer_divider: { layout: SpacerDividerLayout; size: SizePreset; label: string };
-    product_summary: { layout: ProductLayout; title: string; description: string; buttonLabel: string };
+    product_summary: {
+        layout: ProductLayout;
+        title: string;
+        description: string;
+        buttonLabel: string;
+        imageUrl: string;
+        badge: string;
+        recurringLabel: string;
+    };
     checkout_form: {
         layout: FormLayout;
         title: string;
@@ -146,7 +182,6 @@ type BuilderProps = {
         showPhone: boolean;
         showDocument: boolean;
     };
-    order_summary: { layout: SummaryLayout; title: string };
     payment_methods: {
         layout: PaymentLayout;
         title: string;
@@ -184,6 +219,14 @@ type BuilderProps = {
         showPrivacy: boolean;
     };
     footer: { layout: FooterLayout; text: string; showSecurity: boolean };
+};
+
+type ComponentSurfaceStyle = 'inherit' | 'boxed' | 'plain';
+
+type BuilderProps = {
+    [Key in keyof BuilderPropsBase]: BuilderPropsBase[Key] & {
+        surfaceStyle?: ComponentSurfaceStyle;
+    };
 };
 
 type ThemeMode = 'light' | 'dark' | 'system';
@@ -225,22 +268,47 @@ type ImageSize = 'sm' | 'md' | 'lg' | 'full';
 type VideoRatio = '16/9' | '4/3' | '1/1' | '9/16';
 
 type InputGroupStyle = 'filled' | 'outlined';
+
 type ComponentBackgroundStyle = 'filled' | 'transparent';
+
 type ComponentBorderStyle = 'visible' | 'hidden';
+
 type ComponentShadowMode = 'auto' | 'visible' | 'hidden';
+
+type CtaAction =
+    | 'payment'
+    | 'cart'
+    | 'customer'
+    | 'coupon'
+    | 'faq'
+    | 'guarantee'
+    | 'testimonials'
+    | 'benefits'
+    | 'before_after'
+    | 'top'
+    | 'url'
+    | 'hidden';
 
 type HeroLayout = 'choose' | 'centered' | 'split' | 'compact' | 'media-card' | 'editorial';
 
 type CountdownLayout = 'cards' | 'banner' | 'minimal';
+
 type PlanComparisonLayout = 'cards' | 'columns' | 'compact';
+
 type DataTableLayout = 'table' | 'matrix' | 'specs';
+
 type StatsLayout = 'cards' | 'strip' | 'editorial';
+
 type BeforeAfterLayout = 'split' | 'cards' | 'timeline';
+
 type ClientLogosLayout = 'grid' | 'strip' | 'cloud';
+
 type FloatingCtaLayout = 'bar' | 'pill' | 'card';
+
 type SpacerDividerLayout = 'space' | 'line' | 'label';
 
 type BenefitsLayout = 'cards' | 'list' | 'steps' | 'feature-grid' | 'checklist';
+
 type TextSize = 'sm' | 'md' | 'lg' | 'xl';
 
 type TestimonialsLayout = 'cards' | 'featured' | 'compact' | 'wall' | 'spotlight';
@@ -252,8 +320,6 @@ type GuaranteeLayout = 'horizontal' | 'seal' | 'banner' | 'boxed' | 'minimal';
 type ProductLayout = 'card' | 'compact' | 'detailed';
 
 type FormLayout = 'card' | 'compact' | 'plain';
-
-type SummaryLayout = 'card' | 'receipt' | 'highlight';
 
 type PaymentLayout = 'cards' | 'list' | 'segmented';
 
@@ -314,6 +380,20 @@ const fontWeightOptions = [
     { label: 'Extra bold', value: '800' },
     { label: 'Black', value: '900' },
 ] as const;
+const ctaActionOptions = [
+    { label: 'Ir para formas de pagamento', value: 'payment' },
+    { label: 'Ir para carrinho e resumo', value: 'cart' },
+    { label: 'Ir para dados pessoais', value: 'customer' },
+    { label: 'Ir para cupom', value: 'coupon' },
+    { label: 'Ir para perguntas frequentes', value: 'faq' },
+    { label: 'Ir para garantia', value: 'guarantee' },
+    { label: 'Ir para depoimentos', value: 'testimonials' },
+    { label: 'Ir para benefícios', value: 'benefits' },
+    { label: 'Ir para antes e depois', value: 'before_after' },
+    { label: 'Voltar ao início do checkout', value: 'top' },
+    { label: 'Abrir URL', value: 'url' },
+    { label: 'Ocultar botão', value: 'hidden' },
+] as const;
 const textSizeOptions = [
     { label: 'Pequeno', value: 'sm' },
     { label: 'Normal', value: 'md' },
@@ -335,6 +415,75 @@ const colorField = (label: string) => ({
         field: { label?: string };
     }) => <ColorPickerField name={name} label={field.label} value={value} onChange={onChange} />,
 });
+const imageField = (label: string, placeholder = 'https://exemplo.com/imagem.jpg') => ({
+    type: 'custom' as const,
+    label,
+    render: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+        <CheckoutImageField value={value} placeholder={placeholder} onChange={onChange} />
+    ),
+});
+
+function CheckoutImageField({
+    value,
+    placeholder,
+    onChange,
+}: {
+    value: string;
+    placeholder: string;
+    onChange(value: string): void;
+}) {
+    const media = useContext(CheckoutBuilderMediaContext);
+    const [open, setOpen] = useState(false);
+    const selected = media.files.find((file) => publicMediaUrl(file, media) === value);
+    return (
+        <div className="grid gap-2">
+            <input
+                type="url"
+                value={value ?? ''}
+                placeholder={placeholder}
+                onChange={(event) => onChange(event.target.value)}
+                className="h-10 w-full rounded-xl border border-border bg-[var(--control-bg)] px-3 text-xs outline-none focus:border-brand/60"
+            />
+            <div className="flex gap-2">
+                <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-9 flex-1 px-3 text-xs"
+                    disabled={media.files.length === 0}
+                    onClick={() => setOpen(true)}
+                >
+                    Escolher da biblioteca
+                </Button>
+                {value && (
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        className="h-9 px-3 text-xs"
+                        onClick={() => onChange('')}
+                    >
+                        Limpar
+                    </Button>
+                )}
+            </div>
+            <MediaPicker
+                open={open}
+                files={media.files}
+                value={selected?.id}
+                onSelect={(id) => {
+                    const file = media.files.find((item) => item.id === id);
+                    if (file) onChange(publicMediaUrl(file, media));
+                }}
+                onClose={() => setOpen(false)}
+            />
+        </div>
+    );
+}
+
+function publicMediaUrl(file: MediaFile, media: BuilderMediaContextValue) {
+    if (!media.apiUrl) return '';
+    return `${media.apiUrl.replace(/\/$/, '')}/public/v1/files/${encodeURIComponent(file.id)}/content?checksum=${encodeURIComponent(file.checksum)}`;
+}
+
 const heroLayoutField = {
     type: 'custom' as const,
     label: 'Template da apresentação',
@@ -357,7 +506,7 @@ const benefitsLayoutField = templateField<BenefitsLayout>('Template dos benefíc
     { value: 'cards', label: 'Cartões', description: 'Benefícios em grade.' },
     { value: 'list', label: 'Lista', description: 'Leitura vertical objetiva.' },
     { value: 'steps', label: 'Etapas', description: 'Fluxo numerado.' },
-    { value: 'feature-grid', label: 'Grade premium', description: 'Cartoes visuais com icones.' },
+    { value: 'feature-grid', label: 'Grade premium', description: 'Cartões visuais com ícones.' },
     { value: 'checklist', label: 'Checklist', description: 'Lista compacta com checks.' },
 ]);
 const testimonialsLayoutField = templateField<TestimonialsLayout>('Template dos depoimentos', [
@@ -365,7 +514,11 @@ const testimonialsLayoutField = templateField<TestimonialsLayout>('Template dos 
     { value: 'featured', label: 'Destaque', description: 'Um relato principal em evidência.' },
     { value: 'compact', label: 'Compacto', description: 'Prova social mais discreta.' },
     { value: 'wall', label: 'Mural', description: 'Varios relatos em bloco editorial.' },
-    { value: 'spotlight', label: 'Spotlight', description: 'Relato principal com assinatura forte.' },
+    {
+        value: 'spotlight',
+        label: 'Spotlight',
+        description: 'Relato principal com assinatura forte.',
+    },
 ]);
 const faqLayoutField = templateField<FaqLayout>('Template das perguntas', [
     { value: 'accordion', label: 'Acordeão', description: 'Respostas abertas sob demanda.' },
@@ -414,27 +567,30 @@ const spacerDividerLayoutField = templateField<SpacerDividerLayout>('Template do
     { value: 'line', label: 'Linha', description: 'Divisor simples.' },
     { value: 'label', label: 'Com texto', description: 'Divisor com rótulo central.' },
 ]);
-const productLayoutField = templateField<ProductLayout>('Template dos itens', [
-    { value: 'card', label: 'Cartão', description: 'Resumo completo do produto.' },
+const productLayoutField = templateField<ProductLayout>('Organização interna do carrinho', [
+    { value: 'card', label: 'Completa', description: 'Produto, detalhes e valores completos.' },
     { value: 'compact', label: 'Compacto', description: 'Produto e preço em uma linha.' },
     { value: 'detailed', label: 'Detalhado', description: 'Visual de recibo com quantidade.' },
 ]);
-const formLayoutField = templateField<FormLayout>('Template dos dados', [
-    { value: 'card', label: 'Cartão', description: 'Formulário tradicional.' },
-    { value: 'compact', label: 'Compacto', description: 'Campos básicos lado a lado.' },
-    { value: 'plain', label: 'Sem caixa', description: 'Integração leve com a página.' },
+const formLayoutField = templateField<FormLayout>('Organização interna dos campos', [
+    { value: 'card', label: 'Vertical', description: 'Campos em uma coluna confortável.' },
+    {
+        value: 'compact',
+        label: 'Duas colunas',
+        description: 'Campos lado a lado quando houver espaço.',
+    },
+    {
+        value: 'plain',
+        label: 'Vertical compacto',
+        description: 'Uma coluna com menos espaços internos.',
+    },
 ]);
-const summaryLayoutField = templateField<SummaryLayout>('Template do resumo', [
-    { value: 'card', label: 'Cartão', description: 'Resumo equilibrado.' },
-    { value: 'receipt', label: 'Recibo', description: 'Linhas e total em formato fiscal.' },
-    { value: 'highlight', label: 'Total destacado', description: 'Valor final ganha prioridade.' },
-]);
-const paymentLayoutField = templateField<PaymentLayout>('Template do pagamento', [
+const paymentLayoutField = templateField<PaymentLayout>('Organização dos métodos de pagamento', [
     { value: 'cards', label: 'Cartões', description: 'Métodos visuais em grade.' },
     { value: 'list', label: 'Lista', description: 'Opções amplas e descritivas.' },
     { value: 'segmented', label: 'Segmentado', description: 'Seletor compacto em uma faixa.' },
 ]);
-const cardPaymentLayoutField = templateField<CardPaymentLayout>('Template dos dados de pagamento', [
+const cardPaymentLayoutField = templateField<CardPaymentLayout>('Organização dos dados do cartão', [
     { value: 'standard', label: 'Padrão', description: 'Campos amplos e confortáveis.' },
     { value: 'compact', label: 'Compacto', description: 'Ocupa menos espaço na página.' },
     {
@@ -443,31 +599,43 @@ const cardPaymentLayoutField = templateField<CardPaymentLayout>('Template dos da
         description: 'Prévia do cartão ao lado dos campos.',
     },
 ]);
-const couponLayoutField = templateField<CouponLayout>('Template do cupom', [
-    { value: 'inline', label: 'Linha', description: 'Campo e botão lado a lado.' },
-    { value: 'card', label: 'Cartao', description: 'Cupom em bloco destacado.' },
-    { value: 'minimal', label: 'Minimalista', description: 'Entrada discreta e compacta.' },
+const couponLayoutField = templateField<CouponLayout>('Organização interna do cupom', [
+    {
+        value: 'inline',
+        label: 'Em linha',
+        description: 'Campo e botão lado a lado dentro da mesma caixa.',
+    },
+    {
+        value: 'card',
+        label: 'Em coluna',
+        description: 'Campo e botão empilhados dentro da mesma caixa.',
+    },
+    {
+        value: 'minimal',
+        label: 'Recolhível',
+        description: 'Mostra os controles depois de abrir a caixa.',
+    },
 ]);
 const paymentInstructionLayoutField = templateField<PaymentInstructionLayout>(
-    'Template da instrucao',
+    'Template da instrução',
     [
         { value: 'split', label: 'Dividido', description: 'Código e detalhes lado a lado.' },
-        { value: 'card', label: 'Cartao', description: 'Instrucao central em destaque.' },
+        { value: 'card', label: 'Cartão', description: 'Instrução central em destaque.' },
         { value: 'compact', label: 'Compacto', description: 'Bloco curto para laterais.' },
     ],
 );
 const trustLayoutField = templateField<TrustLayout>('Template dos selos', [
     { value: 'pills', label: 'Pills', description: 'Selos pequenos em linha.' },
-    { value: 'cards', label: 'Cartoes', description: 'Selos com mais presenca.' },
-    { value: 'strip', label: 'Faixa', description: 'Barra de seguranca.' },
+    { value: 'cards', label: 'Cartões', description: 'Selos com mais presença.' },
+    { value: 'strip', label: 'Faixa', description: 'Barra de segurança.' },
 ]);
-const footerLayoutField = templateField<FooterLayout>('Template do rodape', [
+const footerLayoutField = templateField<FooterLayout>('Template do rodapé', [
     { value: 'centered', label: 'Centralizado', description: 'Texto simples central.' },
-    { value: 'columns', label: 'Colunas', description: 'Marca, suporte e seguranca.' },
+    { value: 'columns', label: 'Colunas', description: 'Marca, suporte e segurança.' },
     { value: 'minimal', label: 'Minimal', description: 'Linha fina e discreta.' },
 ]);
 const checkoutPageStyles = `
-  @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lato:wght@400;700;900&family=Montserrat:wght@400;500;600;700;800&family=Open+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&display=swap");
+  @import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=Lato:wght@400;700;900&family=Montserrat:wght@400;500;600;700;800;900&family=Open+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800;900&family=Roboto:wght@400;500;600;700;800;900&display=swap");
   [data-checkout-page] input,
   [data-checkout-page] select,
   [data-checkout-page] textarea {
@@ -663,7 +831,7 @@ const checkoutPageStyles = `
   }
 `;
 
-export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
+const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
     categories: {
         content: {
             title: 'Conteúdo',
@@ -685,7 +853,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             defaultExpanded: false,
         },
         conversion: {
-            title: 'Conversao',
+            title: 'Conversão',
             components: [
                 'plan_comparison',
                 'data_table',
@@ -757,20 +925,34 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             },
             headingFontWeight: {
                 type: 'select',
-                label: 'Peso dos titulos',
+                label: 'Peso dos títulos',
                 options: fontWeightOptions,
             },
             bodyFontWeight: {
                 type: 'select',
-                label: 'Peso do texto padrao',
+                label: 'Peso do texto padrão',
                 options: fontWeightOptions,
             },
             backgroundColor: colorField('Cor do fundo'),
-            surfaceColor: colorField('Cor dos componentes'),
+            surfaceColor: colorField('Cor de fundo dos cartões, blocos e campos'),
             textColor: colorField('Cor do texto'),
             accentColor: colorField('Cor principal'),
-            radius: { type: 'select', label: 'Arredondamento dos cantos', options: sizeOptions },
-            shadow: { type: 'select', label: 'Sombra', options: shadowOptions },
+            radius: {
+                type: 'select',
+                label: 'Arredondamento de cartões, botões e campos',
+                options: [
+                    { label: 'Quase reto', value: 'xs' },
+                    { label: 'Pequeno', value: 'sm' },
+                    { label: 'Médio', value: 'md' },
+                    { label: 'Grande', value: 'lg' },
+                    { label: 'Muito arredondado', value: 'xl' },
+                ],
+            },
+            shadow: {
+                type: 'select',
+                label: 'Intensidade padrão da sombra',
+                options: shadowOptions,
+            },
             maxWidth: {
                 type: 'select',
                 label: 'Largura',
@@ -794,7 +976,8 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             },
             inputGroupStyle: {
                 type: 'select',
-                label: 'Estilo dos blocos de checkout',
+                label: 'Estilo interno dos blocos de checkout',
+                visible: false,
                 options: [
                     { label: 'Fundo preenchido', value: 'filled' },
                     { label: 'Fundo vazado com borda', value: 'outlined' },
@@ -802,25 +985,25 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             },
             componentBackgroundStyle: {
                 type: 'select',
-                label: 'Fundo dos componentes',
+                label: 'Fundo de todos os componentes e campos',
                 options: [
-                    { label: 'Preenchido', value: 'filled' },
-                    { label: 'Vazado', value: 'transparent' },
+                    { label: 'Exibir fundo', value: 'filled' },
+                    { label: 'Remover fundo', value: 'transparent' },
                 ],
             },
             componentBorderStyle: {
                 type: 'select',
-                label: 'Borda dos componentes',
+                label: 'Bordas externas e internas de todos os componentes',
                 options: [
-                    { label: 'Com borda', value: 'visible' },
-                    { label: 'Sem borda', value: 'hidden' },
+                    { label: 'Exibir bordas', value: 'visible' },
+                    { label: 'Remover bordas', value: 'hidden' },
                 ],
             },
             componentShadowMode: {
                 type: 'select',
-                label: 'Sombra dos componentes',
+                label: 'Sombras de cartões e blocos',
                 options: [
-                    { label: 'Automatica', value: 'auto' },
+                    { label: 'Automática', value: 'auto' },
                     { label: 'Sempre exibir', value: 'visible' },
                     { label: 'Ocultar', value: 'hidden' },
                 ],
@@ -848,12 +1031,17 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
         },
         render: ({ children, ...theme }) => {
             const palette = resolvePalette(theme);
+            const unifiedTheme = {
+                ...theme,
+                inputGroupStyle:
+                    theme.componentBackgroundStyle === 'transparent' ? 'outlined' : 'filled',
+            } as BuilderRootProps;
             return (
                 <div
                     data-checkout-page
                     data-checkout-width={theme.maxWidth ?? 'lg'}
                     style={{
-                        ...variables(theme),
+                        ...variables(unifiedTheme),
                         colorScheme: theme.themeMode === 'system' ? 'light dark' : theme.themeMode,
                         minHeight: '100vh',
                         background: palette.background,
@@ -887,21 +1075,45 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             label: 'Apresentação',
             fields: {
                 layout: heroLayoutField,
-                eyebrow: { type: 'text', label: 'Chamada superior', contentEditable: true },
-                title: { type: 'textarea', label: 'Título', contentEditable: true },
-                description: { type: 'textarea', label: 'Descrição', contentEditable: true },
-                buttonLabel: { type: 'text', label: 'Texto do botão' },
+                eyebrow: {
+                    type: 'text',
+                    label: 'Chamada acima do título',
+                    placeholder: 'Ex.: Oferta especial',
+                    contentEditable: true,
+                },
+                title: {
+                    type: 'textarea',
+                    label: 'Título principal',
+                    placeholder: 'Explique o principal resultado da oferta',
+                    contentEditable: true,
+                },
+                description: {
+                    type: 'textarea',
+                    label: 'Descrição da apresentação',
+                    placeholder: 'Mostre para quem é a oferta e qual transformação ela entrega',
+                    contentEditable: true,
+                },
+                buttonLabel: {
+                    type: 'text',
+                    label: 'Texto do botão',
+                    placeholder: 'Ex.: Quero começar',
+                },
                 buttonAction: {
                     type: 'select',
-                    label: 'Ação do botão',
-                    options: [
-                        { label: 'Ir para pagamento', value: 'payment' },
-                        { label: 'Ir para carrinho e resumo', value: 'cart' },
-                        { label: 'Abrir URL', value: 'url' },
-                    ],
+                    label: 'Destino do botão',
+                    options: ctaActionOptions,
                 },
-                buttonUrl: { type: 'text', label: 'URL HTTPS (quando aplicável)' },
-                imageUrl: { type: 'text', label: 'Imagem do template (opcional)' },
+                buttonUrl: {
+                    type: 'text',
+                    label: 'URL de destino',
+                    placeholder: 'https://exemplo.com/pagina',
+                },
+                buttonNewTab: {
+                    type: 'radio',
+                    label: 'Abrir em nova aba',
+                    options: booleanOptions,
+                },
+                imageUrl: imageField('Imagem da apresentação'),
             },
             defaultProps: {
                 layout: 'choose',
@@ -912,25 +1124,47 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 buttonLabel: 'Quero começar',
                 buttonAction: 'payment',
                 buttonUrl: '',
+                buttonNewTab: false,
                 imageUrl: '',
             },
-            render: ({ layout, eyebrow, title, description, buttonLabel, buttonAction, buttonUrl, imageUrl }) => (
-                <CheckoutHero
-                    layout={layout ?? 'centered'}
-                    eyebrow={eyebrow}
-                    title={title}
-                    description={description}
-                    buttonLabel={buttonLabel}
-                    imageUrl={imageUrl}
-                    ctaHref={buttonAction === 'url' ? safeHttpsUrl(buttonUrl) ? buttonUrl : '#payment' : buttonAction === 'cart' ? '#cart-summary' : '#payment'}
-                    ctaTarget={buttonAction === 'url' && safeHttpsUrl(buttonUrl) ? '_blank' : '_self'}
-                />
-            ),
+            resolveFields: (data, { fields }) => ({
+                ...fields,
+                buttonUrl: { ...fields.buttonUrl, visible: data.props.buttonAction === 'url' },
+                buttonNewTab: {
+                    ...fields.buttonNewTab,
+                    visible: data.props.buttonAction === 'url',
+                },
+            }),
+            render: ({
+                layout,
+                eyebrow,
+                title,
+                description,
+                buttonLabel,
+                buttonAction,
+                buttonUrl,
+                buttonNewTab,
+                imageUrl,
+            }) => {
+                const cta = resolveCta(buttonAction, buttonUrl, buttonNewTab, '#payment');
+                return (
+                    <CheckoutHero
+                        layout={layout ?? 'centered'}
+                        eyebrow={eyebrow}
+                        title={title}
+                        description={description}
+                        buttonLabel={cta.visible ? buttonLabel : undefined}
+                        imageUrl={imageUrl}
+                        ctaHref={cta.href}
+                        ctaTarget={cta.target}
+                    />
+                );
+            },
         },
         logo: {
             label: 'Logo',
             fields: {
-                url: { type: 'text', label: 'URL HTTPS' },
+                url: imageField('Imagem da logo'),
                 alt: { type: 'text', label: 'Texto alternativo' },
                 alignment: {
                     type: 'radio',
@@ -971,13 +1205,20 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 overlapBanner: false,
             },
             render: ({ url, alt, alignment, size, radius, overlapBanner }) => (
-                <CheckoutLogo url={url} alt={alt} alignment={alignment} size={size} radius={radius} overlap={overlapBanner} />
+                <CheckoutLogo
+                    url={url}
+                    alt={alt}
+                    alignment={alignment}
+                    size={size}
+                    radius={radius}
+                    overlap={overlapBanner}
+                />
             ),
         },
         banner: {
             label: 'Banner',
             fields: {
-                imageUrl: { type: 'text', label: 'Imagem HTTPS' },
+                imageUrl: imageField('Imagem do banner'),
                 alt: { type: 'text', label: 'Texto alternativo' },
                 aspectRatio: {
                     type: 'select',
@@ -1066,7 +1307,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             ),
         },
         heading_text: {
-            label: 'Titulo',
+            label: 'Título',
             fields: {
                 text: { type: 'textarea', label: 'Texto', contentEditable: true },
                 alignment: {
@@ -1106,7 +1347,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             },
             defaultProps: {
                 content:
-                    'Use este bloco para explicar detalhes, contexto, instrucoes ou qualquer texto livre sem precisar criar um titulo.',
+                    'Use este bloco para explicar detalhes, contexto, instruções ou qualquer texto livre sem precisar criar um título.',
                 alignment: 'left',
                 size: 'md',
             },
@@ -1117,7 +1358,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             ),
         },
         text: {
-            label: 'Texto com titulo',
+            label: 'Texto com título',
             fields: {
                 title: { type: 'text', label: 'Título', contentEditable: true },
                 content: { type: 'textarea', label: 'Conteúdo', contentEditable: true },
@@ -1138,17 +1379,17 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
         image: {
             label: 'Imagem',
             fields: {
-                url: { type: 'text', label: 'URL HTTPS' },
+                url: imageField('Imagem'),
                 alt: { type: 'text', label: 'Texto alternativo' },
                 caption: { type: 'text', label: 'Legenda' },
                 aspectRatio: {
                     type: 'select',
                     label: 'Formato',
                     options: [
-                        { label: 'Automatico', value: 'auto' },
-                        { label: 'Panoramico 21:9', value: '21/9' },
+                        { label: 'Automático', value: 'auto' },
+                        { label: 'Panorâmico 21:9', value: '21/9' },
                         { label: 'Paisagem 16:9', value: '16/9' },
-                        { label: 'Classico 4:3', value: '4/3' },
+                        { label: 'Clássico 4:3', value: '4/3' },
                         { label: 'Quadrado 1:1', value: '1/1' },
                         { label: 'Retrato 4:5', value: '4/5' },
                         { label: 'Vertical 9:16', value: '9/16' },
@@ -1158,7 +1399,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                     type: 'select',
                     label: 'Formato visual',
                     options: [
-                        { label: 'Retangulo', value: 'rectangle' },
+                        { label: 'Retângulo', value: 'rectangle' },
                         { label: 'Cantos suaves', value: 'soft' },
                         { label: 'Quadrado', value: 'square' },
                         { label: 'Redondo', value: 'circle' },
@@ -1170,7 +1411,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                     label: 'Tamanho',
                     options: [
                         { label: 'Pequeno', value: 'sm' },
-                        { label: 'Medio', value: 'md' },
+                        { label: 'Médio', value: 'md' },
                         { label: 'Grande', value: 'lg' },
                         { label: 'Largura total', value: 'full' },
                     ],
@@ -1219,10 +1460,14 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
         video: {
             label: 'Player de vídeo',
             fields: {
-                url: { type: 'text', label: 'URL do YouTube, Vimeo ou vídeo HTTPS' },
+                url: {
+                    type: 'text',
+                    label: 'URL do vídeo (YouTube, Vimeo ou arquivo HTTPS)',
+                    placeholder: 'https://youtube.com/watch?v=...',
+                },
                 title: { type: 'text', label: 'Título acessível' },
                 caption: { type: 'text', label: 'Legenda' },
-                posterUrl: { type: 'text', label: 'Capa HTTPS (vídeo direto)' },
+                posterUrl: imageField('Imagem de capa do vídeo'),
                 aspectRatio: {
                     type: 'select',
                     label: 'Formato',
@@ -1315,11 +1560,21 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                         quote: { type: 'textarea', label: 'Depoimento' },
                         name: { type: 'text', label: 'Nome' },
                         role: { type: 'text', label: 'Identificação' },
+                        avatarUrl: imageField('Imagem do cliente'),
+                        rating: { type: 'number', label: 'Nota', min: 0, max: 5 },
+                        verified: {
+                            type: 'radio',
+                            label: 'Compra verificada',
+                            options: booleanOptions,
+                        },
                     },
                     defaultItemProps: {
                         quote: 'Essa experiência mudou minha forma de trabalhar.',
                         name: 'Cliente',
                         role: 'Cliente verificado',
+                        avatarUrl: '',
+                        rating: 5,
+                        verified: true,
                     },
                     getItemSummary: (item) => item.name,
                 },
@@ -1332,16 +1587,26 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                         quote: 'Consegui colocar tudo em prática rapidamente e os resultados apareceram.',
                         name: 'Marina Costa',
                         role: 'Cliente verificada',
+                        avatarUrl: '',
+                        rating: 4.9,
+                        verified: true,
                     },
                     {
                         quote: 'Conteúdo direto, organizado e muito mais completo do que eu esperava.',
                         name: 'Rafael Lima',
                         role: 'Cliente verificado',
+                        avatarUrl: '',
+                        rating: 4.8,
+                        verified: true,
                     },
                 ],
             },
             render: ({ layout, title, items }) => (
-                <CheckoutTestimonials layout={layout ?? 'cards'} title={title} items={items} />
+                <CheckoutTestimonials
+                    layout={layout ?? 'cards'}
+                    title={title}
+                    items={items.map((item) => ({ ...item, rating: item.rating ?? 5 }))}
+                />
             ),
         },
         faq: {
@@ -1390,7 +1655,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             },
             defaultProps: {
                 layout: 'horizontal',
-                title: 'Garantia de 7 dias',
+                title: 'Compre com tranquilidade',
                 description:
                     'Experimente com tranquilidade. Se não fizer sentido, solicite o reembolso dentro do prazo.',
                 days: 7,
@@ -1426,25 +1691,49 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 layout: productLayoutField,
                 title: { type: 'text', label: 'Título', contentEditable: true },
                 description: { type: 'textarea', label: 'Descrição', contentEditable: true },
-                buttonLabel: { type: 'text', label: 'Texto da ação final' },
+                imageUrl: imageField('Imagem do produto'),
+                badge: { type: 'text', label: 'Selo do produto' },
+                recurringLabel: { type: 'text', label: 'Recorrência ou parcelamento' },
+                buttonLabel: {
+                    type: 'text',
+                    label: 'Texto do botão de finalizar compra',
+                    placeholder: 'Ex.: Finalizar compra',
+                },
             },
             defaultProps: {
                 layout: 'card',
                 title: 'Carrinho e resumo',
                 description: 'Confira o produto selecionado e suas condições.',
+                imageUrl: '',
+                badge: 'OFERTA ESPECIAL',
+                recurringLabel: 'ou 12x de R$ 15,81',
                 buttonLabel: 'Finalizar compra',
             },
-            render: ({ layout, title, description, buttonLabel }) => (
+            render: ({
+                layout,
+                title,
+                description,
+                buttonLabel,
+                imageUrl,
+                badge,
+                recurringLabel,
+            }) => (
                 <CheckoutCartSummary
                     layout={layout ?? 'card'}
                     title={title}
                     description={description}
-                    product={{ name: 'Produto selecionado', quantity: '1 unidade', price: 'R$ —' }}
-                    lines={[
-                        { label: 'Subtotal', value: 'R$ —' },
-                        { label: 'Desconto', value: 'R$ 0,00', emphasis: 'discount' },
-                    ]}
-                    total="R$ —"
+                    product={{
+                        name: 'Produto publicado',
+                        description: 'Os dados reais vêm do catálogo',
+                        quantity: '1 unidade',
+                        imageUrl,
+                        imageAlt: 'Produto',
+                        badge,
+                        price: 'Preço do produto',
+                        recurringLabel,
+                    }}
+                    lines={[{ label: 'Subtotal', value: 'Valor real do produto' }]}
+                    total="Valor real"
                     buttonLabel={buttonLabel}
                     onSubmit={() => undefined}
                 />
@@ -1481,26 +1770,6 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 />
             ),
         },
-        order_summary: {
-            label: 'Resumo do pedido',
-            fields: {
-                layout: summaryLayoutField,
-                title: { type: 'text', label: 'Título', contentEditable: true },
-            },
-            defaultProps: { layout: 'card', title: 'Resumo do pedido' },
-            render: ({ layout, title }) => (
-                <CheckoutOrderSummary
-                    layout={layout ?? 'card'}
-                    title={title}
-                    lines={[
-                        { label: 'Subtotal', value: 'R$ —' },
-                        { label: 'Desconto', value: 'R$ 0,00' },
-                        { label: 'Frete', value: 'A calcular' },
-                    ]}
-                    total="R$ —"
-                />
-            ),
-        },
         payment_methods: {
             label: 'Formas de pagamento',
             fields: {
@@ -1531,7 +1800,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             ),
         },
         card_payment: {
-            label: 'Dados de pagamento',
+            label: 'Dados do cartão',
             fields: {
                 layout: cardPaymentLayoutField,
                 title: { type: 'text', label: 'Título' },
@@ -1540,7 +1809,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             },
             defaultProps: {
                 layout: 'standard',
-                title: 'Dados de pagamento',
+                title: 'Dados do cartão',
                 description: 'Suas informações são protegidas e criptografadas.',
                 showInstallments: true,
             },
@@ -1595,7 +1864,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             defaultProps: {
                 layout: 'split',
                 title: 'Pague com boleto',
-                description: 'O pedido sera confirmado apos a compensacao bancaria.',
+                description: 'O pedido será confirmado após a compensação bancária.',
                 dueInDays: 3,
             },
             render: ({ layout, title, description, dueInDays }) => (
@@ -1606,7 +1875,11 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                     description={description}
                     code="00190.00009 01234.567890 12345.678901 1 00000000000000"
                     codeLabel="Código de barras"
-                    footer={<p style={{ fontSize: 12, opacity: 0.62 }}>Vencimento em {dueInDays} dias.</p>}
+                    footer={
+                        <p style={{ fontSize: 12, opacity: 0.62 }}>
+                            Vencimento em {dueInDays} dias.
+                        </p>
+                    }
                 />
             ),
         },
@@ -1759,10 +2032,10 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             ),
         },
         security_badges: {
-            label: 'Selos de seguranca',
+            label: 'Selos de segurança',
             fields: {
                 layout: trustLayoutField,
-                title: { type: 'text', label: 'Titulo' },
+                title: { type: 'text', label: 'Título' },
                 showEncryption: { type: 'radio', label: 'Criptografia', options: booleanOptions },
                 showGuarantee: { type: 'radio', label: 'Garantia', options: booleanOptions },
                 showPrivacy: { type: 'radio', label: 'Privacidade', options: booleanOptions },
@@ -1779,7 +2052,9 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                     layout={layout ?? 'pills'}
                     title={title}
                     badges={[
-                        ...(showEncryption ? [{ id: 'encryption', label: 'Dados criptografados' }] : []),
+                        ...(showEncryption
+                            ? [{ id: 'encryption', label: 'Dados criptografados' }]
+                            : []),
                         ...(showGuarantee ? [{ id: 'guarantee', label: 'Compra garantida' }] : []),
                         ...(showPrivacy ? [{ id: 'privacy', label: 'Privacidade protegida' }] : []),
                     ]}
@@ -1815,7 +2090,12 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 layout: 'cards',
                 title: 'Escolha o melhor plano',
                 plans: [
-                    { name: 'Básico', price: 'R$ 47', description: 'Para começar.', featured: false },
+                    {
+                        name: 'Básico',
+                        price: 'R$ 47',
+                        description: 'Para começar.',
+                        featured: false,
+                    },
                     { name: 'Pro', price: 'R$ 97', description: 'Mais vendido.', featured: true },
                 ],
             },
@@ -1839,7 +2119,11 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                         value: { type: 'text', label: 'Valor' },
                         detail: { type: 'textarea', label: 'Detalhe' },
                     },
-                    defaultItemProps: { label: 'Item', value: 'Incluido', detail: 'Detalhe da linha.' },
+                    defaultItemProps: {
+                        label: 'Item',
+                        value: 'Incluido',
+                        detail: 'Detalhe da linha.',
+                    },
                     getItemSummary: (item) => item.label,
                 },
             },
@@ -1849,7 +2133,11 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 showLines: true,
                 rows: [
                     { label: 'Acesso', value: 'Completo', detail: 'Todos os módulos liberados.' },
-                    { label: 'Suporte', value: 'Prioritário', detail: 'Atendimento em horário comercial.' },
+                    {
+                        label: 'Suporte',
+                        value: 'Prioritário',
+                        detail: 'Atendimento em horário comercial.',
+                    },
                 ],
             },
             render: ({ layout, title, showLines, rows }) => (
@@ -1876,15 +2164,19 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                         label: { type: 'text', label: 'Rótulo' },
                         detail: { type: 'text', label: 'Detalhe' },
                     },
-                    defaultItemProps: { value: '98%', label: 'Satisfacao', detail: 'entre clientes' },
+                    defaultItemProps: {
+                        value: '98%',
+                        label: 'Satisfação',
+                        detail: 'entre clientes',
+                    },
                     getItemSummary: (item) => item.label,
                 },
             },
             defaultProps: {
                 layout: 'cards',
-                title: 'Resultados em numeros',
+                title: 'Resultados em números',
                 items: [
-                    { value: '98%', label: 'Satisfacao', detail: 'entre clientes' },
+                    { value: '98%', label: 'Satisfação', detail: 'entre clientes' },
                     { value: '+2k', label: 'Compras', detail: 'processadas' },
                 ],
             },
@@ -1896,26 +2188,40 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             label: 'Antes e depois',
             fields: {
                 layout: beforeAfterLayoutField,
-                title: { type: 'text', label: 'Titulo', contentEditable: true },
-                beforeTitle: { type: 'text', label: 'Titulo antes' },
+                title: { type: 'text', label: 'Título', contentEditable: true },
+                beforeTitle: { type: 'text', label: 'Título do antes' },
                 beforeText: { type: 'textarea', label: 'Texto antes' },
-                afterTitle: { type: 'text', label: 'Titulo depois' },
+                beforeImageUrl: imageField('Imagem do antes'),
+                afterTitle: { type: 'text', label: 'Título do depois' },
                 afterText: { type: 'textarea', label: 'Texto depois' },
+                afterImageUrl: imageField('Imagem do depois'),
             },
             defaultProps: {
                 layout: 'split',
                 title: 'Antes e depois',
                 beforeTitle: 'Antes',
                 beforeText: 'Processo manual, lento e sem clareza.',
+                beforeImageUrl: '',
                 afterTitle: 'Depois',
                 afterText: 'Fluxo organizado, rápido e previsível.',
+                afterImageUrl: '',
             },
             render: (props) => (
                 <CheckoutBeforeAfter
                     layout={props.layout ?? 'split'}
                     title={props.title}
-                    before={{ title: props.beforeTitle, text: props.beforeText }}
-                    after={{ title: props.afterTitle, text: props.afterText }}
+                    before={{
+                        title: props.beforeTitle,
+                        text: props.beforeText,
+                        imageUrl: props.beforeImageUrl,
+                        imageAlt: `Antes: ${props.beforeTitle}`,
+                    }}
+                    after={{
+                        title: props.afterTitle,
+                        text: props.afterText,
+                        imageUrl: props.afterImageUrl,
+                        imageAlt: `Depois: ${props.afterTitle}`,
+                    }}
                 />
             ),
         },
@@ -1923,7 +2229,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             label: 'Logos de clientes',
             fields: {
                 layout: clientLogosLayoutField,
-                title: { type: 'text', label: 'Titulo', contentEditable: true },
+                title: { type: 'text', label: 'Título', contentEditable: true },
                 logos: {
                     type: 'array',
                     label: 'Logos',
@@ -1931,7 +2237,7 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                     max: 16,
                     arrayFields: {
                         name: { type: 'text', label: 'Nome' },
-                        imageUrl: { type: 'text', label: 'URL da imagem' },
+                        imageUrl: imageField('Imagem da logo'),
                     },
                     defaultItemProps: { name: 'Cliente', imageUrl: '' },
                     getItemSummary: (item) => item.name,
@@ -1958,14 +2264,19 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 buttonLabel: { type: 'text', label: 'Botão' },
                 buttonAction: {
                     type: 'select',
-                    label: 'Ação',
-                    options: [
-                        { label: 'Ir para pagamento', value: 'payment' },
-                        { label: 'Ir para carrinho e resumo', value: 'cart' },
-                        { label: 'Abrir URL', value: 'url' },
-                    ],
+                    label: 'Destino do botão',
+                    options: ctaActionOptions,
                 },
-                buttonUrl: { type: 'text', label: 'URL HTTPS' },
+                buttonUrl: {
+                    type: 'text',
+                    label: 'URL de destino',
+                    placeholder: 'https://exemplo.com/pagina',
+                },
+                buttonNewTab: {
+                    type: 'radio',
+                    label: 'Abrir em nova aba',
+                    options: booleanOptions,
+                },
             },
             defaultProps: {
                 layout: 'bar',
@@ -1973,10 +2284,28 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
                 buttonLabel: 'Comprar agora',
                 buttonAction: 'cart',
                 buttonUrl: '',
+                buttonNewTab: false,
             },
-            render: ({ layout, text, buttonLabel, buttonAction, buttonUrl }) => (
-                <CheckoutFloatingCta layout={layout ?? 'bar'} text={text} buttonLabel={buttonLabel} href={buttonAction === 'url' && safeHttpsUrl(buttonUrl) ? buttonUrl : buttonAction === 'payment' ? '#payment' : '#cart-summary'} />
-            ),
+            resolveFields: (data, { fields }) => ({
+                ...fields,
+                buttonUrl: { ...fields.buttonUrl, visible: data.props.buttonAction === 'url' },
+                buttonNewTab: {
+                    ...fields.buttonNewTab,
+                    visible: data.props.buttonAction === 'url',
+                },
+            }),
+            render: ({ layout, text, buttonLabel, buttonAction, buttonUrl, buttonNewTab }) => {
+                const cta = resolveCta(buttonAction, buttonUrl, buttonNewTab, '#cart-summary');
+                return (
+                    <CheckoutFloatingCta
+                        layout={layout ?? 'bar'}
+                        text={text}
+                        buttonLabel={cta.visible ? buttonLabel : undefined}
+                        href={cta.href}
+                        target={cta.target}
+                    />
+                );
+            },
         },
         spacer_divider: {
             label: 'Espaçador e divisor',
@@ -1991,13 +2320,13 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
             ),
         },
         footer: {
-            label: 'Rodape',
+            label: 'Rodapé',
             fields: {
                 layout: footerLayoutField,
                 text: { type: 'text', label: 'Texto', contentEditable: true },
                 showSecurity: {
                     type: 'radio',
-                    label: 'Selo de seguranca',
+                    label: 'Selo de segurança',
                     options: [
                         { label: 'Exibir', value: true },
                         { label: 'Ocultar', value: false },
@@ -2019,6 +2348,79 @@ export const checkoutBuilderConfig: Config<BuilderProps, BuilderRootProps> = {
         },
     },
 };
+
+export const checkoutBuilderConfig = withComponentSurfaceControls(checkoutBuilderBaseConfig);
+
+function withComponentSurfaceControls(
+    config: Config<BuilderProps, BuilderRootProps>,
+): Config<BuilderProps, BuilderRootProps> {
+    const components = Object.fromEntries(
+        Object.entries(config.components).map(([name, definition]) => {
+            const render = definition.render;
+            return [
+                name,
+                {
+                    ...definition,
+                    fields: {
+                        surfaceStyle: {
+                            type: 'select',
+                            label: 'Aparência da caixa deste componente',
+                            options: [
+                                { label: 'Seguir configuração da página', value: 'inherit' },
+                                { label: 'Com caixa', value: 'boxed' },
+                                { label: 'Sem caixa', value: 'plain' },
+                            ],
+                        },
+                        ...definition.fields,
+                    },
+                    defaultProps: { surfaceStyle: 'inherit', ...definition.defaultProps },
+                    render: (props: never) => (
+                        <div
+                            data-checkout-component-frame
+                            style={{
+                                width: '100%',
+                                minWidth: 0,
+                                ...componentSurfaceVariables(
+                                    (props as { surfaceStyle?: ComponentSurfaceStyle })
+                                        .surfaceStyle,
+                                ),
+                            }}
+                        >
+                            {render(props)}
+                        </div>
+                    ),
+                },
+            ];
+        }),
+    ) as Config<BuilderProps, BuilderRootProps>['components'];
+    return { ...config, components };
+}
+
+function componentSurfaceVariables(value?: ComponentSurfaceStyle): React.CSSProperties {
+    if (value === 'plain') {
+        return {
+            '--checkout-card-bg': 'transparent',
+            '--checkout-card-border-width': '0px',
+            '--checkout-card-shadow': 'none',
+            '--checkout-group-bg': 'transparent',
+            '--checkout-group-border-width': '0px',
+            '--checkout-group-shadow': 'none',
+        } as React.CSSProperties;
+    }
+    if (value === 'boxed') {
+        return {
+            '--checkout-card-bg': 'var(--checkout-surface)',
+            '--checkout-card-border': 'var(--checkout-configured-border)',
+            '--checkout-card-border-width': 'var(--checkout-configured-border-width)',
+            '--checkout-card-shadow': 'var(--checkout-configured-shadow)',
+            '--checkout-group-bg': 'var(--checkout-surface)',
+            '--checkout-group-border': 'var(--checkout-configured-border)',
+            '--checkout-group-border-width': 'var(--checkout-configured-border-width)',
+            '--checkout-group-shadow': 'var(--checkout-configured-shadow)',
+        } as React.CSSProperties;
+    }
+    return {};
+}
 
 type TemplateOption<T extends string> = { value: T; label: string; description: string };
 
@@ -2146,8 +2548,17 @@ function BenefitsSection({
                         >
                             <span style={{ ...numberBadge(), width: 30, height: 30 }}>✓</span>
                             <span>
-                                <strong style={{ display: 'block', fontSize: 14 }}>{item.title}</strong>
-                                <small style={{ display: 'block', marginTop: 5, lineHeight: 1.55, opacity: 0.65 }}>
+                                <strong style={{ display: 'block', fontSize: 14 }}>
+                                    {item.title}
+                                </strong>
+                                <small
+                                    style={{
+                                        display: 'block',
+                                        marginTop: 5,
+                                        lineHeight: 1.55,
+                                        opacity: 0.65,
+                                    }}
+                                >
                                     {item.description}
                                 </small>
                             </span>
@@ -2179,7 +2590,8 @@ function BenefitsSection({
                             alignContent: 'center',
                             minHeight: 260,
                             padding: 'clamp(28px, 5vw, 54px)',
-                            borderRight: 'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
+                            borderRight:
+                                'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
                         }}
                     >
                         <span style={heroEyebrow()}>Beneficios</span>
@@ -2193,7 +2605,8 @@ function BenefitsSection({
                                 opacity: 0.64,
                             }}
                         >
-                            Destaques organizados para leitura rapida, sem limitar a quantidade de itens.
+                            Destaques organizados para leitura rapida, sem limitar a quantidade de
+                            itens.
                         </p>
                     </div>
                     <div
@@ -2302,7 +2715,8 @@ function BenefitsSection({
                                 gridTemplateColumns: '40px minmax(0,1fr)',
                                 gap: 14,
                                 padding: '18px 0',
-                                borderTop: 'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
+                                borderTop:
+                                    'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
                             }}
                         >
                             <span style={{ ...numberBadge(), width: 36, height: 36 }}>✓</span>
@@ -2428,7 +2842,11 @@ function TestimonialsSection({
                     }}
                 >
                     {items.map((item, index) => (
-                        <TestimonialMini key={`${item.name}-${index}`} item={item} tall={index % 3 === 0} />
+                        <TestimonialMini
+                            key={`${item.name}-${index}`}
+                            item={item}
+                            tall={index % 3 === 0}
+                        />
                     ))}
                 </div>
             </section>
@@ -2636,7 +3054,8 @@ function FaqSection({
                     key={`${item.question}-${index}`}
                     style={{
                         borderTop: index === 0 ? '1px solid var(--checkout-border)' : 0,
-                        borderBottom: 'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
+                        borderBottom:
+                            'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
                         padding: '18px 2px',
                     }}
                 >
@@ -3017,7 +3436,13 @@ function GuaranteeSeal({
         >
             <span style={{ display: 'grid', gap: 1, lineHeight: 1 }}>
                 <strong style={{ fontSize: compact ? 17 : 24, fontWeight: 900 }}>{days}</strong>
-                <small style={{ fontSize: compact ? 8 : 9, fontWeight: 800, textTransform: 'uppercase' }}>
+                <small
+                    style={{
+                        fontSize: compact ? 8 : 9,
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                    }}
+                >
                     dias
                 </small>
             </span>
@@ -3109,7 +3534,8 @@ function ProductSection({
                     gap: 16,
                     marginTop: 24,
                     paddingTop: 22,
-                    borderTop: 'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
+                    borderTop:
+                        'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
                 }}
             >
                 {item}
@@ -3230,89 +3656,6 @@ function CheckoutFormSection({
     );
 }
 
-// Temporary visual migration reference; the builder renders CheckoutOrderSummary.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function OrderSummarySection({ layout, title }: { layout: SummaryLayout; title: string }) {
-    const rows = (
-        <div style={{ display: 'grid', gap: 13, fontSize: 14 }}>
-            <div style={summaryRow()}>
-                <span style={{ opacity: 0.64 }}>Subtotal</span>
-                <span>R$ —</span>
-            </div>
-            <div style={summaryRow()}>
-                <span style={{ opacity: 0.64 }}>Desconto</span>
-                <span>R$ 0,00</span>
-            </div>
-            <div style={summaryRow()}>
-                <span style={{ opacity: 0.64 }}>Frete</span>
-                <span>A calcular</span>
-            </div>
-        </div>
-    );
-    if (layout === 'receipt')
-        return (
-            <aside style={{ ...checkoutCard(), padding: 28, borderStyle: 'dashed' }}>
-                <h2 style={checkoutHeading()}>{title}</h2>
-                <div
-                    style={{
-                        marginTop: 20,
-                        paddingBlock: 18,
-                        borderBlock: '1px dashed var(--checkout-border)',
-                    }}
-                >
-                    {rows}
-                </div>
-                <div style={{ ...summaryRow(), marginTop: 18, fontSize: 21, fontWeight: 850 }}>
-                    <span>Total</span>
-                    <span>R$ —</span>
-                </div>
-            </aside>
-        );
-    if (layout === 'highlight')
-        return (
-            <aside style={{ ...checkoutCard(), overflow: 'hidden' }}>
-                <div style={{ padding: 24 }}>
-                    <h2 style={checkoutHeading()}>{title}</h2>
-                    <div style={{ marginTop: 20 }}>{rows}</div>
-                </div>
-                <div
-                    style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        background: 'var(--checkout-accent)',
-                        color: '#fff',
-                        padding: '20px 24px',
-                        fontSize: 22,
-                        fontWeight: 850,
-                    }}
-                >
-                    <span>Total</span>
-                    <span>R$ —</span>
-                </div>
-            </aside>
-        );
-    return (
-        <aside style={{ ...checkoutCard(), padding: 28 }}>
-            <h2 style={checkoutHeading()}>{title}</h2>
-            <div style={{ marginTop: 20 }}>{rows}</div>
-            <div
-                style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginTop: 18,
-                    paddingTop: 18,
-                    borderTop: 'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
-                    fontSize: 21,
-                    fontWeight: 850,
-                }}
-            >
-                <span>Total</span>
-                <span>R$ —</span>
-            </div>
-        </aside>
-    );
-}
-
 function PaymentMethodsPreview({
     layout,
     title,
@@ -3322,9 +3665,36 @@ function PaymentMethodsPreview({
     showBoleto,
 }: BuilderProps['payment_methods']) {
     const options = [
-        ...(showCard ? [{ id: 'card', icon: '▣', title: 'Cartão de crédito', description: 'Pague com segurança e parcele sua compra' }] : []),
-        ...(showPix ? [{ id: 'pix', icon: '◇', title: 'Pix', description: 'Aprovação imediata e pagamento por QR Code' }] : []),
-        ...(showBoleto ? [{ id: 'boleto', icon: '▤', title: 'Boleto bancário', description: 'Compensação em até 3 dias úteis' }] : []),
+        ...(showCard
+            ? [
+                  {
+                      id: 'card',
+                      kind: 'card' as const,
+                      title: 'Cartão de crédito',
+                      description: 'Pague com segurança e parcele sua compra',
+                  },
+              ]
+            : []),
+        ...(showPix
+            ? [
+                  {
+                      id: 'pix',
+                      kind: 'pix' as const,
+                      title: 'Pix',
+                      description: 'Aprovação imediata e pagamento por QR Code',
+                  },
+              ]
+            : []),
+        ...(showBoleto
+            ? [
+                  {
+                      id: 'boleto',
+                      kind: 'boleto' as const,
+                      title: 'Boleto bancário',
+                      description: 'Compensação em até 3 dias úteis',
+                  },
+              ]
+            : []),
     ];
     const [selectedId, setSelectedId] = useState(options[0]?.id);
     const effectiveSelectedId = options.some((option) => option.id === selectedId)
@@ -3339,94 +3709,6 @@ function PaymentMethodsPreview({
             selectedId={effectiveSelectedId}
             onSelect={setSelectedId}
         />
-    );
-}
-
-// Temporary visual migration reference; the builder renders CheckoutPaymentMethods.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function PaymentMethodsSection({
-    layout,
-    title,
-    description,
-    showCard,
-    showPix,
-    showBoleto,
-}: {
-    layout: PaymentLayout;
-    title: string;
-    description: string;
-    showCard: boolean;
-    showPix: boolean;
-    showBoleto: boolean;
-}) {
-    const options = [
-        {
-            show: showCard,
-            value: 'card',
-            icon: '▣',
-            title: 'Cartão de crédito',
-            detail: 'Pague com segurança e parcele sua compra',
-        },
-        {
-            show: showPix,
-            value: 'pix',
-            icon: '◇',
-            title: 'Pix',
-            detail: 'Aprovação imediata e pagamento por QR Code',
-        },
-        {
-            show: showBoleto,
-            value: 'boleto',
-            icon: '▤',
-            title: 'Boleto bancário',
-            detail: 'Compensação em até 3 dias úteis',
-        },
-    ].filter((item) => item.show);
-    return (
-        <section style={{ ...checkoutCard(), padding: 'clamp(20px, 5vw, 28px)' }}>
-            <h2 style={checkoutHeading()}>{title}</h2>
-            <p style={checkoutDescription()}>{description}</p>
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns:
-                        layout === 'cards'
-                            ? 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))'
-                            : layout === 'segmented'
-                              ? 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))'
-                              : 'minmax(0, 1fr)',
-                    gap: layout === 'segmented' ? 6 : 10,
-                    marginTop: 22,
-                    padding: layout === 'segmented' ? 5 : 0,
-                    border: layout === 'segmented' ? '1px solid var(--checkout-border)' : 0,
-                    borderRadius: layout === 'segmented' ? 14 : 0,
-                    background: layout === 'segmented' ? 'var(--checkout-muted)' : 'transparent',
-                }}
-            >
-                {options.map((option, index) => (
-                    <PaymentOption
-                        key={option.value}
-                        {...option}
-                        compact={layout === 'segmented'}
-                        defaultChecked={index === 0}
-                    />
-                ))}
-            </div>
-            <p
-                style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                    gap: 6,
-                    margin: '14px 0 0',
-                    fontSize: 10,
-                    opacity: 0.54,
-                }}
-            >
-                <span style={{ color: 'var(--checkout-accent)' }}>✓</span> Ambiente protegido e
-                dados criptografados
-            </p>
-        </section>
     );
 }
 
@@ -3634,8 +3916,16 @@ const heroLayouts: { value: Exclude<HeroLayout, 'choose'>; name: string; descrip
     { value: 'centered', name: 'Centralizado', description: 'Título em destaque e CTA central.' },
     { value: 'split', name: 'Dividido', description: 'Conteúdo de um lado e imagem do outro.' },
     { value: 'compact', name: 'Compacto', description: 'Mensagem curta com CTA lateral.' },
-    { value: 'media-card', name: 'Imagem em card', description: 'Imagem ampla com conteúdo sobreposto.' },
-    { value: 'editorial', name: 'Editorial', description: 'Titulo forte, texto e imagem lateral menor.' },
+    {
+        value: 'media-card',
+        name: 'Imagem em card',
+        description: 'Imagem ampla com conteúdo sobreposto.',
+    },
+    {
+        value: 'editorial',
+        name: 'Editorial',
+        description: 'Título forte, texto e imagem lateral menor.',
+    },
 ];
 
 function HeroLayoutPicker({
@@ -3870,7 +4160,11 @@ function HeroSection({
             >
                 <div style={{ maxWidth: 760 }}>
                     {content}
-                    <Button type="button" className="checkout-primary-button" style={primaryButton()}>
+                    <Button
+                        type="button"
+                        className="checkout-primary-button"
+                        style={primaryButton()}
+                    >
                         {buttonLabel}
                     </Button>
                 </div>
@@ -3892,7 +4186,11 @@ function HeroSection({
             >
                 <div>
                     {content}
-                    <Button type="button" className="checkout-primary-button" style={primaryButton()}>
+                    <Button
+                        type="button"
+                        className="checkout-primary-button"
+                        style={primaryButton()}
+                    >
                         {buttonLabel}
                     </Button>
                 </div>
@@ -4037,8 +4335,17 @@ function CountdownTemplatePreview({ layout }: { layout: CountdownLayout }) {
                     padding: 7,
                 }}
             >
-                <i style={{ width: 13, height: 13, borderRadius: 99, background: 'var(--brand)' }} />
-                <i style={{ width: 24, height: 4, borderRadius: 9, background: 'color-mix(in srgb, var(--brand) 24%, var(--border))' }} />
+                <i
+                    style={{ width: 13, height: 13, borderRadius: 99, background: 'var(--brand)' }}
+                />
+                <i
+                    style={{
+                        width: 24,
+                        height: 4,
+                        borderRadius: 9,
+                        background: 'color-mix(in srgb, var(--brand) 24%, var(--border))',
+                    }}
+                />
                 <i
                     style={{
                         width: 25,
@@ -4604,7 +4911,9 @@ function BoletoPaymentSection({
         <>
             <h2 style={checkoutHeading()}>{title}</h2>
             <p style={checkoutDescription()}>{description}</p>
-            <strong style={{ display: 'block', marginTop: 16 }}>Vencimento em {dueInDays} dias</strong>
+            <strong style={{ display: 'block', marginTop: 16 }}>
+                Vencimento em {dueInDays} dias
+            </strong>
         </>
     );
     if (layout === 'compact')
@@ -4612,17 +4921,31 @@ function BoletoPaymentSection({
             <section style={{ ...checkoutCard(), display: 'grid', gap: 14, padding: 22 }}>
                 {info}
                 {barcode}
-                <Button type="button" style={{ ...secondaryButton(), width: '100%' }}>Gerar boleto</Button>
+                <Button type="button" style={{ ...secondaryButton(), width: '100%' }}>
+                    Gerar boleto
+                </Button>
             </section>
         );
     if (layout === 'card')
         return (
             <section style={{ ...checkoutCard(), padding: 28, textAlign: 'center' }}>
                 {info}
-                <div style={{ marginTop: 20, padding: 18, borderRadius: 14, background: 'var(--checkout-muted)' }}>
+                <div
+                    style={{
+                        marginTop: 20,
+                        padding: 18,
+                        borderRadius: 14,
+                        background: 'var(--checkout-muted)',
+                    }}
+                >
                     {barcode}
                 </div>
-                <Button type="button" style={{ ...secondaryButton(), width: '100%', marginTop: 12 }}>Gerar boleto</Button>
+                <Button
+                    type="button"
+                    style={{ ...secondaryButton(), width: '100%', marginTop: 12 }}
+                >
+                    Gerar boleto
+                </Button>
             </section>
         );
     return (
@@ -4647,7 +4970,9 @@ function BoletoPaymentSection({
                     {barcode}
                 </div>
             </div>
-            <Button type="button" style={{ ...secondaryButton(), width: '100%', marginTop: 14 }}>Gerar boleto</Button>
+            <Button type="button" style={{ ...secondaryButton(), width: '100%', marginTop: 14 }}>
+                Gerar boleto
+            </Button>
         </section>
     );
 }
@@ -4677,7 +5002,10 @@ function checkoutTable(minWidth: number): React.CSSProperties {
     };
 }
 
-function tableHeadCell(align: 'left' | 'center' | 'right', showLines: boolean): React.CSSProperties {
+function tableHeadCell(
+    align: 'left' | 'center' | 'right',
+    showLines: boolean,
+): React.CSSProperties {
     return {
         padding: '0 12px 12px',
         borderBottom: showLines ? '1px solid var(--checkout-visual-divider)' : 0,
@@ -4865,86 +5193,6 @@ function CheckoutInput({
     );
 }
 
-function PaymentOption({
-    value,
-    icon,
-    title,
-    detail,
-    compact = false,
-    defaultChecked = false,
-}: {
-    value: string;
-    icon: string;
-    title: string;
-    detail: string;
-    compact?: boolean;
-    defaultChecked?: boolean;
-}) {
-    return (
-        <label
-            className="checkout-payment-option"
-            style={{
-                display: 'flex',
-                minWidth: 0,
-                width: '100%',
-                alignItems: 'center',
-                gap: compact ? 8 : 12,
-                minHeight: compact ? 54 : 82,
-                border: compact
-                    ? '1px solid transparent'
-                    : 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
-                borderRadius: compact ? 10 : 13,
-                padding: compact ? '9px 10px' : 14,
-                background: compact ? 'transparent' : 'var(--checkout-card-bg)',
-                cursor: 'pointer',
-            }}
-        >
-            <input
-                type="radio"
-                name="paymentMethod"
-                value={value}
-                defaultChecked={defaultChecked}
-                style={{ flex: '0 0 auto', accentColor: 'var(--checkout-accent)' }}
-            />
-            <span
-                style={{
-                    display: 'grid',
-                    width: compact ? 30 : 40,
-                    height: compact ? 30 : 40,
-                    flex: `0 0 ${compact ? 30 : 40}px`,
-                    placeItems: 'center',
-                    borderRadius: compact ? 8 : 11,
-                    background:
-                        'color-mix(in srgb,var(--checkout-accent) 10%,var(--checkout-muted))',
-                    color: 'var(--checkout-accent)',
-                    fontSize: compact ? 14 : 18,
-                    fontWeight: 900,
-                }}
-            >
-                {icon}
-            </span>
-            <span style={{ minWidth: 0, flex: '1 1 auto' }}>
-                <strong style={{ display: 'block', fontSize: compact ? 12 : 14, lineHeight: 1.25 }}>
-                    {title}
-                </strong>
-                {!compact && (
-                    <small
-                        style={{
-                            display: 'block',
-                            marginTop: 3,
-                            fontSize: 11,
-                            lineHeight: 1.35,
-                            opacity: 0.58,
-                        }}
-                    >
-                        {detail}
-                    </small>
-                )}
-            </span>
-        </label>
-    );
-}
-
 function ShippingOption({
     value,
     title,
@@ -4986,16 +5234,7 @@ function ShippingOption({
     );
 }
 
-function summaryRow(): React.CSSProperties {
-    return { display: 'flex', justifyContent: 'space-between', gap: 18 };
-}
-
-function CouponPreview({
-    layout,
-    title,
-    placeholder,
-    buttonLabel,
-}: BuilderProps['coupon_field']) {
+function CouponPreview({ layout, title, placeholder, buttonLabel }: BuilderProps['coupon_field']) {
     const [value, setValue] = useState('');
     const [message, setMessage] = useState('');
     return (
@@ -5005,7 +5244,11 @@ function CouponPreview({
             placeholder={placeholder}
             buttonLabel={buttonLabel}
             value={value}
-            message={message && <p style={{ fontSize: 12, color: 'var(--checkout-accent)' }}>{message}</p>}
+            message={
+                message && (
+                    <p style={{ fontSize: 12, color: 'var(--checkout-accent)' }}>{message}</p>
+                )
+            }
             onChange={(next) => {
                 setValue(next);
                 setMessage('');
@@ -5037,8 +5280,15 @@ function CouponSection({
                 marginTop: layout === 'minimal' ? 12 : 18,
             }}
         >
-            <input name="coupon" placeholder={placeholder} style={{ ...inputControl(), width: '100%' }} />
-            <Button type="button" style={{ ...secondaryButton(), width: layout === 'minimal' ? '100%' : undefined }}>
+            <input
+                name="coupon"
+                placeholder={placeholder}
+                style={{ ...inputControl(), width: '100%' }}
+            />
+            <Button
+                type="button"
+                style={{ ...secondaryButton(), width: layout === 'minimal' ? '100%' : undefined }}
+            >
                 {buttonLabel}
             </Button>
         </div>
@@ -5047,7 +5297,13 @@ function CouponSection({
         return (
             <section style={{ ...fullWidth(), padding: '8px 0' }}>
                 <details style={{ ...checkoutCard(), padding: 18 }}>
-                    <summary style={{ cursor: 'pointer', fontWeight: 'var(--checkout-heading-weight)' as React.CSSProperties['fontWeight'] }}>
+                    <summary
+                        style={{
+                            cursor: 'pointer',
+                            fontWeight:
+                                'var(--checkout-heading-weight)' as React.CSSProperties['fontWeight'],
+                        }}
+                    >
                         {title}
                     </summary>
                     {control}
@@ -5099,10 +5355,22 @@ function TrustSection({
     ].filter(Boolean);
     if (layout === 'strip')
         return (
-            <section style={{ ...card(), display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: 18 }}>
+            <section
+                style={{
+                    ...card(),
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 14,
+                    padding: 18,
+                }}
+            >
                 <strong>{title}</strong>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {badges.map((label) => <TrustBadge key={label} label={label} />)}
+                    {badges.map((label) => (
+                        <TrustBadge key={label} label={label} />
+                    ))}
                 </div>
             </section>
         );
@@ -5110,11 +5378,23 @@ function TrustSection({
         return (
             <section style={{ ...fullWidth(), padding: '28px 0' }}>
                 <h2 style={{ ...checkoutHeading(), textAlign: 'center', fontSize: 20 }}>{title}</h2>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12, marginTop: 16 }}>
+                <div
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))',
+                        gap: 12,
+                        marginTop: 16,
+                    }}
+                >
                     {badges.map((label) => (
-                        <article key={label} style={{ ...card(), padding: 18, textAlign: 'center' }}>
+                        <article
+                            key={label}
+                            style={{ ...card(), padding: 18, textAlign: 'center' }}
+                        >
                             <span style={{ ...numberBadge(), margin: '0 auto' }}>✓</span>
-                            <strong style={{ display: 'block', marginTop: 12, fontSize: 13 }}>{label}</strong>
+                            <strong style={{ display: 'block', marginTop: 12, fontSize: 13 }}>
+                                {label}
+                            </strong>
                         </article>
                     ))}
                 </div>
@@ -5123,8 +5403,18 @@ function TrustSection({
     return (
         <section style={{ ...fullWidth(), textAlign: 'center', padding: '28px 0' }}>
             <h2 style={{ ...checkoutHeading(), fontSize: 18 }}>{title}</h2>
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 16 }}>
-                {badges.map((label) => <TrustBadge key={label} label={label} />)}
+            <div
+                style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                    gap: 10,
+                    marginTop: 16,
+                }}
+            >
+                {badges.map((label) => (
+                    <TrustBadge key={label} label={label} />
+                ))}
             </div>
         </section>
     );
@@ -5142,22 +5432,67 @@ function FooterSection({
 }) {
     if (layout === 'columns')
         return (
-            <footer style={{ ...card(), display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 18, padding: 24, fontSize: 12, lineHeight: 1.6 }}>
-                <div><strong>Astro</strong><p style={{ margin: '8px 0 0', opacity: 0.62 }}>{text}</p></div>
-                <div><strong>Suporte</strong><p style={{ margin: '8px 0 0', opacity: 0.62 }}>Acesso e compra protegidos.</p></div>
-                {showSecurity && <div><strong>Seguranca</strong><p style={{ margin: '8px 0 0', opacity: 0.62 }}>Ambiente protegido e pagamento criptografado.</p></div>}
+            <footer
+                style={{
+                    ...card(),
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))',
+                    gap: 18,
+                    padding: 24,
+                    fontSize: 12,
+                    lineHeight: 1.6,
+                }}
+            >
+                <div>
+                    <strong>Astro</strong>
+                    <p style={{ margin: '8px 0 0', opacity: 0.62 }}>{text}</p>
+                </div>
+                <div>
+                    <strong>Suporte</strong>
+                    <p style={{ margin: '8px 0 0', opacity: 0.62 }}>Acesso e compra protegidos.</p>
+                </div>
+                {showSecurity && (
+                    <div>
+                        <strong>Segurança</strong>
+                        <p style={{ margin: '8px 0 0', opacity: 0.62 }}>
+                            Ambiente protegido e pagamento criptografado.
+                        </p>
+                    </div>
+                )}
             </footer>
         );
     if (layout === 'minimal')
         return (
-            <footer style={{ ...fullWidth(), borderTop: 'var(--checkout-card-border-width) solid var(--checkout-component-divider)', padding: '18px 0', textAlign: 'center', fontSize: 11, opacity: 0.58 }}>
-                {text}{showSecurity ? ' · Pagamento seguro' : ''}
+            <footer
+                style={{
+                    ...fullWidth(),
+                    borderTop:
+                        'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
+                    padding: '18px 0',
+                    textAlign: 'center',
+                    fontSize: 11,
+                    opacity: 0.58,
+                }}
+            >
+                {text}
+                {showSecurity ? ' · Pagamento seguro' : ''}
             </footer>
         );
     return (
-        <footer style={{ ...fullWidth(), padding: '28px 16px', textAlign: 'center', fontSize: 12, lineHeight: 1.6, opacity: 0.62 }}>
+        <footer
+            style={{
+                ...fullWidth(),
+                padding: '28px 16px',
+                textAlign: 'center',
+                fontSize: 12,
+                lineHeight: 1.6,
+                opacity: 0.62,
+            }}
+        >
             <p style={{ margin: 0 }}>{text}</p>
-            {showSecurity && <p style={{ margin: '8px 0 0' }}>Ambiente protegido e pagamento criptografado</p>}
+            {showSecurity && (
+                <p style={{ margin: '8px 0 0' }}>Ambiente protegido e pagamento criptografado</p>
+            )}
         </footer>
     );
 }
@@ -5199,9 +5534,34 @@ function PlanComparisonSection({
                 <h2 style={checkoutHeading()}>{title}</h2>
                 <div style={{ display: 'grid', gap: 10, marginTop: 18 }}>
                     {plans.map((plan, index) => (
-                        <div key={`${plan.name}-${index}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', gap: 14, alignItems: 'center', borderTop: index ? 'var(--checkout-card-border-width) solid var(--checkout-component-divider)' : 0, paddingTop: index ? 12 : 0 }}>
-                            <span><strong>{plan.name}</strong><small style={{ display: 'block', marginTop: 3, opacity: 0.62 }}>{plan.description}</small></span>
-                            <strong style={{ color: plan.featured ? 'var(--checkout-accent)' : 'var(--checkout-text)' }}>{plan.price}</strong>
+                        <div
+                            key={`${plan.name}-${index}`}
+                            style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'minmax(0,1fr) auto',
+                                gap: 14,
+                                alignItems: 'center',
+                                borderTop: index
+                                    ? 'var(--checkout-card-border-width) solid var(--checkout-component-divider)'
+                                    : 0,
+                                paddingTop: index ? 12 : 0,
+                            }}
+                        >
+                            <span>
+                                <strong>{plan.name}</strong>
+                                <small style={{ display: 'block', marginTop: 3, opacity: 0.62 }}>
+                                    {plan.description}
+                                </small>
+                            </span>
+                            <strong
+                                style={{
+                                    color: plan.featured
+                                        ? 'var(--checkout-accent)'
+                                        : 'var(--checkout-text)',
+                                }}
+                            >
+                                {plan.price}
+                            </strong>
                         </div>
                     ))}
                 </div>
@@ -5210,13 +5570,53 @@ function PlanComparisonSection({
     return (
         <section style={{ ...fullWidth(), padding: '28px 0' }}>
             <h2 style={{ ...heading(), textAlign: 'center' }}>{title}</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: layout === 'columns' ? `repeat(${Math.min(Math.max(plans.length, 1), 4)}, minmax(0,1fr))` : 'repeat(auto-fit,minmax(min(100%,220px),1fr))', gap: 14, marginTop: 24 }}>
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns:
+                        layout === 'columns'
+                            ? `repeat(${Math.min(Math.max(plans.length, 1), 4)}, minmax(0,1fr))`
+                            : 'repeat(auto-fit,minmax(min(100%,220px),1fr))',
+                    gap: 14,
+                    marginTop: 24,
+                }}
+            >
                 {plans.map((plan, index) => (
-                    <article key={`${plan.name}-${index}`} style={{ ...card(), padding: 22, borderColor: plan.featured ? 'var(--checkout-accent)' : undefined, background: plan.featured ? 'color-mix(in srgb,var(--checkout-accent) 7%,var(--checkout-card-bg))' : undefined }}>
+                    <article
+                        key={`${plan.name}-${index}`}
+                        style={{
+                            ...card(),
+                            padding: 22,
+                            borderColor: plan.featured ? 'var(--checkout-accent)' : undefined,
+                            background: plan.featured
+                                ? 'color-mix(in srgb,var(--checkout-accent) 7%,var(--checkout-card-bg))'
+                                : undefined,
+                        }}
+                    >
                         {plan.featured && <span style={heroEyebrow()}>Mais escolhido</span>}
-                        <h3 style={{ margin: plan.featured ? '10px 0 0' : 0, fontSize: 20 }}>{plan.name}</h3>
-                        <strong style={{ display: 'block', marginTop: 12, fontSize: 28, color: 'var(--checkout-accent)' }}>{plan.price}</strong>
-                        <p style={{ margin: '10px 0 0', fontSize: 13, lineHeight: 1.6, opacity: 0.68 }}>{plan.description}</p>
+                        <h3 style={{ margin: plan.featured ? '10px 0 0' : 0, fontSize: 20 }}>
+                            {plan.name}
+                        </h3>
+                        <strong
+                            style={{
+                                display: 'block',
+                                marginTop: 12,
+                                fontSize: 28,
+                                color: 'var(--checkout-accent)',
+                            }}
+                        >
+                            {plan.price}
+                        </strong>
+                        <p
+                            style={{
+                                margin: '10px 0 0',
+                                fontSize: 13,
+                                lineHeight: 1.6,
+                                opacity: 0.68,
+                            }}
+                        >
+                            {plan.description}
+                        </p>
                     </article>
                 ))}
             </div>
@@ -5253,9 +5653,15 @@ function DataTableSection({
                         <tbody>
                             {rows.map((row, index) => (
                                 <tr key={`${row.label}-${index}`}>
-                                    <td style={tableCell('left', index, showLines)}><strong>{row.label}</strong></td>
-                                    <td style={tableCell('center', index, showLines)}><span style={tablePill()}>{row.value}</span></td>
-                                    <td style={tableCell('left', index, showLines)}>{row.detail}</td>
+                                    <td style={tableCell('left', index, showLines)}>
+                                        <strong>{row.label}</strong>
+                                    </td>
+                                    <td style={tableCell('center', index, showLines)}>
+                                        <span style={tablePill()}>{row.value}</span>
+                                    </td>
+                                    <td style={tableCell('left', index, showLines)}>
+                                        {row.detail}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -5273,9 +5679,27 @@ function DataTableSection({
                         <tbody>
                             {rows.map((row, index) => (
                                 <tr key={`${row.label}-${index}`}>
-                                    <th style={{ ...tableCell('left', index, showLines), width: '34%', fontWeight: 850 }}>{row.label}</th>
-                                    <td style={{ ...tableCell('left', index, showLines), color: 'var(--checkout-accent)', fontWeight: 850 }}>{row.value}</td>
-                                    <td style={tableCell('left', index, showLines)}>{row.detail}</td>
+                                    <th
+                                        style={{
+                                            ...tableCell('left', index, showLines),
+                                            width: '34%',
+                                            fontWeight: 850,
+                                        }}
+                                    >
+                                        {row.label}
+                                    </th>
+                                    <td
+                                        style={{
+                                            ...tableCell('left', index, showLines),
+                                            color: 'var(--checkout-accent)',
+                                            fontWeight: 850,
+                                        }}
+                                    >
+                                        {row.value}
+                                    </td>
+                                    <td style={tableCell('left', index, showLines)}>
+                                        {row.detail}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -5299,9 +5723,18 @@ function DataTableSection({
                     <tbody>
                         {rows.map((row, index) => (
                             <tr key={`${row.label}-${index}`}>
-                                <td style={tableCell('left', index, showLines)}><strong>{row.label}</strong></td>
+                                <td style={tableCell('left', index, showLines)}>
+                                    <strong>{row.label}</strong>
+                                </td>
                                 <td style={tableCell('left', index, showLines)}>{row.detail}</td>
-                                <td style={{ ...tableCell('right', index, showLines), fontWeight: 850 }}>{row.value}</td>
+                                <td
+                                    style={{
+                                        ...tableCell('right', index, showLines),
+                                        fontWeight: 850,
+                                    }}
+                                >
+                                    {row.value}
+                                </td>
                             </tr>
                         ))}
                     </tbody>
@@ -5312,44 +5745,319 @@ function DataTableSection({
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
-function StatsSection({ layout, title, items }: { layout: StatsLayout; title: string; items: { value: string; label: string; detail: string }[] }) {
+function StatsSection({
+    layout,
+    title,
+    items,
+}: {
+    layout: StatsLayout;
+    title: string;
+    items: { value: string; label: string; detail: string }[];
+}) {
     if (layout === 'editorial' && items.length) {
         const [first, ...rest] = items;
-        return <section style={{ ...card(), display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', gap: 20, padding: 'clamp(22px,5vw,38px)' }}><div><span style={heroEyebrow()}>Numeros</span><h2 style={{ ...heading(), marginTop: 10 }}>{title}</h2><strong style={{ display: 'block', marginTop: 20, fontSize: 46, color: 'var(--checkout-accent)' }}>{first.value}</strong><span>{first.label}</span><p style={{ margin: '6px 0 0', opacity: 0.62 }}>{first.detail}</p></div><div style={{ display: 'grid', gap: 10 }}>{rest.map((item, index) => <StatMini key={`${item.label}-${index}`} item={item} />)}</div></section>;
+        return (
+            <section
+                style={{
+                    ...card(),
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))',
+                    gap: 20,
+                    padding: 'clamp(22px,5vw,38px)',
+                }}
+            >
+                <div>
+                    <span style={heroEyebrow()}>Números</span>
+                    <h2 style={{ ...heading(), marginTop: 10 }}>{title}</h2>
+                    <strong
+                        style={{
+                            display: 'block',
+                            marginTop: 20,
+                            fontSize: 46,
+                            color: 'var(--checkout-accent)',
+                        }}
+                    >
+                        {first.value}
+                    </strong>
+                    <span>{first.label}</span>
+                    <p style={{ margin: '6px 0 0', opacity: 0.62 }}>{first.detail}</p>
+                </div>
+                <div style={{ display: 'grid', gap: 10 }}>
+                    {rest.map((item, index) => (
+                        <StatMini key={`${item.label}-${index}`} item={item} />
+                    ))}
+                </div>
+            </section>
+        );
     }
-    return <section style={{ ...fullWidth(), padding: layout === 'strip' ? '12px 0' : '28px 0' }}><h2 style={{ ...checkoutHeading(), textAlign: layout === 'strip' ? 'left' : 'center', fontSize: 24 }}>{title}</h2><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,160px),1fr))', gap: layout === 'strip' ? 0 : 12, marginTop: 18 }}>{items.map((item, index) => <StatMini key={`${item.label}-${index}`} item={item} framed={layout === 'cards'} />)}</div></section>;
+    return (
+        <section style={{ ...fullWidth(), padding: layout === 'strip' ? '12px 0' : '28px 0' }}>
+            <h2
+                style={{
+                    ...checkoutHeading(),
+                    textAlign: layout === 'strip' ? 'left' : 'center',
+                    fontSize: 24,
+                }}
+            >
+                {title}
+            </h2>
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,160px),1fr))',
+                    gap: layout === 'strip' ? 0 : 12,
+                    marginTop: 18,
+                }}
+            >
+                {items.map((item, index) => (
+                    <StatMini
+                        key={`${item.label}-${index}`}
+                        item={item}
+                        framed={layout === 'cards'}
+                    />
+                ))}
+            </div>
+        </section>
+    );
 }
 
-function StatMini({ item, framed = true }: { item: { value: string; label: string; detail: string }; framed?: boolean }) {
-    return <article style={{ ...(framed ? card() : fullWidth()), padding: framed ? 18 : '12px 0', textAlign: 'center' }}><strong style={{ display: 'block', fontSize: 28, color: 'var(--checkout-accent)' }}>{item.value}</strong><span style={{ display: 'block', marginTop: 4, fontWeight: 800 }}>{item.label}</span><small style={{ display: 'block', marginTop: 3, opacity: 0.58 }}>{item.detail}</small></article>;
+function StatMini({
+    item,
+    framed = true,
+}: {
+    item: { value: string; label: string; detail: string };
+    framed?: boolean;
+}) {
+    return (
+        <article
+            style={{
+                ...(framed ? card() : fullWidth()),
+                padding: framed ? 18 : '12px 0',
+                textAlign: 'center',
+            }}
+        >
+            <strong style={{ display: 'block', fontSize: 28, color: 'var(--checkout-accent)' }}>
+                {item.value}
+            </strong>
+            <span style={{ display: 'block', marginTop: 4, fontWeight: 800 }}>{item.label}</span>
+            <small style={{ display: 'block', marginTop: 3, opacity: 0.58 }}>{item.detail}</small>
+        </article>
+    );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
-function BeforeAfterSection({ layout, title, beforeTitle, beforeText, afterTitle, afterText }: BuilderProps['before_after']) {
-    const item = (name: string, text: string, positive: boolean) => <article style={{ ...card(), padding: 22, borderColor: positive ? 'var(--checkout-accent)' : undefined }}><span style={{ ...numberBadge(), background: positive ? 'var(--checkout-accent)' : undefined, color: positive ? '#fff' : undefined }}>{positive ? '✓' : '−'}</span><h3 style={{ margin: '16px 0 0', fontSize: 20 }}>{name}</h3><p style={{ margin: '8px 0 0', lineHeight: 1.65, opacity: 0.68 }}>{text}</p></article>;
-    if (layout === 'timeline') return <section style={{ ...checkoutCard(), padding: 'clamp(20px,5vw,34px)' }}><h2 style={checkoutHeading()}>{title}</h2><div style={{ display: 'grid', gap: 12, marginTop: 20 }}>{item(beforeTitle, beforeText, false)}{item(afterTitle, afterText, true)}</div></section>;
-    return <section style={{ ...fullWidth(), padding: '28px 0' }}><h2 style={{ ...heading(), textAlign: 'center' }}>{title}</h2><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', gap: 14, marginTop: 24 }}>{item(beforeTitle, beforeText, false)}{item(afterTitle, afterText, true)}</div></section>;
+function BeforeAfterSection({
+    layout,
+    title,
+    beforeTitle,
+    beforeText,
+    afterTitle,
+    afterText,
+}: BuilderProps['before_after']) {
+    const item = (name: string, text: string, positive: boolean) => (
+        <article
+            style={{
+                ...card(),
+                padding: 22,
+                borderColor: positive ? 'var(--checkout-accent)' : undefined,
+            }}
+        >
+            <span
+                style={{
+                    ...numberBadge(),
+                    background: positive ? 'var(--checkout-accent)' : undefined,
+                    color: positive ? '#fff' : undefined,
+                }}
+            >
+                {positive ? '✓' : '−'}
+            </span>
+            <h3 style={{ margin: '16px 0 0', fontSize: 20 }}>{name}</h3>
+            <p style={{ margin: '8px 0 0', lineHeight: 1.65, opacity: 0.68 }}>{text}</p>
+        </article>
+    );
+    if (layout === 'timeline')
+        return (
+            <section style={{ ...checkoutCard(), padding: 'clamp(20px,5vw,34px)' }}>
+                <h2 style={checkoutHeading()}>{title}</h2>
+                <div style={{ display: 'grid', gap: 12, marginTop: 20 }}>
+                    {item(beforeTitle, beforeText, false)}
+                    {item(afterTitle, afterText, true)}
+                </div>
+            </section>
+        );
+    return (
+        <section style={{ ...fullWidth(), padding: '28px 0' }}>
+            <h2 style={{ ...heading(), textAlign: 'center' }}>{title}</h2>
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))',
+                    gap: 14,
+                    marginTop: 24,
+                }}
+            >
+                {item(beforeTitle, beforeText, false)}
+                {item(afterTitle, afterText, true)}
+            </div>
+        </section>
+    );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
-function ClientLogosSection({ layout, title, logos }: { layout: ClientLogosLayout; title: string; logos: { name: string; imageUrl: string }[] }) {
-    return <section style={{ ...(layout === 'strip' ? checkoutCard() : fullWidth()), padding: layout === 'strip' ? 20 : '28px 0', textAlign: 'center' }}><h2 style={{ ...checkoutHeading(), fontSize: 20 }}>{title}</h2><div style={{ display: 'grid', gridTemplateColumns: layout === 'strip' ? 'repeat(auto-fit,minmax(110px,1fr))' : 'repeat(auto-fit,minmax(min(100%,130px),1fr))', gap: layout === 'cloud' ? 18 : 10, alignItems: 'center', marginTop: 18 }}>{logos.map((logo, index) => <div key={`${logo.name}-${index}`} style={{ ...card(), display: 'grid', minHeight: layout === 'cloud' && index % 2 === 0 ? 86 : 68, placeItems: 'center', padding: 12, opacity: 0.82 }}>{safeHttpsUrl(logo.imageUrl) ? <>
-        {/* The merchant-controlled URL is runtime data and cannot use Next's static image allowlist. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logo.imageUrl} alt={logo.name} loading="lazy" decoding="async" style={{ maxHeight: 38, objectFit: 'contain' }} />
-    </> : <strong style={{ fontSize: 13 }}>{logo.name}</strong>}</div>)}</div></section>;
+function ClientLogosSection({
+    layout,
+    title,
+    logos,
+}: {
+    layout: ClientLogosLayout;
+    title: string;
+    logos: { name: string; imageUrl: string }[];
+}) {
+    return (
+        <section
+            style={{
+                ...(layout === 'strip' ? checkoutCard() : fullWidth()),
+                padding: layout === 'strip' ? 20 : '28px 0',
+                textAlign: 'center',
+            }}
+        >
+            <h2 style={{ ...checkoutHeading(), fontSize: 20 }}>{title}</h2>
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns:
+                        layout === 'strip'
+                            ? 'repeat(auto-fit,minmax(110px,1fr))'
+                            : 'repeat(auto-fit,minmax(min(100%,130px),1fr))',
+                    gap: layout === 'cloud' ? 18 : 10,
+                    alignItems: 'center',
+                    marginTop: 18,
+                }}
+            >
+                {logos.map((logo, index) => (
+                    <div
+                        key={`${logo.name}-${index}`}
+                        style={{
+                            ...card(),
+                            display: 'grid',
+                            minHeight: layout === 'cloud' && index % 2 === 0 ? 86 : 68,
+                            placeItems: 'center',
+                            padding: 12,
+                            opacity: 0.82,
+                        }}
+                    >
+                        {safeHttpsUrl(logo.imageUrl) ? (
+                            <>
+                                {/* The merchant-controlled URL is runtime data and cannot use Next's static image allowlist. */}
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={logo.imageUrl}
+                                    alt={logo.name}
+                                    loading="lazy"
+                                    decoding="async"
+                                    style={{ maxHeight: 38, objectFit: 'contain' }}
+                                />
+                            </>
+                        ) : (
+                            <strong style={{ fontSize: 13 }}>{logo.name}</strong>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
-function FloatingCtaSection({ layout, text, buttonLabel }: { layout: FloatingCtaLayout; text: string; buttonLabel: string }) {
-    return <section style={{ ...fullWidth(), position: 'sticky', bottom: 12, zIndex: 5, display: 'flex', justifyContent: layout === 'pill' ? 'center' : 'stretch', pointerEvents: 'none' }}><div style={{ ...(layout === 'card' ? card() : checkoutCard()), display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: layout === 'pill' ? 'auto' : '100%', padding: layout === 'pill' ? '10px 10px 10px 16px' : 14, borderRadius: layout === 'pill' ? 999 : 'var(--checkout-radius)', pointerEvents: 'auto' }}><strong style={{ fontSize: 13 }}>{text}</strong><Button type="button" className="checkout-primary-button" style={{ ...primaryButton(), marginTop: 0, padding: '11px 16px' }}>{buttonLabel}</Button></div></section>;
+function FloatingCtaSection({
+    layout,
+    text,
+    buttonLabel,
+}: {
+    layout: FloatingCtaLayout;
+    text: string;
+    buttonLabel: string;
+}) {
+    return (
+        <section
+            style={{
+                ...fullWidth(),
+                position: 'sticky',
+                bottom: 12,
+                zIndex: 5,
+                display: 'flex',
+                justifyContent: layout === 'pill' ? 'center' : 'stretch',
+                pointerEvents: 'none',
+            }}
+        >
+            <div
+                style={{
+                    ...(layout === 'card' ? card() : checkoutCard()),
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    width: layout === 'pill' ? 'auto' : '100%',
+                    padding: layout === 'pill' ? '10px 10px 10px 16px' : 14,
+                    borderRadius: layout === 'pill' ? 999 : 'var(--checkout-radius)',
+                    pointerEvents: 'auto',
+                }}
+            >
+                <strong style={{ fontSize: 13 }}>{text}</strong>
+                <Button
+                    type="button"
+                    className="checkout-primary-button"
+                    style={{ ...primaryButton(), marginTop: 0, padding: '11px 16px' }}
+                >
+                    {buttonLabel}
+                </Button>
+            </div>
+        </section>
+    );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
-function SpacerDividerSection({ layout, size, label }: { layout: SpacerDividerLayout; size: SizePreset; label: string }) {
+function SpacerDividerSection({
+    layout,
+    size,
+    label,
+}: {
+    layout: SpacerDividerLayout;
+    size: SizePreset;
+    label: string;
+}) {
     const height = spacingValue(size) * 2;
     if (layout === 'space') return <div aria-hidden="true" style={{ ...fullWidth(), height }} />;
-    return <div style={{ ...fullWidth(), display: 'grid', gridTemplateColumns: layout === 'label' ? '1fr auto 1fr' : '1fr', alignItems: 'center', gap: 12, minHeight: height }}><span style={{ height: 1, background: 'var(--checkout-visual-divider)' }} />{layout === 'label' && <><span style={{ color: 'var(--checkout-accent)', fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>{label}</span><span style={{ height: 1, background: 'var(--checkout-visual-divider)' }} /></>}</div>;
+    return (
+        <div
+            style={{
+                ...fullWidth(),
+                display: 'grid',
+                gridTemplateColumns: layout === 'label' ? '1fr auto 1fr' : '1fr',
+                alignItems: 'center',
+                gap: 12,
+                minHeight: height,
+            }}
+        >
+            <span style={{ height: 1, background: 'var(--checkout-visual-divider)' }} />
+            {layout === 'label' && (
+                <>
+                    <span
+                        style={{
+                            color: 'var(--checkout-accent)',
+                            fontSize: 12,
+                            fontWeight: 800,
+                            textTransform: 'uppercase',
+                        }}
+                    >
+                        {label}
+                    </span>
+                    <span style={{ height: 1, background: 'var(--checkout-visual-divider)' }} />
+                </>
+            )}
+        </div>
+    );
 }
 
 function widthValue(size: WidthPreset) {
@@ -5386,6 +6094,41 @@ function logoRadiusValue(radius: LogoRadius) {
 
 function safeColor(value: string, fallback: string) {
     return /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
+}
+
+function resolveCta(
+    value: unknown,
+    url: string,
+    newTab: boolean,
+    fallbackHref: string,
+    defaultAction: CtaAction = 'payment',
+): { visible: boolean; native: boolean; href?: string; target?: '_self' | '_blank' } {
+    const action = (typeof value === 'string' ? value : defaultAction) as CtaAction;
+    if (action === 'hidden') return { visible: false, native: false };
+    const destinations: Partial<Record<CtaAction, string>> = {
+        payment: '#payment',
+        cart: '#cart-summary',
+        customer: '#customer-form',
+        coupon: '#coupon',
+        faq: '#faq',
+        guarantee: '#guarantee',
+        testimonials: '#testimonials',
+        benefits: '#benefits',
+        before_after: '#before_after',
+        top: '#checkout-top',
+    };
+    const href =
+        action === 'url'
+            ? safeHttpsUrl(url)
+                ? url
+                : fallbackHref
+            : (destinations[action] ?? fallbackHref);
+    return {
+        visible: true,
+        native: false,
+        href,
+        target: newTab && action === 'url' ? ('_blank' as const) : ('_self' as const),
+    };
 }
 
 function safeHttpsUrl(value: string) {

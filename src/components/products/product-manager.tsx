@@ -367,12 +367,34 @@ export function ProductManager({
             {products.length > 0 && visibleProducts.length > 0 && (
                 <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-white/65 bg-white/25 px-4 py-3 text-[12px] text-muted sm:flex-row sm:items-center sm:justify-between">
                     <span>
-                        {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, visibleProducts.length)} de {visibleProducts.length}
+                        {(currentPage - 1) * pageSize + 1}–
+                        {Math.min(currentPage * pageSize, visibleProducts.length)} de{' '}
+                        {visibleProducts.length}
                     </span>
                     <div className="flex items-center gap-2">
-                        <Button type="button" variant="icon" aria-label="Página anterior" title="Página anterior" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}><Icon name="arrow-right" className="size-3.5 rotate-180" /></Button>
-                        <span>Página {currentPage} de {pageCount}</span>
-                        <Button type="button" variant="icon" aria-label="Próxima página" title="Próxima página" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}><Icon name="arrow-right" className="size-3.5" /></Button>
+                        <Button
+                            type="button"
+                            variant="icon"
+                            aria-label="Página anterior"
+                            title="Página anterior"
+                            disabled={currentPage === 1}
+                            onClick={() => setPage(currentPage - 1)}
+                        >
+                            <Icon name="arrow-right" className="size-3.5 rotate-180" />
+                        </Button>
+                        <span>
+                            Página {currentPage} de {pageCount}
+                        </span>
+                        <Button
+                            type="button"
+                            variant="icon"
+                            aria-label="Próxima página"
+                            title="Próxima página"
+                            disabled={currentPage === pageCount}
+                            onClick={() => setPage(currentPage + 1)}
+                        >
+                            <Icon name="arrow-right" className="size-3.5" />
+                        </Button>
                     </div>
                 </div>
             )}
@@ -542,11 +564,7 @@ export function ProductManager({
                             </div>
 
                             <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    onClick={closeForm}
-                                >
+                                <Button type="button" variant="secondary" onClick={closeForm}>
                                     Cancelar
                                 </Button>
                                 <Button variant="primary" disabled={loading} className="px-6">
@@ -857,12 +875,7 @@ function DeleteProductModal({
                     removido permanentemente do catálogo. Esta ação não pode ser desfeita.
                 </p>
                 <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        disabled={loading}
-                        onClick={onCancel}
-                    >
+                    <Button type="button" variant="secondary" disabled={loading} onClick={onCancel}>
                         Cancelar
                     </Button>
                     <Button

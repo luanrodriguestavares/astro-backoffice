@@ -58,7 +58,5 @@ function subscribe(onChange: () => void) {
 
 function currentAccent(): AccentTheme {
     const saved = window.localStorage.getItem(storageKey);
-    return accentThemes.some((accent) => accent.value === saved)
-        ? (saved as AccentTheme)
-        : 'astro';
+    return accentThemes.some((accent) => accent.value === saved) ? (saved as AccentTheme) : 'astro';
 }

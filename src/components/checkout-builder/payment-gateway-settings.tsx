@@ -22,10 +22,7 @@ const methodLabels: Record<CheckoutPaymentMethod, string> = {
     boleto: 'Boleto',
 };
 
-const componentCopy: Record<
-    RequiredCheckoutComponent,
-    { label: string; description: string }
-> = {
+const componentCopy: Record<RequiredCheckoutComponent, { label: string; description: string }> = {
     product_summary: {
         label: 'Carrinho e finalização',
         description: 'Reúne itens, composição financeira, total e ação final.',
@@ -118,10 +115,7 @@ export function PaymentGatewaySettings({
                                             : 'bg-warning/15 text-[#8a6500]'
                                     }`}
                                 >
-                                    <Icon
-                                        name={present ? 'check' : 'plus'}
-                                        className="size-3.5"
-                                    />
+                                    <Icon name={present ? 'check' : 'plus'} className="size-3.5" />
                                 </span>
                                 <div>
                                     <h4 className="text-[12px] font-semibold">{copy.label}</h4>
@@ -199,7 +193,13 @@ export function PaymentGatewaySettings({
                                                 {methodLabels[method]}
                                             </h4>
                                             <StatusBadge
-                                                tone={!enabled ? 'neutral' : ready ? 'ready' : 'pending'}
+                                                tone={
+                                                    !enabled
+                                                        ? 'neutral'
+                                                        : ready
+                                                          ? 'ready'
+                                                          : 'pending'
+                                                }
                                             >
                                                 {!enabled
                                                     ? 'Desabilitado'

@@ -163,7 +163,9 @@ function QuickAction({
             href={href}
             className="flex items-center gap-3 rounded-2xl border border-border bg-surface/55 p-3.5 transition hover:border-brand/18 hover:bg-surface"
         >
-            <span className={`grid min-w-8 place-items-center rounded-xl px-2 py-2 text-[11px] font-bold ${toneClass}`}>
+            <span
+                className={`grid min-w-8 place-items-center rounded-xl px-2 py-2 text-[11px] font-bold ${toneClass}`}
+            >
                 {value}
             </span>
             <span className="min-w-0 flex-1 text-[11px] font-semibold">{label}</span>

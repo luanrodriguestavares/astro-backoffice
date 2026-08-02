@@ -43,13 +43,7 @@ function clientTheme(): 'light' | 'dark' {
     return window.localStorage.getItem(themeKey) === 'light' ? 'light' : 'dark';
 }
 
-export function AdminShell({
-    user,
-    children,
-}: {
-    user: CurrentUser;
-    children: React.ReactNode;
-}) {
+export function AdminShell({ user, children }: { user: CurrentUser; children: React.ReactNode }) {
     const pathname = usePathname();
     const [mobileOpen, setMobileOpen] = useState(false);
     const theme = useSyncExternalStore(subscribe, clientTheme, () => 'dark');
@@ -67,7 +61,9 @@ export function AdminShell({
     }
 
     return (
-        <div className={`admin-shell astro-shell min-h-screen lg:grid lg:grid-cols-[244px_1fr] ${dark ? 'dashboard-dark' : ''}`}>
+        <div
+            className={`admin-shell astro-shell min-h-screen lg:grid lg:grid-cols-[244px_1fr] ${dark ? 'dashboard-dark' : ''}`}
+        >
             {mobileOpen && (
                 <Button
                     aria-label="Fechar menu"
@@ -134,12 +130,13 @@ export function AdminShell({
                                         {item.badge}
                                     </span>
                                 )}
-                                {active && <span className="ml-auto size-1 rounded-full bg-brand" />}
+                                {active && (
+                                    <span className="ml-auto size-1 rounded-full bg-brand" />
+                                )}
                             </Link>
                         );
                     })}
                 </nav>
-
             </aside>
 
             <div className="relative z-10 min-w-0">

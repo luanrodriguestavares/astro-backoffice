@@ -7,7 +7,11 @@ import '@puckeditor/core/puck.css';
 import { Puck } from '@puckeditor/core';
 import { useRef, useState } from 'react';
 
-import { checkoutBuilderConfig, type BuilderData } from '@/components/checkout-builder/config';
+import {
+    CheckoutBuilderMediaContext,
+    checkoutBuilderConfig,
+    type BuilderData,
+} from '@/components/checkout-builder/config';
 import { CheckoutSelectField } from '@/components/checkout-builder/checkout-select-field';
 import { PaymentGatewaySettings } from '@/components/checkout-builder/payment-gateway-settings';
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -27,6 +31,7 @@ import type {
     CheckoutEnvironment,
     CheckoutPaymentMethod,
     GatewayConnection,
+    MediaFile,
 } from '@/lib/api/types';
 
 const checkoutEditorPlugins = [
@@ -111,10 +116,14 @@ export function CheckoutEditor({
     checkout,
     draft,
     gatewayConnections,
+    mediaFiles,
+    mediaApiUrl,
 }: {
     checkout: Checkout;
     draft: CheckoutDraft;
     gatewayConnections: GatewayConnection[];
+    mediaFiles: MediaFile[];
+    mediaApiUrl: string;
 }) {
     const publicUrl = checkoutPublicUrl(checkout.slug);
     const [initialData] = useState<BuilderData>(() => documentToPuck(draft.document));
@@ -126,9 +135,9 @@ export function CheckoutEditor({
     const [environment, setEnvironment] = useState<CheckoutEnvironment>(
         draft.document.settings.environment ?? 'sandbox',
     );
-    const [bindings, setBindings] = useState<
-        Partial<Record<CheckoutPaymentMethod, string>>
-    >(draft.document.settings.paymentGatewayBindings ?? {});
+    const [bindings, setBindings] = useState<Partial<Record<CheckoutPaymentMethod, string>>>(
+        draft.document.settings.paymentGatewayBindings ?? {},
+    );
     const [enabledMethods, setEnabledMethods] = useState<CheckoutPaymentMethod[]>(() =>
         enabledPaymentMethods(initialData.content),
     );
@@ -271,141 +280,147 @@ export function CheckoutEditor({
 
     return (
         <div className="astro-checkout-editor min-h-screen overflow-hidden bg-background">
-            <Puck
-                config={checkoutBuilderConfig}
-                data={initialData}
-                height="100dvh"
-                overrides={{
-                    fieldTypes: { select: CheckoutSelectField },
-                    drawerItem: CheckoutDrawerItem,
-                }}
-                plugins={checkoutEditorPlugins}
-                ui={{ plugin: { current: 'legacy-side-bar' } }}
-                viewports={[
-                    { width: 390, height: 'auto', label: 'Celular', icon: 'Smartphone' },
-                    { width: 768, height: 'auto', label: 'Tablet', icon: 'Tablet' },
-                    { width: 1440, height: 'auto', label: 'Desktop', icon: 'Monitor' },
-                ]}
-                iframe={{ enabled: true, syncHostStyles: false }}
-                onChange={(data) => {
-                    current.current = data as BuilderData;
-                    setBuilderContent(data.content);
-                    setEnabledMethods(enabledPaymentMethods(data.content));
-                    setPresentComponents(presentRequiredComponents(data.content));
-                    setState('changed');
-                }}
-                onPublish={publish}
-                renderHeader={({ children }) => (
-                    <header className="checkout-editor-header">
-                        <div className="flex min-w-0 items-center gap-3">
-                            <ButtonLink
-                                href="/checkouts"
-                                variant="icon"
-                                aria-label="Voltar para checkouts"
-                                className="size-9 shrink-0 rounded-xl"
-                            >
-                                <Icon name="arrow-right" className="size-3.5 rotate-180" />
-                            </ButtonLink>
-                            <div className="min-w-0">
-                                <p className="truncate text-[13px] font-semibold tracking-[-0.015em] text-foreground">
-                                    {checkout.name}
-                                </p>
-                                <div className="mt-0.5 flex items-center gap-2">
-                                    <p className="truncate text-[10px] text-muted">
-                                        /{checkout.slug}
+            <CheckoutBuilderMediaContext.Provider
+                value={{ files: mediaFiles, apiUrl: mediaApiUrl }}
+            >
+                <Puck
+                    config={checkoutBuilderConfig}
+                    data={initialData}
+                    height="100dvh"
+                    overrides={{
+                        fieldTypes: { select: CheckoutSelectField },
+                        drawerItem: CheckoutDrawerItem,
+                    }}
+                    plugins={checkoutEditorPlugins}
+                    ui={{ plugin: { current: 'legacy-side-bar' } }}
+                    viewports={[
+                        { width: 390, height: 'auto', label: 'Celular', icon: 'Smartphone' },
+                        { width: 768, height: 'auto', label: 'Tablet', icon: 'Tablet' },
+                        { width: 1440, height: 'auto', label: 'Desktop', icon: 'Monitor' },
+                    ]}
+                    iframe={{ enabled: true, syncHostStyles: false }}
+                    onChange={(data) => {
+                        current.current = data as BuilderData;
+                        setBuilderContent(data.content);
+                        setEnabledMethods(enabledPaymentMethods(data.content));
+                        setPresentComponents(presentRequiredComponents(data.content));
+                        setState('changed');
+                    }}
+                    onPublish={publish}
+                    renderHeader={({ children }) => (
+                        <header className="checkout-editor-header">
+                            <div className="flex min-w-0 items-center gap-3">
+                                <ButtonLink
+                                    href="/checkouts"
+                                    variant="icon"
+                                    aria-label="Voltar para checkouts"
+                                    className="size-9 shrink-0 rounded-xl"
+                                >
+                                    <Icon name="arrow-right" className="size-3.5 rotate-180" />
+                                </ButtonLink>
+                                <div className="min-w-0">
+                                    <p className="truncate text-[13px] font-semibold tracking-[-0.015em] text-foreground">
+                                        {checkout.name}
                                     </p>
-                                    <span
-                                        className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold ${state === 'error' ? 'bg-[#fff2f4] text-danger' : state === 'published' ? 'bg-[#e8f7f1] text-success' : 'bg-surface-muted text-muted'}`}
-                                    >
-                                        {statusLabel(state)}
-                                    </span>
+                                    <div className="mt-0.5 flex items-center gap-2">
+                                        <p className="truncate text-[10px] text-muted">
+                                            /{checkout.slug}
+                                        </p>
+                                        <span
+                                            className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold ${state === 'error' ? 'bg-[#fff2f4] text-danger' : state === 'published' ? 'bg-[#e8f7f1] text-success' : 'bg-surface-muted text-muted'}`}
+                                        >
+                                            {statusLabel(state)}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="ml-auto flex shrink-0 items-center gap-2">{children}</div>
-                    </header>
-                )}
-                renderHeaderActions={() => (
-                    <>
-                        {(checkout.status === 'published' || state === 'published') && (
-                            <>
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    className="hidden h-9 rounded-xl px-3 text-[11px] md:inline-flex"
-                                    onClick={() => {
-                                        void navigator.clipboard.writeText(publicUrl);
-                                        showToast({
-                                            tone: 'success',
-                                            title: 'Link copiado',
-                                            description:
-                                                'O link público do checkout foi copiado.',
-                                        });
-                                    }}
-                                >
-                                    <Icon name="link" className="size-3.5" /> Copiar link
-                                </Button>
-                                <a
-                                    href={publicUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className={buttonClassName(
-                                        'secondary',
-                                        'h-9 rounded-xl px-3 text-[11px]',
-                                    )}
-                                >
-                                    Abrir checkout{' '}
-                                    <Icon name="arrow-right" className="size-3.5 -rotate-45" />
-                                </a>
-                            </>
-                        )}
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            className="h-9 rounded-xl px-3 text-[11px]"
-                            onClick={() => setPaymentSettingsOpen(true)}
-                        >
-                            <Icon
-                                name={readinessIssues.length === 0 ? 'check' : 'bolt'}
-                                className="size-3.5"
-                            />
-                            Prontidão
-                            {readinessIssues.length > 0 && (
-                                <span className="grid min-w-5 place-items-center rounded-full bg-warning/15 px-1.5 py-0.5 text-[9px] font-semibold text-warning">
-                                    {readinessIssues.length}
-                                </span>
+                            <div className="ml-auto flex shrink-0 items-center gap-2">
+                                {children}
+                            </div>
+                        </header>
+                    )}
+                    renderHeaderActions={() => (
+                        <>
+                            {(checkout.status === 'published' || state === 'published') && (
+                                <>
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        className="hidden h-9 rounded-xl px-3 text-[11px] md:inline-flex"
+                                        onClick={() => {
+                                            void navigator.clipboard.writeText(publicUrl);
+                                            showToast({
+                                                tone: 'success',
+                                                title: 'Link copiado',
+                                                description:
+                                                    'O link público do checkout foi copiado.',
+                                            });
+                                        }}
+                                    >
+                                        <Icon name="link" className="size-3.5" /> Copiar link
+                                    </Button>
+                                    <a
+                                        href={publicUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className={buttonClassName(
+                                            'secondary',
+                                            'h-9 rounded-xl px-3 text-[11px]',
+                                        )}
+                                    >
+                                        Abrir checkout{' '}
+                                        <Icon name="arrow-right" className="size-3.5 -rotate-45" />
+                                    </a>
+                                </>
                             )}
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            className="h-9 rounded-xl px-3 text-[11px]"
-                            disabled={state === 'saving'}
-                            onClick={() => void openPreview()}
-                        >
-                            <Icon name="layout" className="size-3.5" /> Preview
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            className="hidden h-9 rounded-xl px-3 text-[11px] sm:inline-flex"
-                            disabled={state === 'saving'}
-                            onClick={() => void save()}
-                        >
-                            Salvar
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="primary"
-                            className="h-9 rounded-xl px-3.5 text-[11px]"
-                            disabled={state === 'saving'}
-                            onClick={() => void publish(current.current)}
-                        >
-                            Publicar
-                        </Button>
-                    </>
-                )}
-            />
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                className="h-9 rounded-xl px-3 text-[11px]"
+                                onClick={() => setPaymentSettingsOpen(true)}
+                            >
+                                <Icon
+                                    name={readinessIssues.length === 0 ? 'check' : 'bolt'}
+                                    className="size-3.5"
+                                />
+                                Prontidão
+                                {readinessIssues.length > 0 && (
+                                    <span className="grid min-w-5 place-items-center rounded-full bg-warning/15 px-1.5 py-0.5 text-[9px] font-semibold text-warning">
+                                        {readinessIssues.length}
+                                    </span>
+                                )}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                className="h-9 rounded-xl px-3 text-[11px]"
+                                disabled={state === 'saving'}
+                                onClick={() => void openPreview()}
+                            >
+                                <Icon name="layout" className="size-3.5" /> Preview
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                className="hidden h-9 rounded-xl px-3 text-[11px] sm:inline-flex"
+                                disabled={state === 'saving'}
+                                onClick={() => void save()}
+                            >
+                                Salvar
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="primary"
+                                className="h-9 rounded-xl px-3.5 text-[11px]"
+                                disabled={state === 'saving'}
+                                onClick={() => void publish(current.current)}
+                            >
+                                Publicar
+                            </Button>
+                        </>
+                    )}
+                />
+            </CheckoutBuilderMediaContext.Provider>
             <PaymentGatewaySettings
                 open={paymentSettingsOpen}
                 environment={environment}

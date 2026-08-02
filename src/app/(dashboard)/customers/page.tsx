@@ -7,7 +7,14 @@ import type { Customer } from '@/lib/api/types';
 export default async function CustomersPage() {
     const [customers, orders] = await Promise.all([
         apiFetch<Customer[]>('/api/v1/customers'),
-        apiFetch<Array<{ customerId: string; paidMinor: number; paidAt: string | null; placedAt: string }>>('/api/v1/orders'),
+        apiFetch<
+            Array<{
+                customerId: string;
+                paidMinor: number;
+                paidAt: string | null;
+                placedAt: string;
+            }>
+        >('/api/v1/orders'),
     ]);
     const purchaseDates = new Map<string, string[]>();
     for (const order of orders) {

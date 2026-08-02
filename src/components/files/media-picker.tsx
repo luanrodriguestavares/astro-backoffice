@@ -118,7 +118,7 @@ export function MediaPicker({
                                     Nenhuma imagem encontrada
                                 </p>
                                 <p className="mt-1 text-[12px] text-muted">
-                                    Envie uma nova imagem no formulário do produto.
+                                    Envie uma nova imagem na biblioteca de conteúdo.
                                 </p>
                             </div>
                         </div>

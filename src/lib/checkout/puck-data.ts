@@ -25,7 +25,6 @@ const supported = new Set<CheckoutSectionType>([
     'spacer_divider',
     'product_summary',
     'checkout_form',
-    'order_summary',
     'payment_methods',
     'card_payment',
     'pix_payment',
@@ -57,7 +56,10 @@ export function documentToPuck(document: CheckoutDocument): BuilderData {
                 maxWidth: widthValue(layout.maxWidth),
                 componentGap: sizeValue(layout.componentGap),
                 pagePadding: sizeValue(layout.pagePadding, 'lg'),
-                inputGroupStyle: inputGroupStyleValue(layout.inputGroupStyle),
+                inputGroupStyle:
+                    componentBackgroundStyleValue(layout.componentBackgroundStyle) === 'transparent'
+                        ? 'outlined'
+                        : 'filled',
                 componentBackgroundStyle: componentBackgroundStyleValue(
                     layout.componentBackgroundStyle,
                 ),
@@ -99,7 +101,10 @@ export function puckToDocument(data: BuilderData, previous: CheckoutDocument): C
             maxWidth: widthValue(root.maxWidth),
             componentGap: sizeValue(root.componentGap),
             pagePadding: sizeValue(root.pagePadding, 'lg'),
-            inputGroupStyle: inputGroupStyleValue(root.inputGroupStyle),
+            inputGroupStyle:
+                componentBackgroundStyleValue(root.componentBackgroundStyle) === 'transparent'
+                    ? 'outlined'
+                    : 'filled',
             componentBackgroundStyle: componentBackgroundStyleValue(root.componentBackgroundStyle),
             componentBorderStyle: componentBorderStyleValue(root.componentBorderStyle),
             componentShadowMode: componentShadowModeValue(root.componentShadowMode),
@@ -112,6 +117,12 @@ export function puckToDocument(data: BuilderData, previous: CheckoutDocument): C
                 const id =
                     typeof props.id === 'string' ? props.id : `${component.type}-${index + 1}`;
                 delete props.id;
+                if (component.type === 'product_summary') {
+                    delete props.buttonAction;
+                    delete props.buttonUrl;
+                    delete props.buttonSectionId;
+                    delete props.buttonNewTab;
+                }
                 return { id, type: component.type as CheckoutSectionType, visible: true, props };
             }),
         settings: previous.settings,
@@ -210,10 +221,6 @@ function widthValue(value: unknown): BuilderRootProps['maxWidth'] {
     return 'lg';
 }
 
-function inputGroupStyleValue(value: unknown): BuilderRootProps['inputGroupStyle'] {
-    return value === 'outlined' ? 'outlined' : 'filled';
-}
-
 function componentBackgroundStyleValue(
     value: unknown,
 ): BuilderRootProps['componentBackgroundStyle'] {
@@ -237,9 +244,8 @@ function migrateDefaultTitles(type: CheckoutSectionType, props: Record<string, u
     const replacements: Partial<Record<CheckoutSectionType, Record<string, string>>> = {
         product_summary: { 'Resumo da sua compra': 'Itens do carrinho' },
         checkout_form: { 'Seus dados': 'Dados pessoais' },
-        order_summary: { 'Total do pedido': 'Resumo do pedido' },
         payment_methods: { 'Como você quer pagar?': 'Formas de pagamento' },
-        card_payment: { 'Dados do cartão': 'Dados de pagamento' },
+        card_payment: { 'Dados de pagamento': 'Dados do cartão' },
         shipping_address: { 'Endereço de entrega': 'Dados de entrega' },
         shipping_methods: { 'Escolha a entrega': 'Frete' },
     };

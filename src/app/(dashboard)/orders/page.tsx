@@ -31,10 +31,30 @@ export default async function OrdersPage() {
                 description="Entenda o que foi comprado, por quem e a situação comercial de cada venda."
             />
             <section className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <SummaryCard label="Valor dos pedidos" value={money(total, currency)} detail={`${orders.length} pedidos realizados`} icon="cart" />
-                <SummaryCard label="Pedidos pagos" value={percentage(orders.length ? completed / orders.length : 0)} detail={`${completed} pagos integralmente`} icon="check" />
-                <SummaryCard label="Saldo a receber" value={money(outstanding, currency)} detail={`${money(paid, currency)} já recebidos`} icon="clock" />
-                <SummaryCard label="Descontos concedidos" value={money(discounts, currency)} detail={`${money(refunded, currency)} reembolsados`} icon="tag" />
+                <SummaryCard
+                    label="Valor dos pedidos"
+                    value={money(total, currency)}
+                    detail={`${orders.length} pedidos realizados`}
+                    icon="cart"
+                />
+                <SummaryCard
+                    label="Pedidos pagos"
+                    value={percentage(orders.length ? completed / orders.length : 0)}
+                    detail={`${completed} pagos integralmente`}
+                    icon="check"
+                />
+                <SummaryCard
+                    label="Saldo a receber"
+                    value={money(outstanding, currency)}
+                    detail={`${money(paid, currency)} já recebidos`}
+                    icon="clock"
+                />
+                <SummaryCard
+                    label="Descontos concedidos"
+                    value={money(discounts, currency)}
+                    detail={`${money(refunded, currency)} reembolsados`}
+                    icon="tag"
+                />
             </section>
             <OrdersTable orders={orders} customers={customers} payments={payments} />
         </>
@@ -42,5 +62,7 @@ export default async function OrdersPage() {
 }
 
 function percentage(value: number) {
-    return new Intl.NumberFormat('pt-BR', { style: 'percent', maximumFractionDigits: 1 }).format(value);
+    return new Intl.NumberFormat('pt-BR', { style: 'percent', maximumFractionDigits: 1 }).format(
+        value,
+    );
 }

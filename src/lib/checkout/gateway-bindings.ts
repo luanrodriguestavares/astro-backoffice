@@ -10,6 +10,7 @@ export const requiredCheckoutComponents = [
     'checkout_form',
     'payment_methods',
 ] as const;
+
 export type RequiredCheckoutComponent = (typeof requiredCheckoutComponents)[number];
 
 export function connectionSupports(
@@ -80,10 +81,7 @@ export function checkoutReadinessIssues({
             issues.push(`payment:${method}:unavailable`);
             continue;
         }
-        if (
-            environment === 'production' &&
-            !candidates.some(({ id }) => id === bindings[method])
-        )
+        if (environment === 'production' && !candidates.some(({ id }) => id === bindings[method]))
             issues.push(`payment:${method}:binding`);
     }
     return issues;

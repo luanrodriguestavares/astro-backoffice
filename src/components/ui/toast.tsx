@@ -42,6 +42,7 @@ export function ToastViewport() {
             const item = (event as CustomEvent<ToastItem>).detail;
             setItems((current) => [...current.slice(-3), item]);
         }
+
         window.addEventListener(toastEvent, receive);
         return () => window.removeEventListener(toastEvent, receive);
     }, []);

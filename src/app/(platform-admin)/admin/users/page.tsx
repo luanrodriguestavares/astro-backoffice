@@ -57,7 +57,8 @@ export default async function AdminUsersPage({
             </form>
             <div className="mb-3 flex justify-end">
                 <p className="text-[10px] font-medium text-muted">
-                    {result.total} {result.total === 1 ? 'usuário encontrado' : 'usuários encontrados'}
+                    {result.total}{' '}
+                    {result.total === 1 ? 'usuário encontrado' : 'usuários encontrados'}
                 </p>
             </div>
             <UserAdminTable users={result.items} />

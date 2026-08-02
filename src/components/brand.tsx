@@ -1,6 +1,12 @@
 import Link from 'next/link';
 
-export function Brand({ compact = false, href = '/dashboard' }: { compact?: boolean; href?: string }) {
+export function Brand({
+    compact = false,
+    href = '/dashboard',
+}: {
+    compact?: boolean;
+    href?: string;
+}) {
     return (
         <Link href={href} className="inline-flex items-center gap-2.5" aria-label="Astro">
             <span className="grid size-9 place-items-center text-brand drop-shadow-[0_6px_12px_rgba(109,93,244,.22)]">

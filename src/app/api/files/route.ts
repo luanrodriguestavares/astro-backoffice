@@ -29,10 +29,7 @@ export async function POST(request: Request) {
                     : error.problem.code === 'FILE_STORAGE_QUOTA_EXCEEDED'
                       ? 'O limite de armazenamento da organização foi atingido.'
                       : problem.detail;
-            return NextResponse.json(
-                { ...problem, detail },
-                { status: error.problem.status },
-            );
+            return NextResponse.json({ ...problem, detail }, { status: error.problem.status });
         }
         return NextResponse.json({ detail: 'Não foi possível enviar a imagem.' }, { status: 500 });
     }

@@ -329,7 +329,11 @@ export function CheckoutManager({
                                         >
                                             Voltar
                                         </Button>
-                                        <Button variant="primary" disabled={loading} className="px-6">
+                                        <Button
+                                            variant="primary"
+                                            disabled={loading}
+                                            className="px-6"
+                                        >
                                             {loading ? 'Criando...' : 'Criar e abrir editor'}
                                         </Button>
                                     </div>
@@ -423,9 +427,7 @@ export function CheckoutManager({
                                 >
                                     Fechar
                                 </Button>
-                                <ButtonLink href="/products">
-                                    Cadastrar produto
-                                </ButtonLink>
+                                <ButtonLink href="/products">Cadastrar produto</ButtonLink>
                             </div>
                         </section>
                     </div>,

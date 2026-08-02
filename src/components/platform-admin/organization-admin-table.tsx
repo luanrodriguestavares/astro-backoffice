@@ -129,10 +129,13 @@ export function OrganizationAdminTable({
                                     <td className="px-5 py-4">
                                         <div>
                                             <AdminBadge
-                                                status={organization.subscriptionStatus ?? 'unknown'}
+                                                status={
+                                                    organization.subscriptionStatus ?? 'unknown'
+                                                }
                                             />
                                             <p className="mt-1.5 text-[10px] text-muted">
-                                                Ciclo até {formatAdminDate(organization.periodEndsAt)}
+                                                Ciclo até{' '}
+                                                {formatAdminDate(organization.periodEndsAt)}
                                             </p>
                                         </div>
                                     </td>
@@ -145,7 +148,10 @@ export function OrganizationAdminTable({
                                             <Button
                                                 variant="ghost"
                                                 onClick={() =>
-                                                    setDialog({ kind: 'subscription', organization })
+                                                    setDialog({
+                                                        kind: 'subscription',
+                                                        organization,
+                                                    })
                                                 }
                                             >
                                                 Assinatura
@@ -258,7 +264,9 @@ function OrganizationDialog({
                                 <Field label="Status da assinatura">
                                     <CustomSelect
                                         name="subscriptionStatus"
-                                        defaultValue={dialog.organization.subscriptionStatus ?? 'active'}
+                                        defaultValue={
+                                            dialog.organization.subscriptionStatus ?? 'active'
+                                        }
                                         options={[
                                             { value: 'trialing', label: 'Em teste' },
                                             { value: 'active', label: 'Ativa' },
@@ -304,12 +312,21 @@ function OrganizationDialog({
                         />
                     </Field>
                     <div className="flex justify-end gap-2 pt-2">
-                        <Button type="button" variant="secondary" disabled={pending} onClick={onClose}>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            disabled={pending}
+                            onClick={onClose}
+                        >
                             Cancelar
                         </Button>
                         <Button
                             type="submit"
-                            variant={statusChange && dialog.organization.status === 'active' ? 'danger' : 'primary'}
+                            variant={
+                                statusChange && dialog.organization.status === 'active'
+                                    ? 'danger'
+                                    : 'primary'
+                            }
                             className="h-11 px-5"
                             disabled={pending}
                         >

@@ -185,13 +185,7 @@ export type GatewayDatum = {
     value: number;
 };
 
-const gatewayColors = [
-    'var(--brand)',
-    'var(--brand-strong)',
-    '#67b9aa',
-    '#9ba4b9',
-    '#c8ccd7',
-];
+const gatewayColors = ['var(--brand)', 'var(--brand-strong)', '#67b9aa', '#9ba4b9', '#c8ccd7'];
 
 export function GatewayDonut({ data, currency }: { data: GatewayDatum[]; currency: string }) {
     const total = data.reduce((sum, item) => sum + item.value, 0);

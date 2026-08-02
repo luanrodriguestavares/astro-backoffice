@@ -1,16 +1,9 @@
-import {
-    AdminBadge,
-    AdminEmpty,
-    formatAdminDate,
-} from '@/components/platform-admin/admin-ui';
+import { AdminBadge, AdminEmpty, formatAdminDate } from '@/components/platform-admin/admin-ui';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { PageHeader } from '@/components/ui/page-header';
 import { apiFetch } from '@/lib/api/server';
-import type {
-    PaginatedAdminResult,
-    PlatformAdminAuditEntry,
-} from '@/lib/api/types';
+import type { PaginatedAdminResult, PlatformAdminAuditEntry } from '@/lib/api/types';
 
 export default async function AdminAuditPage({
     searchParams,
@@ -52,7 +45,8 @@ export default async function AdminAuditPage({
             <section className="glass-panel overflow-hidden rounded-[26px]">
                 <header className="flex items-center justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
                     <p className="text-[11px] text-muted">
-                        {result.total} {result.total === 1 ? 'evento registrado' : 'eventos registrados'}
+                        {result.total}{' '}
+                        {result.total === 1 ? 'evento registrado' : 'eventos registrados'}
                     </p>
                     <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-success">
                         <Icon name="check" className="size-3" />

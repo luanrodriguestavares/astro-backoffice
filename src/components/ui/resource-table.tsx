@@ -72,7 +72,10 @@ export function ResourceTable<T>({
                                 <tr
                                     key={String((row as { id?: string }).id ?? index)}
                                     data-resource-row
-                                    data-search={columns.map((column) => String(column.value(row) ?? '')).join(' ').toLocaleLowerCase('pt-BR')}
+                                    data-search={columns
+                                        .map((column) => String(column.value(row) ?? ''))
+                                        .join(' ')
+                                        .toLocaleLowerCase('pt-BR')}
                                     className="text-[13px] transition hover:bg-white/34"
                                 >
                                     {columns.map((column) => (
@@ -91,7 +94,9 @@ export function ResourceTable<T>({
                     </table>
                 </div>
             )}
-            {rows.length > 0 && <ResourceTableControls tableId={tableId} total={rows.length} position="bottom" />}
+            {rows.length > 0 && (
+                <ResourceTableControls tableId={tableId} total={rows.length} position="bottom" />
+            )}
         </section>
     );
 }
@@ -111,9 +116,7 @@ export function SummaryCard({
         <article className="summary-card glass-panel relative min-h-[132px] rounded-[22px] p-5">
             <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                    <p className="summary-card-label text-[12px] font-medium text-muted">
-                        {label}
-                    </p>
+                    <p className="summary-card-label text-[12px] font-medium text-muted">{label}</p>
                     <p className="summary-card-value mt-2.5 truncate text-[25px] font-semibold tracking-[-0.05em] text-foreground">
                         {value}
                     </p>

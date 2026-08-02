@@ -25,9 +25,11 @@ export function ProfileMenu({
         function outside(event: PointerEvent) {
             if (!root.current?.contains(event.target as Node)) setOpen(false);
         }
+
         function escape(event: KeyboardEvent) {
             if (event.key === 'Escape') setOpen(false);
         }
+
         window.addEventListener('pointerdown', outside);
         window.addEventListener('keydown', escape);
         return () => {

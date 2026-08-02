@@ -148,7 +148,6 @@ export function CustomerCreate() {
                     </div>,
                     document.body,
                 )}
-
         </>
     );
 }

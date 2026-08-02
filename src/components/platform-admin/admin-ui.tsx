@@ -36,13 +36,7 @@ export function AdminMetric({
     );
 }
 
-export function AdminBadge({
-    status,
-    children,
-}: {
-    status: string;
-    children?: React.ReactNode;
-}) {
+export function AdminBadge({ status, children }: { status: string; children?: React.ReactNode }) {
     const good = ['active', 'approved', 'published', 'trialing'].includes(status);
     const bad = ['blocked', 'suspended', 'closed', 'canceled'].includes(status);
     const warning = ['past_due', 'pending', 'invited'].includes(status);

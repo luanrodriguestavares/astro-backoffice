@@ -75,10 +75,7 @@ export default async function DashboardPage() {
                 }
                 description="Acompanhe e gerencie sua operação de pagamentos."
                 actions={
-                    <ButtonLink
-                        href="/checkouts"
-                        className="h-12 gap-3"
-                    >
+                    <ButtonLink href="/checkouts" className="h-12 gap-3">
                         <Icon name="plus" className="size-4" />
                         Criar checkout
                         <Icon
@@ -255,10 +252,7 @@ function OnboardingCard({
                     <SetupStep done={hasGateway} label="Gateway conectado" href="/gateways" />
                     <SetupStep done={hasProduct} label="Produto cadastrado" href="/products" />
                 </ol>
-                <ButtonLink
-                    href={nextAction.href}
-                    className="mt-5 w-full rounded-full px-4"
-                >
+                <ButtonLink href={nextAction.href} className="mt-5 w-full rounded-full px-4">
                     {nextAction.label}
                     <Icon name="arrow-right" className="size-3.5" />
                 </ButtonLink>

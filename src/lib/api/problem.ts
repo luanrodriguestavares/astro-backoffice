@@ -21,8 +21,7 @@ export function clientProblem(problem: ProblemDetails) {
 
 function translatedDetail(problem: ProblemDetails): string {
     if (problem.code !== 'PLAN_LIMIT_EXCEEDED') return problem.detail;
-    const feature =
-        typeof problem.meta?.feature === 'string' ? problem.meta.feature : 'recurso';
+    const feature = typeof problem.meta?.feature === 'string' ? problem.meta.feature : 'recurso';
     const label = featureLabels[feature] ?? feature;
     const plan =
         typeof problem.meta?.planName === 'string' ? problem.meta.planName : 'seu plano atual';

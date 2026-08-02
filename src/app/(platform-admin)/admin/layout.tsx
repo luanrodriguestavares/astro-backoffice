@@ -19,10 +19,7 @@ async function adminContext() {
     } catch (error) {
         if (error instanceof AstroApiError && error.problem.status === 401)
             redirect('/login?expired=1');
-        if (
-            error instanceof AstroApiError &&
-            [403, 404].includes(error.problem.status)
-        )
+        if (error instanceof AstroApiError && [403, 404].includes(error.problem.status))
             redirect('/login?error=Acesso administrativo necessário.');
         throw error;
     }
