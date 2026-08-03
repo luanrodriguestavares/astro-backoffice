@@ -16,6 +16,7 @@ export type IconName =
     | 'plus'
     | 'search'
     | 'eye'
+    | 'eye-off'
     | 'check'
     | 'dots'
     | 'layout'
@@ -137,6 +138,14 @@ const paths: Record<IconName, React.ReactNode> = {
         <>
             <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
             <circle cx="12" cy="12" r="2.5" />
+        </>
+    ),
+    'eye-off': (
+        <>
+            <path d="M3 3l18 18" />
+            <path d="M10.6 10.7a2 2 0 0 0 2.7 2.7" />
+            <path d="M9.9 4.2A10.8 10.8 0 0 1 12 4c5.5 0 9 5.5 9 8a11.8 11.8 0 0 1-2.1 3.5" />
+            <path d="M6.6 6.6C4.3 8.1 3 10.5 3 12c0 2.5 3.5 8 9 8a10.4 10.4 0 0 0 4.1-.8" />
         </>
     ),
     check: (

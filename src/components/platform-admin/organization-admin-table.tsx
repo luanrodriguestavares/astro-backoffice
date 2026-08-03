@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 
@@ -23,9 +23,11 @@ type Dialog =
 export function OrganizationAdminTable({
     organizations,
     plans,
+    footer,
 }: {
     organizations: PlatformAdminOrganization[];
     plans: PlatformAdminPlan[];
+    footer?: ReactNode;
 }) {
     const router = useRouter();
     const [dialog, setDialog] = useState<Dialog>(null);
@@ -178,6 +180,7 @@ export function OrganizationAdminTable({
                         </tbody>
                     </table>
                 </div>
+                {footer}
             </section>
 
             {dialog &&

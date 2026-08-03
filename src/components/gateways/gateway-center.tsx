@@ -59,10 +59,12 @@ export function GatewayCenter({
     connections,
     payments,
     gateways,
+    canReadPayments,
 }: {
     connections: GatewayConnection[];
     payments: Payment[];
     gateways: GatewayDefinition[];
+    canReadPayments: boolean;
 }) {
     const [filter, setFilter] = useState<Filter>('all');
     const [query, setQuery] = useState('');
@@ -110,8 +112,8 @@ export function GatewayCenter({
                         </Button>
                     ))}
                 </div>
-                <label className="gateway-search filter-control mt-2 flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#d9d7e8] bg-white/70 px-3.5 transition focus-within:border-brand/70 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(109,93,244,.16)] sm:mt-0 sm:max-w-[310px]">
-                    <Icon name="search" className="size-3.5 shrink-0 text-muted" />
+                <label className="gateway-search filter-control mt-2 flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-[var(--control-bg)] px-3.5 transition hover:border-brand/30 focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)] sm:mt-0 sm:max-w-[310px]">
+                    <Icon name="search" className="size-3.5 shrink-0 text-brand/70" />
                     <input
                         value={query}
                         onChange={(event) => setQuery(event.target.value)}
@@ -141,6 +143,7 @@ export function GatewayCenter({
                                 key={connection.id}
                                 connection={connection}
                                 metrics={metrics.get(connection.id)}
+                                canReadPayments={canReadPayments}
                             />
                         ))}
                         {visibleConnections.length === 0 && (

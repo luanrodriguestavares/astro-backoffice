@@ -10,17 +10,50 @@ import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 import { showToast } from '@/components/ui/toast';
 import { useEscapeClose } from '@/hooks/use-escape-close';
+import type { InvitableRole } from '@/lib/api/types';
 
-export function InviteMember() {
+export const roleDescriptions: Record<InvitableRole['code'], string> = {
+    administrator: 'Administra toda a operação, equipe, integrações e plano da workspace.',
+    developer: 'Cuida de produtos, checkouts, gateways, webhooks, API e analytics.',
+    finance: 'Acessa pagamentos, reembolsos, assinaturas e faturas.',
+    editor: 'Cria produtos e publica checkouts, sem acesso financeiro.',
+    support: 'Consulta produtos, pagamentos, assinaturas e faturas, sem alterar dados.',
+    viewer: 'Visão somente leitura dos dados comerciais e financeiros.',
+};
+
+export const permissionLabels: Record<string, string> = {
+    'products.read': 'Ver produtos e checkouts',
+    'products.write': 'Criar e editar produtos',
+    'checkouts.publish': 'Publicar checkouts',
+    'gateway_connections.manage': 'Gerenciar gateways',
+    'payments.read': 'Ver pagamentos e pedidos',
+    'payments.refund': 'Realizar reembolsos',
+    'subscriptions.read': 'Ver assinaturas',
+    'subscriptions.create': 'Criar assinaturas',
+    'subscriptions.cancel': 'Cancelar assinaturas',
+    'subscriptions.pause': 'Pausar assinaturas',
+    'subscriptions.change_plan': 'Alterar planos de assinatura',
+    'invoices.read': 'Ver faturas',
+    'webhooks.manage': 'Gerenciar webhooks',
+    'members.manage': 'Gerenciar equipe',
+    'audit.read': 'Consultar auditoria',
+    'api_keys.manage': 'Gerenciar chaves de API',
+    'analytics.read': 'Consultar analytics',
+    'platform_billing.manage': 'Gerenciar plano Astro',
+};
+
+export function InviteMember({ roles }: { roles: InvitableRole[] }) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [token, setToken] = useState<string>();
+    const [invitationLink, setInvitationLink] = useState<string>();
+    const [selectedRole, setSelectedRole] = useState(roles[0]?.code ?? 'viewer');
+    const role = roles.find(({ code }) => code === selectedRole);
 
     function close() {
         if (loading) return;
         setOpen(false);
-        setToken(undefined);
+        setInvitationLink(undefined);
     }
 
     useEscapeClose(open, close);
@@ -46,11 +79,18 @@ export function InviteMember() {
             });
             return;
         }
-        setToken(body.data?.developmentToken);
+        const developmentToken = body.data?.developmentToken;
+        if (developmentToken) {
+            const url = new URL('/invitation', window.location.origin);
+            url.searchParams.set('token', developmentToken);
+            setInvitationLink(url.toString());
+        }
         showToast({
             tone: 'success',
-            title: 'Convite enviado',
-            description: 'O novo membro foi convidado para o workspace.',
+            title: developmentToken ? 'Convite criado' : 'Convite enviado',
+            description: developmentToken
+                ? 'Copie o link e envie diretamente para o novo membro.'
+                : 'O novo membro foi convidado para o workspace.',
         });
         router.refresh();
         if (!body.data?.developmentToken) close();
@@ -96,16 +136,34 @@ export function InviteMember() {
                                     <Icon name="close" className="size-4" />
                                 </Button>
                             </div>
-                            {token ? (
+                            {invitationLink ? (
                                 <>
                                     <p className="mt-6 text-[13px] leading-5 text-muted">
-                                        Em ambiente local, compartilhe este token com o convidado.
-                                        Ele é exibido somente agora.
+                                        O envio de e-mail está simulado. Compartilhe este link com o
+                                        convidado; ele é exibido somente agora.
                                     </p>
-                                    <code className="mt-3 block overflow-x-auto rounded-xl border border-border bg-[var(--control-bg)] p-3 text-xs">
-                                        {token}
-                                    </code>
-                                    <div className="mt-6 flex justify-end">
+                                    <a
+                                        href={invitationLink}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="mt-3 block break-all rounded-xl border border-border bg-[var(--control-bg)] p-3 text-xs text-brand-strong hover:border-brand/40"
+                                    >
+                                        {invitationLink}
+                                    </a>
+                                    <div className="mt-6 flex flex-wrap justify-end gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            onClick={async () => {
+                                                await navigator.clipboard.writeText(invitationLink);
+                                                showToast({
+                                                    tone: 'success',
+                                                    description: 'Link copiado.',
+                                                });
+                                            }}
+                                        >
+                                            Copiar link
+                                        </Button>
                                         <Button type="button" variant="primary" onClick={close}>
                                             Concluir
                                         </Button>
@@ -129,16 +187,40 @@ export function InviteMember() {
                                             <div className="mt-2">
                                                 <CustomSelect
                                                     name="role"
-                                                    defaultValue="admin"
-                                                    options={[
-                                                        { value: 'admin', label: 'Administrador' },
-                                                        { value: 'finance', label: 'Financeiro' },
-                                                        { value: 'support', label: 'Suporte' },
-                                                        { value: 'viewer', label: 'Leitura' },
-                                                    ]}
+                                                    value={selectedRole}
+                                                    onValueChange={(value) =>
+                                                        setSelectedRole(
+                                                            value as InvitableRole['code'],
+                                                        )
+                                                    }
+                                                    options={roles.map((item) => ({
+                                                        value: item.code,
+                                                        label: roleLabel(item.code),
+                                                    }))}
                                                 />
                                             </div>
                                         </label>
+                                        {role && (
+                                            <div className="rounded-2xl border border-brand/12 bg-brand-soft/35 p-4">
+                                                <p className="text-[12px] font-semibold text-brand-strong">
+                                                    {roleDescriptions[role.code]}
+                                                </p>
+                                                <p className="mt-3 text-[10px] font-semibold uppercase tracking-[.12em] text-muted">
+                                                    Permissões deste perfil
+                                                </p>
+                                                <ul className="mt-2 flex flex-wrap gap-1.5">
+                                                    {role.permissions.map((permission) => (
+                                                        <li
+                                                            key={permission}
+                                                            className="rounded-full border border-brand/12 bg-white/60 px-2.5 py-1 text-[10px] text-foreground"
+                                                        >
+                                                            {permissionLabels[permission] ??
+                                                                permission}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                         <Button
@@ -161,4 +243,15 @@ export function InviteMember() {
                 )}
         </>
     );
+}
+
+export function roleLabel(role: InvitableRole['code']) {
+    return {
+        administrator: 'Administrador',
+        developer: 'Desenvolvedor',
+        finance: 'Financeiro',
+        editor: 'Editor',
+        support: 'Suporte',
+        viewer: 'Leitura',
+    }[role];
 }

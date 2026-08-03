@@ -2,6 +2,7 @@ import { PaymentsTable } from '@/components/payments/payments-table';
 import { PageHeader } from '@/components/ui/page-header';
 import { SummaryCard } from '@/components/ui/resource-table';
 import { apiFetch } from '@/lib/api/server';
+import { currentPermissions } from '@/lib/auth/permissions';
 import type { Customer, GatewayConnection, Payment } from '@/lib/api/types';
 
 const successfulStatuses = ['approved', 'paid', 'captured', 'succeeded'];
@@ -12,10 +13,15 @@ export default async function PaymentsPage({
     searchParams: Promise<{ payment?: string }>;
 }) {
     const { payment: highlightedPaymentId } = await searchParams;
+    const permissions = await currentPermissions();
     const [payments, customers, gateways] = await Promise.all([
         apiFetch<Payment[]>('/api/v1/payments'),
-        apiFetch<Customer[]>('/api/v1/customers'),
-        apiFetch<GatewayConnection[]>('/api/v1/gateway-connections'),
+        permissions.has('products.read')
+            ? apiFetch<Customer[]>('/api/v1/customers')
+            : Promise.resolve([]),
+        permissions.has('gateway_connections.manage')
+            ? apiFetch<GatewayConnection[]>('/api/v1/gateway-connections')
+            : Promise.resolve([]),
     ]);
     const currency = payments[0]?.currency ?? 'BRL';
     const approved = payments.filter((payment) => successfulStatuses.includes(payment.status));

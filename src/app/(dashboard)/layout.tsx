@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation';
 
 import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { apiFetch, AstroApiError } from '@/lib/api/server';
-import type { CurrentUser, Organization } from '@/lib/api/types';
+import { currentOrganization, currentUser } from '@/lib/auth/permissions';
+import type { Organization } from '@/lib/api/types';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const { user, organization, organizations } = await dashboardContext();
@@ -16,8 +17,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
 async function dashboardContext() {
     try {
         const [user, organization, organizations] = await Promise.all([
-            apiFetch<CurrentUser>('/api/v1/auth/me'),
-            apiFetch<Organization>('/api/v1/organizations/current'),
+            currentUser(),
+            currentOrganization(),
             apiFetch<Organization[]>('/api/v1/organizations'),
         ]);
         return { user, organization, organizations };

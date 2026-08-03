@@ -1,7 +1,10 @@
 import { CouponCreate } from '@/components/coupons/coupon-create';
+import { CouponScopeEdit } from '@/components/coupons/coupon-scope-edit';
 import { PageHeader } from '@/components/ui/page-header';
 import { ResourceTable, SummaryCard, date, money } from '@/components/ui/resource-table';
 import { apiFetch } from '@/lib/api/server';
+import { currentPermissions } from '@/lib/auth/permissions';
+import type { Checkout, Product } from '@/lib/api/types';
 
 type Coupon = {
     id: string;
@@ -12,10 +15,18 @@ type Coupon = {
     currency: string | null;
     status: string;
     expiresAt: string | null;
+    version: number;
+    scope: { type: 'checkout' | 'product'; id: string; name: string } | null;
 };
 
 export default async function CouponsPage() {
-    const coupons = await apiFetch<Coupon[]>('/api/v1/coupons');
+    const permissions = await currentPermissions();
+    const canWrite = permissions.has('products.write');
+    const [coupons, checkouts, products] = await Promise.all([
+        apiFetch<Coupon[]>('/api/v1/coupons'),
+        apiFetch<Checkout[]>('/api/v1/checkouts'),
+        apiFetch<Product[]>('/api/v1/products?limit=100'),
+    ]);
     const active = coupons.filter((coupon) => coupon.status === 'active');
     const expiring = active.filter((coupon) => coupon.expiresAt !== null);
     return (
@@ -24,7 +35,22 @@ export default async function CouponsPage() {
                 eyebrow="Vendas"
                 title="Cupons"
                 description="Consulte promoções e regras de desconto disponíveis nos checkouts."
-                actions={<CouponCreate />}
+                help={{
+                    title: 'Como usar cupons',
+                    content: (
+                        <p>
+                            Ao criar, escolha um checkout ou produto. O código só será aceito nesse
+                            escopo. O checkout também precisa conter o componente{' '}
+                            <strong className="font-semibold text-foreground">
+                                Campo de cupom
+                            </strong>
+                            .
+                        </p>
+                    ),
+                }}
+                actions={
+                    canWrite ? <CouponCreate checkouts={checkouts} products={products} /> : undefined
+                }
             />
             <section className="mb-4 grid gap-3 sm:grid-cols-3">
                 <SummaryCard
@@ -62,6 +88,24 @@ export default async function CouponsPage() {
                                 : money(row.discountValue, row.currency ?? 'BRL'),
                     },
                     { label: 'Status', value: (row) => row.status },
+                    {
+                        label: 'Aplicado em',
+                        value: (row) =>
+                            row.scope === null
+                                ? 'Sem escopo — indisponível'
+                                : `${row.scope.type === 'checkout' ? 'Checkout' : 'Produto'}: ${row.scope.name}`,
+                        ...(canWrite
+                            ? {
+                                  render: (row: Coupon) => (
+                                      <CouponScopeEdit
+                                          coupon={row}
+                                          checkouts={checkouts}
+                                          products={products}
+                                      />
+                                  ),
+                              }
+                            : {}),
+                    },
                     { label: 'Expira em', value: (row) => date(row.expiresAt) },
                 ]}
             />

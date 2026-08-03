@@ -5,14 +5,16 @@ import {
     RevenueAreaChart,
     type GatewayDatum,
 } from '@/components/dashboard/dashboard-charts';
+import { DashboardGreeting } from '@/components/dashboard/dashboard-greeting';
 import { ButtonLink } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { PageHeader } from '@/components/ui/page-header';
+import { PageHelp } from '@/components/ui/page-help';
 import { StatCard } from '@/components/ui/stat-card';
 import { apiFetch } from '@/lib/api/server';
+import { currentOrganization, currentUser } from '@/lib/auth/permissions';
 import type {
     Checkout,
-    CurrentUser,
     GatewayConnection,
     Payment,
     Product,
@@ -23,16 +25,30 @@ import type {
 const approvedStatuses = new Set(['approved', 'paid', 'captured', 'succeeded']);
 
 export default async function DashboardPage() {
-    const [user, payments, subscriptions, gateways, products, checkouts, refunds] =
-        await Promise.all([
-            apiFetch<CurrentUser>('/api/v1/auth/me'),
-            apiFetch<Payment[]>('/api/v1/payments'),
-            apiFetch<Subscription[]>('/api/v1/subscriptions'),
-            apiFetch<GatewayConnection[]>('/api/v1/gateway-connections'),
-            apiFetch<Product[]>('/api/v1/products?limit=100'),
-            apiFetch<Checkout[]>('/api/v1/checkouts'),
-            apiFetch<Refund[]>('/api/v1/refunds'),
-        ]);
+    const [user, organization] = await Promise.all([
+        currentUser(),
+        currentOrganization(),
+    ]);
+    const permissions = new Set(organization.permissions ?? []);
+    const canReadPayments = permissions.has('payments.read');
+    const canReadSubscriptions = permissions.has('subscriptions.read');
+    const canReadProducts = permissions.has('products.read');
+    const canWriteProducts = permissions.has('products.write');
+    const canManageGateways = permissions.has('gateway_connections.manage');
+    const [payments, subscriptions, gateways, products, checkouts, refunds] = await Promise.all([
+        canReadPayments ? apiFetch<Payment[]>('/api/v1/payments') : Promise.resolve([]),
+        canReadSubscriptions
+            ? apiFetch<Subscription[]>('/api/v1/subscriptions')
+            : Promise.resolve([]),
+        canManageGateways
+            ? apiFetch<GatewayConnection[]>('/api/v1/gateway-connections')
+            : Promise.resolve([]),
+        canReadProducts
+            ? apiFetch<Product[]>('/api/v1/products?limit=100')
+            : Promise.resolve([]),
+        canReadProducts ? apiFetch<Checkout[]>('/api/v1/checkouts') : Promise.resolve([]),
+        canReadPayments ? apiFetch<Refund[]>('/api/v1/refunds') : Promise.resolve([]),
+    ]);
 
     const approved = payments.filter((payment) => approvedStatuses.has(payment.status));
     const revenue = approved.reduce((sum, payment) => sum + capturedValue(payment), 0);
@@ -61,21 +77,29 @@ export default async function DashboardPage() {
         products,
         checkouts,
     });
+    const recentCheckouts = checkouts.toSorted(
+        (left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt),
+    );
 
     return (
         <div className="dashboard-home">
             <PageHeader
-                hero
-                eyebrow={`Bem-vindo de volta, ${firstName(user.name)}`}
+                prominentTitle
+                eyebrow={
+                    <DashboardGreeting
+                        name={firstName(user.name)}
+                        initialHour={currentHour('America/Fortaleza')}
+                    />
+                }
                 title={
                     <>
                         Suas vendas em{' '}
                         <span className="font-serif font-normal italic text-brand">órbita.</span>
                     </>
                 }
-                description="Acompanhe e gerencie sua operação de pagamentos."
-                actions={
-                    <ButtonLink href="/checkouts" className="h-12 gap-3">
+                description="Sua operação, sempre ao seu alcance."
+                actions={canWriteProducts ? (
+                    <ButtonLink href="/checkouts" className="gap-3">
                         <Icon name="plus" className="size-4" />
                         Criar checkout
                         <Icon
@@ -83,10 +107,10 @@ export default async function DashboardPage() {
                             className="size-3.5 opacity-70 transition-transform group-hover:translate-x-0.5"
                         />
                     </ButtonLink>
-                }
+                ) : undefined}
             />
 
-            <section
+            {canReadPayments ? <section
                 aria-label="Indicadores da operação"
                 className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
             >
@@ -134,9 +158,11 @@ export default async function DashboardPage() {
                     sparkline={valuesWithActivity(ticketTimeline)}
                     change={variation(currentPeriod.ticket, previousPeriod.ticket)}
                 />
-            </section>
+            </section> : (
+                <RestrictedOverview />
+            )}
 
-            <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,.95fr)]">
+            {canReadPayments && <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,.95fr)]">
                 <article className="glass-panel min-w-0 rounded-[28px] p-5 sm:p-6">
                     <div className="flex items-start justify-between gap-4">
                         <div>
@@ -144,9 +170,13 @@ export default async function DashboardPage() {
                                 <h2 className="text-sm font-semibold tracking-[-0.02em]">
                                     Receita ao longo do tempo
                                 </h2>
-                                <span className="grid size-4 place-items-center rounded-full border border-brand/15 text-[12px] font-semibold text-brand">
-                                    i
-                                </span>
+                                <PageHelp title="Receita ao longo do tempo" trigger="i" compact>
+                                    <p>
+                                        Mostra os valores aprovados e capturados. Clique e arraste
+                                        sobre o gráfico para selecionar um período e comparar o
+                                        total com o intervalo anterior.
+                                    </p>
+                                </PageHelp>
                             </div>
                             <p className="mt-1 text-[12px] text-muted">
                                 Valores aprovados e capturados
@@ -168,11 +198,13 @@ export default async function DashboardPage() {
                     />
                 </article>
 
-                {setupDone < 3 ? (
+                {(canManageGateways || canWriteProducts) && setupDone < 3 ? (
                     <OnboardingCard
                         setupDone={setupDone}
                         hasGateway={hasGateway}
                         hasProduct={hasProduct}
+                        canManageGateways={canManageGateways}
+                        canWriteProducts={canWriteProducts}
                     />
                 ) : (
                     <article className="glass-panel flex min-w-0 flex-col rounded-[28px] p-5 sm:p-6">
@@ -182,31 +214,58 @@ export default async function DashboardPage() {
                                     <h2 className="text-sm font-semibold tracking-[-0.02em]">
                                         Receita por gateway
                                     </h2>
-                                    <span className="grid size-4 place-items-center rounded-full border border-brand/15 text-[12px] font-semibold text-brand">
-                                        i
-                                    </span>
+                                    <PageHelp
+                                        title="Receita por gateway"
+                                        trigger="i"
+                                        compact
+                                        align="right"
+                                    >
+                                        <p>
+                                            Distribui a receita aprovada entre os gateways usados
+                                            para processar os pagamentos no período exibido.
+                                        </p>
+                                    </PageHelp>
                                 </div>
                                 <p className="mt-1 text-[12px] text-muted">
                                     Distribuição das vendas aprovadas
                                 </p>
                             </div>
-                            <Link
+                            {canManageGateways && <Link
                                 href="/gateways"
                                 className="dashboard-details-button rounded-xl border border-white/80 bg-white/40 px-3 py-2 text-[12px] font-semibold text-muted transition hover:text-brand-strong"
                             >
                                 Ver detalhes
-                            </Link>
+                            </Link>}
                         </div>
                         <GatewayDonut data={gatewayData} currency={currency} />
                     </article>
                 )}
-            </section>
+            </section>}
 
-            <section className="mt-4 grid gap-4 xl:grid-cols-2">
-                <RecentCheckouts checkouts={checkouts.slice(0, 4)} />
+            <section className={`mt-4 grid gap-4 ${canReadProducts ? 'xl:grid-cols-2' : ''}`}>
+                {canReadProducts && <RecentCheckouts checkouts={recentCheckouts.slice(0, 4)} />}
                 <RecentActivities activities={activities.slice(0, 5)} />
             </section>
         </div>
+    );
+}
+
+function RestrictedOverview() {
+    return (
+        <article className="glass-panel mt-4 rounded-[28px] p-5 sm:p-6">
+            <div className="flex items-start gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-brand-soft text-brand">
+                    <Icon name="user" className="size-4" />
+                </span>
+                <div>
+                    <h2 className="text-sm font-semibold">Visão operacional disponível</h2>
+                    <p className="mt-1 max-w-2xl text-[12px] leading-5 text-muted">
+                        Seu perfil não possui acesso aos indicadores financeiros. Os recursos e
+                        atividades autorizados continuam disponíveis abaixo e na navegação.
+                    </p>
+                </div>
+            </div>
+        </article>
     );
 }
 
@@ -214,12 +273,16 @@ function OnboardingCard({
     setupDone,
     hasGateway,
     hasProduct,
+    canManageGateways,
+    canWriteProducts,
 }: {
     setupDone: number;
     hasGateway: boolean;
     hasProduct: boolean;
+    canManageGateways: boolean;
+    canWriteProducts: boolean;
 }) {
-    const nextAction = !hasGateway
+    const nextAction = canManageGateways && !hasGateway
         ? { href: '/gateways', label: 'Conectar gateway' }
         : { href: '/products', label: 'Cadastrar produto' };
     return (
@@ -249,8 +312,16 @@ function OnboardingCard({
                 </div>
                 <ol className="mt-5 space-y-2">
                     <SetupStep done label="Conta criada" />
-                    <SetupStep done={hasGateway} label="Gateway conectado" href="/gateways" />
-                    <SetupStep done={hasProduct} label="Produto cadastrado" href="/products" />
+                    <SetupStep
+                        done={hasGateway}
+                        label="Gateway conectado"
+                        href={canManageGateways ? '/gateways' : undefined}
+                    />
+                    <SetupStep
+                        done={hasProduct}
+                        label="Produto cadastrado"
+                        href={canWriteProducts ? '/products' : undefined}
+                    />
                 </ol>
                 <ButtonLink href={nextAction.href} className="mt-5 w-full rounded-full px-4">
                     {nextAction.label}
@@ -301,11 +372,20 @@ function SetupStep({ done, label, href }: { done: boolean; label: string; href?:
 
 function RecentCheckouts({ checkouts }: { checkouts: Checkout[] }) {
     return (
-        <article className="glass-panel overflow-hidden rounded-[28px]">
+        <article className="glass-panel rounded-[28px]">
             <SectionHeader
                 title="Checkouts recentes"
                 description="Últimas experiências criadas"
                 href="/checkouts"
+                help={{
+                    title: 'Checkouts recentes',
+                    content: (
+                        <p>
+                            Reúne os últimos checkouts criados, com acesso rápido ao editor e ao
+                            status atual de cada experiência.
+                        </p>
+                    ),
+                }}
             />
             {checkouts.length ? (
                 <div className="dashboard-list px-3 pb-3 sm:px-4">
@@ -353,16 +433,26 @@ type Activity = {
     tone: string;
     title: string;
     detail: string;
+    value?: string;
     date: string;
 };
 
 function RecentActivities({ activities }: { activities: Activity[] }) {
     return (
-        <article className="glass-panel overflow-hidden rounded-[28px]">
+        <article className="glass-panel rounded-[28px]">
             <SectionHeader
                 title="Atividades recentes"
                 description="Movimentações da sua operação"
                 href="/payments"
+                help={{
+                    title: 'Atividades recentes',
+                    content: (
+                        <p>
+                            Exibe em ordem cronológica as movimentações mais recentes, como
+                            pagamentos, assinaturas, reembolsos, produtos e checkouts.
+                        </p>
+                    ),
+                }}
             />
             {activities.length ? (
                 <div className="dashboard-list px-3 pb-3 sm:px-4">
@@ -384,12 +474,19 @@ function RecentActivities({ activities }: { activities: Activity[] }) {
                                     {activity.detail}
                                 </span>
                             </span>
-                            <time
-                                dateTime={activity.date}
-                                className="shrink-0 text-[12px] text-muted"
-                            >
-                                {relativeTime(activity.date)}
-                            </time>
+                            <span className="shrink-0 text-right">
+                                {activity.value && (
+                                    <strong className="block text-[12px] font-semibold text-foreground">
+                                        {activity.value}
+                                    </strong>
+                                )}
+                                <time
+                                    dateTime={activity.date}
+                                    className={`${activity.value ? 'mt-1 block' : ''} text-[12px] text-muted`}
+                                >
+                                    {relativeTime(activity.date)}
+                                </time>
+                            </span>
                         </div>
                     ))}
                 </div>
@@ -408,15 +505,22 @@ function SectionHeader({
     title,
     description,
     href,
+    help,
 }: {
     title: string;
     description: string;
     href: string;
+    help: { title: string; content: React.ReactNode };
 }) {
     return (
         <div className="flex items-center justify-between gap-4 px-5 py-5 sm:px-6">
             <div>
-                <h2 className="text-sm font-semibold tracking-[-0.02em]">{title}</h2>
+                <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-semibold tracking-[-0.02em]">{title}</h2>
+                    <PageHelp title={help.title} trigger="i" compact>
+                        {help.content}
+                    </PageHelp>
+                </div>
                 <p className="mt-1 text-[12px] text-muted">{description}</p>
             </div>
             <Link
@@ -502,6 +606,7 @@ function recentActivities(input: {
             tone: 'bg-[#e8f7f1] text-success',
             title: 'Pagamento aprovado',
             detail: `Pedido ${payment.orderId ?? payment.id}`,
+            value: money(capturedValue(payment), payment.currency),
             date: payment.approvedAt ?? payment.createdAt,
         });
     for (const subscription of input.subscriptions)
@@ -511,6 +616,7 @@ function recentActivities(input: {
             tone: 'bg-brand-soft text-brand',
             title: 'Nova assinatura criada',
             detail: `Assinatura ${subscription.id}`,
+            value: money(subscription.amountMinor, subscription.currency),
             date: subscription.createdAt,
         });
     for (const refund of input.refunds.filter((item) =>
@@ -522,6 +628,7 @@ function recentActivities(input: {
             tone: 'bg-[#fff3e5] text-warning',
             title: 'Reembolso processado',
             detail: `Pagamento ${refund.paymentId}`,
+            value: `− ${money(refund.amountMinor, refund.currency)}`,
             date: refund.completedAt ?? refund.createdAt,
         });
     for (const checkout of input.checkouts)
@@ -661,6 +768,16 @@ function money(value: number, currency: string) {
 
 function firstName(name: string) {
     return name.trim().split(/\s+/)[0] || 'por aí';
+}
+
+function currentHour(timeZone: string) {
+    return Number(
+        new Intl.DateTimeFormat('pt-BR', {
+            hour: '2-digit',
+            hourCycle: 'h23',
+            timeZone,
+        }).format(new Date()),
+    );
 }
 
 function localDateKey(date: Date) {

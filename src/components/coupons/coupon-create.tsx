@@ -10,12 +10,21 @@ import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 import { showToast } from '@/components/ui/toast';
 import { useEscapeClose } from '@/hooks/use-escape-close';
+import type { Checkout, Product } from '@/lib/api/types';
 
-export function CouponCreate() {
+export function CouponCreate({
+    checkouts,
+    products,
+}: {
+    checkouts: Checkout[];
+    products: Product[];
+}) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [discountType, setDiscountType] = useState('percentage');
+    const [scopeType, setScopeType] = useState<'checkout' | 'product'>('checkout');
+    const [scopeId, setScopeId] = useState('');
 
     function close() {
         if (!loading) {
@@ -30,6 +39,11 @@ export function CouponCreate() {
         setLoading(true);
         const form = new FormData(event.currentTarget);
         const shownValue = Number(String(form.get('discountValue') ?? '0').replace(',', '.'));
+        if (!scopeId) {
+            setLoading(false);
+            showToast({ tone: 'error', description: 'Selecione onde o cupom será aceito.' });
+            return;
+        }
         const response = await fetch('/api/coupons', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
@@ -41,6 +55,7 @@ export function CouponCreate() {
                 ...(discountType === 'fixed' ? { currency: 'BRL' } : {}),
                 status: 'active',
                 metadata: {},
+                scope: { type: scopeType, id: scopeId },
             }),
         });
         const body = (await response.json()) as { detail?: string };
@@ -54,6 +69,8 @@ export function CouponCreate() {
         }
         setOpen(false);
         setDiscountType('percentage');
+        setScopeType('checkout');
+        setScopeId('');
         showToast({
             tone: 'success',
             title: 'Cupom criado',
@@ -144,6 +161,39 @@ export function CouponCreate() {
                                     placeholder={discountType === 'percentage' ? '10' : '25,00'}
                                     required
                                 />
+                                <label className="text-[13px] font-semibold">
+                                    Aplicar cupom por
+                                    <div className="mt-2">
+                                        <CustomSelect
+                                            name="scopeType"
+                                            value={scopeType}
+                                            onValueChange={(value) => {
+                                                setScopeType(value as 'checkout' | 'product');
+                                                setScopeId('');
+                                            }}
+                                            options={[
+                                                { value: 'checkout', label: 'Checkout específico' },
+                                                { value: 'product', label: 'Produto específico' },
+                                            ]}
+                                        />
+                                    </div>
+                                </label>
+                                <label className="text-[13px] font-semibold">
+                                    {scopeType === 'checkout' ? 'Checkout' : 'Produto'}
+                                    <div className="mt-2">
+                                        <CustomSelect
+                                            name="scopeId"
+                                            value={scopeId}
+                                            onValueChange={setScopeId}
+                                            placeholder={`Selecione um ${scopeType === 'checkout' ? 'checkout' : 'produto'}`}
+                                            options={(scopeType === 'checkout'
+                                                ? checkouts
+                                                : products
+                                            ).map((item) => ({ value: item.id, label: item.name }))}
+                                            required
+                                        />
+                                    </div>
+                                </label>
                             </div>
                             <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                 <Button

@@ -1,18 +1,26 @@
 import { AdminBadge, AdminEmpty, formatAdminDate } from '@/components/platform-admin/admin-ui';
+import { AdminPagination } from '@/components/platform-admin/admin-pagination';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 import { PageHeader } from '@/components/ui/page-header';
 import { apiFetch } from '@/lib/api/server';
 import type { PaginatedAdminResult, PlatformAdminAuditEntry } from '@/lib/api/types';
+import { adminPagination } from '@/lib/platform-admin/pagination';
 
 export default async function AdminAuditPage({
     searchParams,
 }: {
-    searchParams: Promise<{ action?: string }>;
+    searchParams: Promise<{ action?: string; page?: string; limit?: string }>;
 }) {
     const params = await searchParams;
     const action = params.action?.trim() ?? '';
-    const query = new URLSearchParams({ action, limit: '100' });
+    const { page, pageSize, offset } = adminPagination(params.page, params.limit);
+    const query = new URLSearchParams({
+        action,
+        limit: String(pageSize),
+        offset: String(offset),
+    });
     const result = await apiFetch<PaginatedAdminResult<PlatformAdminAuditEntry>>(
         `/api/v1/admin/audit?${query}`,
     );
@@ -24,7 +32,7 @@ export default async function AdminAuditPage({
                 title="Auditoria"
                 description="Um histórico imutável das intervenções administrativas realizadas na plataforma."
             />
-            <form className="mb-4 flex gap-3 rounded-[22px] border border-border bg-surface/58 p-3">
+            <form className="mb-4 grid gap-3 rounded-[22px] border border-border bg-surface/58 p-3 sm:grid-cols-[minmax(240px,1fr)_160px_auto]">
                 <label className="relative min-w-0 flex-1">
                     <Icon
                         name="search"
@@ -37,6 +45,14 @@ export default async function AdminAuditPage({
                         className="h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] pl-10 pr-3.5 text-[12px] outline-none"
                     />
                 </label>
+                <CustomSelect
+                    name="limit"
+                    defaultValue={String(pageSize)}
+                    options={[10, 20, 50, 100].map((value) => ({
+                        value: String(value),
+                        label: `${value} por página`,
+                    }))}
+                />
                 <Button type="submit" variant="primary">
                     Buscar
                 </Button>
@@ -103,6 +119,13 @@ export default async function AdminAuditPage({
                         ))}
                     </div>
                 )}
+                <AdminPagination
+                    pathname="/admin/audit"
+                    params={{ action }}
+                    page={page}
+                    pageSize={pageSize}
+                    total={result.total}
+                />
             </section>
         </div>
     );

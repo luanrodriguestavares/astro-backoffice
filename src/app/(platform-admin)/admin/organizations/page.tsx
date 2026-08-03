@@ -1,4 +1,5 @@
 import { OrganizationAdminTable } from '@/components/platform-admin/organization-admin-table';
+import { AdminPagination } from '@/components/platform-admin/admin-pagination';
 import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
@@ -9,18 +10,25 @@ import type {
     PlatformAdminOrganization,
     PlatformAdminPlan,
 } from '@/lib/api/types';
+import { adminPagination } from '@/lib/platform-admin/pagination';
 
 export default async function AdminOrganizationsPage({
     searchParams,
 }: {
-    searchParams: Promise<{ q?: string; status?: string }>;
+    searchParams: Promise<{ q?: string; status?: string; page?: string; limit?: string }>;
 }) {
     const params = await searchParams;
     const q = params.q?.trim() ?? '';
     const status = ['all', 'active', 'suspended', 'closed'].includes(params.status ?? '')
         ? params.status!
         : 'all';
-    const query = new URLSearchParams({ q, status, limit: '100' });
+    const { page, pageSize, offset } = adminPagination(params.page, params.limit);
+    const query = new URLSearchParams({
+        q,
+        status,
+        limit: String(pageSize),
+        offset: String(offset),
+    });
     const [result, plans] = await Promise.all([
         apiFetch<PaginatedAdminResult<PlatformAdminOrganization>>(
             `/api/v1/admin/organizations?${query}`,
@@ -35,7 +43,7 @@ export default async function AdminOrganizationsPage({
                 title="Empresas"
                 description="Consulte operações, gerencie acesso, planos, trials e situações de cobrança."
             />
-            <form className="mb-4 grid gap-3 rounded-[22px] border border-border bg-surface/58 p-3 sm:grid-cols-[minmax(240px,1fr)_210px_auto]">
+            <form className="mb-4 grid gap-3 rounded-[22px] border border-border bg-surface/58 p-3 md:grid-cols-[minmax(240px,1fr)_190px_160px_auto]">
                 <label className="relative">
                     <Icon
                         name="search"
@@ -58,6 +66,14 @@ export default async function AdminOrganizationsPage({
                         { value: 'closed', label: 'Encerradas' },
                     ]}
                 />
+                <CustomSelect
+                    name="limit"
+                    defaultValue={String(pageSize)}
+                    options={[10, 20, 50, 100].map((value) => ({
+                        value: String(value),
+                        label: `${value} por página`,
+                    }))}
+                />
                 <Button type="submit" variant="primary">
                     Filtrar
                 </Button>
@@ -68,7 +84,19 @@ export default async function AdminOrganizationsPage({
                     {result.total === 1 ? 'empresa encontrada' : 'empresas encontradas'}
                 </p>
             </div>
-            <OrganizationAdminTable organizations={result.items} plans={plans} />
+            <OrganizationAdminTable
+                organizations={result.items}
+                plans={plans}
+                footer={
+                    <AdminPagination
+                        pathname="/admin/organizations"
+                        params={{ q, status }}
+                        page={page}
+                        pageSize={pageSize}
+                        total={result.total}
+                    />
+                }
+            />
         </div>
     );
 }

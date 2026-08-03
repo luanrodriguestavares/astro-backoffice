@@ -1,10 +1,14 @@
 import { ProductManager } from '@/components/products/product-manager';
 import { PageHeader } from '@/components/ui/page-header';
 import { apiFetch } from '@/lib/api/server';
+import { currentPermissions } from '@/lib/auth/permissions';
 import type { MediaFile, Price, Product } from '@/lib/api/types';
 
 export default async function ProductsPage() {
-    const products = await apiFetch<Product[]>('/api/v1/products?limit=100');
+    const permissions = await currentPermissions();
+    const products = (await apiFetch<Product[]>('/api/v1/products?limit=100')).toSorted(
+        (left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt),
+    );
     const files = await apiFetch<MediaFile[]>('/api/v1/files');
     const entries = await Promise.all(
         products.map(
@@ -26,6 +30,7 @@ export default async function ProductsPage() {
                 products={products}
                 prices={Object.fromEntries(entries)}
                 files={files}
+                canWrite={permissions.has('products.write')}
             />
         </div>
     );

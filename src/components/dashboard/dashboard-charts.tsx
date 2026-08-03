@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
     Area,
     AreaChart,
@@ -12,6 +12,7 @@ import {
     Cell,
     Pie,
     PieChart,
+    ReferenceArea,
     ResponsiveContainer,
     Tooltip,
     XAxis,
@@ -34,11 +35,37 @@ export function RevenueAreaChart({
     currency: string;
 }) {
     const [period, setPeriod] = useState<Period>('30D');
+    const [selection, setSelection] = useState<{ start: number; end: number } | null>(null);
+    const selectionAnchor = useRef<number | null>(null);
+    const dragging = useRef(false);
     const data = useMemo(
         () => (period === '24H' ? hourlyPoints : periodData(points, period)),
         [hourlyPoints, period, points],
     );
     const empty = data.every((point) => point.value === 0);
+    const selectedRange = useMemo(
+        () => (selection ? rangeSummary(data, selection.start, selection.end) : null),
+        [data, selection],
+    );
+
+    function beginSelection(state: unknown) {
+        const index = chartIndex(state, data);
+        if (index === null) return;
+        dragging.current = true;
+        selectionAnchor.current = index;
+        setSelection({ start: index, end: index });
+    }
+
+    function extendSelection(state: unknown) {
+        if (!dragging.current || selectionAnchor.current === null) return;
+        const index = chartIndex(state, data);
+        if (index !== null) setSelection({ start: selectionAnchor.current, end: index });
+    }
+
+    function finishSelection() {
+        dragging.current = false;
+        selectionAnchor.current = null;
+    }
 
     return (
         <div className="mt-5">
@@ -49,7 +76,11 @@ export function RevenueAreaChart({
                             key={option}
                             type="button"
                             aria-pressed={period === option}
-                            onClick={() => setPeriod(option)}
+                            onClick={() => {
+                                setPeriod(option);
+                                setSelection(null);
+                                finishSelection();
+                            }}
                             className="dashboard-period-option rounded-lg px-3 py-1.5 text-[12px] font-semibold text-muted transition-all hover:text-foreground"
                         >
                             {option}
@@ -57,9 +88,17 @@ export function RevenueAreaChart({
                     ))}
                 </div>
             </div>
-            <div className="dashboard-chart relative h-[260px] w-full sm:h-[290px]">
+            <div className="dashboard-chart relative h-[260px] w-full select-none sm:h-[290px]">
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data} margin={{ top: 12, right: 8, left: -18, bottom: 0 }}>
+                    <AreaChart
+                        data={data}
+                        margin={{ top: 12, right: 8, left: -18, bottom: 0 }}
+                        onMouseDown={beginSelection}
+                        onMouseMove={extendSelection}
+                        onMouseUp={finishSelection}
+                        onMouseLeave={finishSelection}
+                        style={{ cursor: 'crosshair' }}
+                    >
                         <defs>
                             <linearGradient id="revenueArea" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.24} />
@@ -93,9 +132,26 @@ export function RevenueAreaChart({
                                 strokeOpacity: 0.2,
                                 strokeDasharray: '3 4',
                             }}
-                            wrapperStyle={{ zIndex: 30 }}
-                            content={<RevenueTooltip currency={currency} data={data} />}
+                            wrapperStyle={{ zIndex: 30, pointerEvents: 'none' }}
+                            content={
+                                <RevenueTooltip
+                                    currency={currency}
+                                    data={data}
+                                    selection={selectedRange}
+                                />
+                            }
                         />
+                        {selectedRange && (
+                            <ReferenceArea
+                                x1={data[selectedRange.start]?.label}
+                                x2={data[selectedRange.end]?.label}
+                                fill="var(--brand)"
+                                fillOpacity={0.1}
+                                stroke="var(--brand)"
+                                strokeOpacity={0.28}
+                                ifOverflow="extendDomain"
+                            />
+                        )}
                         <Area
                             type="monotone"
                             dataKey="value"
@@ -125,6 +181,9 @@ export function RevenueAreaChart({
                     </div>
                 )}
             </div>
+            <p className="mt-2 text-center text-[10px] text-muted">
+                Clique e arraste no gráfico para selecionar um período
+            </p>
         </div>
     );
 }
@@ -135,14 +194,43 @@ function RevenueTooltip({
     label,
     currency,
     data,
+    selection,
 }: {
     active?: boolean;
     payload?: Array<{ value?: number; payload?: RevenuePoint }>;
     label?: string;
     currency: string;
     data: RevenuePoint[];
+    selection: RangeSummary | null;
 }) {
     if (!active || !payload?.[0]) return null;
+    if (selection) {
+        return (
+            <div className="dashboard-chart-tooltip min-w-[220px] rounded-2xl border border-white/85 bg-white/78 px-4 py-3 shadow-[0_18px_50px_rgba(45,39,91,.14)] backdrop-blur-2xl">
+                <p className="text-[11px] font-medium text-muted">
+                    {formatRange(selection.first.date, selection.last.date)}
+                </p>
+                <p className="mt-1 text-sm font-bold tracking-[-0.02em] text-foreground">
+                    {money(selection.total, currency)}
+                </p>
+                <div className="mt-2 flex items-center gap-2 text-[10px] text-muted">
+                    <span>
+                        {selection.count} {selection.count === 1 ? 'ponto' : 'pontos'}
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span>Média {money(selection.average, currency)}</span>
+                </div>
+                {selection.variation !== null && (
+                    <p
+                        className={`mt-1.5 text-[11px] font-semibold ${selection.variation >= 0 ? 'text-success' : 'text-danger'}`}
+                    >
+                        {selection.variation >= 0 ? '↗' : '↘'}{' '}
+                        {Math.abs(selection.variation).toFixed(1)}% vs. intervalo anterior
+                    </p>
+                )}
+            </div>
+        );
+    }
     const value = Number(payload[0].value ?? 0);
     const index = data.findIndex((point) => point.label === label);
     const previous = index > 0 ? data[index - 1].value : 0;
@@ -167,14 +255,70 @@ function RevenueTooltip({
     );
 }
 
+type RangeSummary = {
+    start: number;
+    end: number;
+    first: RevenuePoint;
+    last: RevenuePoint;
+    count: number;
+    total: number;
+    average: number;
+    variation: number | null;
+};
+
+function chartIndex(state: unknown, data: RevenuePoint[]) {
+    if (!state || typeof state !== 'object') return null;
+    const chartState = state as { activeTooltipIndex?: number | string; activeLabel?: string };
+    const numericIndex = Number(chartState.activeTooltipIndex);
+    if (Number.isInteger(numericIndex) && numericIndex >= 0 && numericIndex < data.length) {
+        return numericIndex;
+    }
+    if (chartState.activeLabel) {
+        const index = data.findIndex((point) => point.label === chartState.activeLabel);
+        return index >= 0 ? index : null;
+    }
+    return null;
+}
+
+function rangeSummary(data: RevenuePoint[], start: number, end: number): RangeSummary | null {
+    const from = Math.min(start, end);
+    const to = Math.max(start, end);
+    const selected = data.slice(from, to + 1);
+    if (!selected.length) return null;
+    const total = selected.reduce((sum, point) => sum + point.value, 0);
+    const previous = data.slice(Math.max(0, from - selected.length), from);
+    const previousTotal = previous.reduce((sum, point) => sum + point.value, 0);
+    return {
+        start: from,
+        end: to,
+        first: selected[0],
+        last: selected[selected.length - 1],
+        count: selected.length,
+        total,
+        average: Math.round(total / selected.length),
+        variation:
+            previous.length === selected.length && previousTotal
+                ? ((total - previousTotal) / previousTotal) * 100
+                : null,
+    };
+}
+
+function formatRange(first: string, last: string) {
+    const start = formatChartDate(first);
+    const end = formatChartDate(last);
+    return start === end ? start : `${start} – ${end}`;
+}
+
 function formatChartDate(value: string | undefined) {
     if (!value) return '—';
     const date = new Date(value.includes('T') ? value : `${value}T12:00:00`);
     if (Number.isNaN(date.getTime())) return value;
+    const includesTime = value.includes('T');
     return new Intl.DateTimeFormat('pt-BR', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
+        ...(includesTime ? { hour: '2-digit', minute: '2-digit' } : {}),
     }).format(date);
 }
 

@@ -1,30 +1,39 @@
 import 'server-only';
 
 import { apiFetch } from '@/lib/api/server';
-import type { Checkout, Payment, Product, Refund, Subscription } from '@/lib/api/types';
+import type { Checkout, Organization, Payment, Product, Refund, Subscription } from '@/lib/api/types';
 import type { NotificationItem } from '@/lib/notifications/types';
 
 const approvedPaymentStatuses = new Set(['approved', 'paid', 'captured', 'succeeded']);
 const completedRefundStatuses = new Set(['completed', 'succeeded', 'approved']);
 const limitedFeatures = [
-    { feature: 'catalog.active_products', label: 'Produtos ativos', href: '/products' },
-    { feature: 'checkout.published', label: 'Checkouts publicados', href: '/checkouts' },
-    { feature: 'commerce.orders', label: 'Pedidos do ciclo', href: '/orders' },
-    { feature: 'subscriptions.active', label: 'Assinaturas ativas', href: '/subscriptions' },
-    { feature: 'gateways.connected', label: 'Gateways conectados', href: '/gateways' },
-    { feature: 'workspace.members', label: 'Usuários no workspace', href: '/team' },
-    { feature: 'media.storage_bytes', label: 'Armazenamento de mídia', href: '/files' },
+    { feature: 'catalog.active_products', label: 'Produtos ativos', href: '/products', permission: 'products.read' },
+    { feature: 'checkout.published', label: 'Checkouts publicados', href: '/checkouts', permission: 'products.read' },
+    { feature: 'commerce.orders', label: 'Pedidos do ciclo', href: '/orders', permission: 'payments.read' },
+    { feature: 'subscriptions.active', label: 'Assinaturas ativas', href: '/subscriptions', permission: 'subscriptions.read' },
+    { feature: 'gateways.connected', label: 'Gateways conectados', href: '/gateways', permission: 'gateway_connections.manage' },
+    { feature: 'workspace.members', label: 'Usuários no workspace', href: '/team', permission: 'members.manage' },
+    { feature: 'media.storage_bytes', label: 'Armazenamento de mídia', href: '/files', permission: 'products.read' },
 ] as const;
 
 export async function getRecentNotifications(limit = 30) {
+    const organization = await safelyOne(() =>
+        apiFetch<Organization>('/api/v1/organizations/current'),
+    );
+    const permissions = new Set(organization?.permissions ?? []);
+    const can = (permission: string) => permissions.has(permission);
     const [payments, subscriptions, refunds, checkouts, products, planUsage] = await Promise.all([
-        safely(() => apiFetch<Payment[]>('/api/v1/payments')),
-        safely(() => apiFetch<Subscription[]>('/api/v1/subscriptions')),
-        safely(() => apiFetch<Refund[]>('/api/v1/refunds')),
-        safely(() => apiFetch<Checkout[]>('/api/v1/checkouts')),
-        safely(() => apiFetch<Product[]>('/api/v1/products?limit=100')),
+        can('payments.read') ? safely(() => apiFetch<Payment[]>('/api/v1/payments')) : [],
+        can('subscriptions.read')
+            ? safely(() => apiFetch<Subscription[]>('/api/v1/subscriptions'))
+            : [],
+        can('payments.read') ? safely(() => apiFetch<Refund[]>('/api/v1/refunds')) : [],
+        can('products.read') ? safely(() => apiFetch<Checkout[]>('/api/v1/checkouts')) : [],
+        can('products.read')
+            ? safely(() => apiFetch<Product[]>('/api/v1/products?limit=100'))
+            : [],
         Promise.all(
-            limitedFeatures.map(async (definition) => ({
+            limitedFeatures.filter(({ permission }) => can(permission)).map(async (definition) => ({
                 ...definition,
                 status: await safelyOne(() =>
                     apiFetch<PlanFeatureStatus>(
@@ -77,7 +86,7 @@ export async function getRecentNotifications(limit = 30) {
 
     for (const checkout of checkouts) {
         items.push({
-            id: `checkout-${checkout.id}`,
+            id: `checkout-${checkout.id}-${checkout.updatedAt}`,
             title: checkout.status === 'published' ? 'Checkout publicado' : 'Checkout atualizado',
             description: checkout.name,
             createdAt: checkout.updatedAt,
@@ -89,7 +98,7 @@ export async function getRecentNotifications(limit = 30) {
 
     for (const product of products) {
         items.push({
-            id: `product-${product.id}`,
+            id: `product-${product.id}-${product.updatedAt}`,
             title: 'Produto atualizado',
             description: product.name,
             createdAt: product.updatedAt,
@@ -108,7 +117,7 @@ export async function getRecentNotifications(limit = 30) {
             continue;
         const reached = usage.status.remaining === 0;
         items.push({
-            id: `plan-limit-${usage.feature}`,
+            id: `plan-limit-${usage.feature}-${usage.status.used}-${usage.status.limit}-${reached ? 'reached' : 'near'}`,
             title: reached ? 'Limite do plano atingido' : 'Você está perto do limite',
             description: `${usage.label}: ${formatUsage(usage.feature, usage.status.used)} de ${formatUsage(usage.feature, usage.status.limit)} utilizados.`,
             createdAt: new Date().toISOString(),

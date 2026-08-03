@@ -46,10 +46,12 @@ export function FileLibrary({
     files,
     folders,
     storage,
+    canWrite,
 }: {
     files: MediaFile[];
     folders: MediaFolder[];
     storage: StorageUsage;
+    canWrite: boolean;
 }) {
     const router = useRouter();
     const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -212,6 +214,7 @@ export function FileLibrary({
     function openContextMenu(event: MouseEvent, target: ContextTarget) {
         event.preventDefault();
         event.stopPropagation();
+        if (!canWrite && target.kind === 'area') return;
         const menuWidth = 210;
         const menuHeight = target.kind === 'area' ? 54 : target.kind === 'folder' ? 190 : 210;
         setContextMenu({
@@ -232,6 +235,7 @@ export function FileLibrary({
 
     function drop(event: DragEvent, folderId: string | null) {
         event.preventDefault();
+        if (!canWrite) return;
         const payload = readDragPayload(event);
         if (payload) void moveItem(payload, folderId);
     }
@@ -279,7 +283,7 @@ export function FileLibrary({
                             ]}
                         />
                     </div>
-                    <div className="flex gap-2">
+                    {canWrite && <div className="flex gap-2">
                         <Button
                             type="button"
                             variant="secondary"
@@ -294,7 +298,7 @@ export function FileLibrary({
                             Nova pasta
                         </Button>
                         <FileUploadAction folderId={currentFolderId} />
-                    </div>
+                    </div>}
                 </div>
 
                 <div className="mt-4 grid gap-2 border-t border-border pt-4 sm:grid-cols-[1fr_auto] sm:items-center">
@@ -449,6 +453,7 @@ export function FileLibrary({
                 createPortal(
                     <ContextMenuView
                         menu={contextMenu}
+                        canWrite={canWrite}
                         onAction={(action) => {
                             const target = contextMenu;
                             setContextMenu(undefined);
@@ -822,9 +827,11 @@ function FileCard({
 function ContextMenuView({
     menu,
     onAction,
+    canWrite,
 }: {
     menu: ContextMenu;
     onAction: (action: 'open' | 'rename' | 'delete' | 'download' | 'new-folder') => void;
+    canWrite: boolean;
 }) {
     return (
         <div
@@ -844,23 +851,29 @@ function ContextMenuView({
                     >
                         {menu.kind === 'folder' ? 'Abrir pasta' : 'Visualizar'}
                     </ContextAction>
-                    {menu.kind === 'folder' && (
+                    {canWrite && menu.kind === 'folder' && (
                         <ContextAction icon="plus" onClick={() => onAction('new-folder')}>
                             Nova subpasta
                         </ContextAction>
                     )}
-                    <ContextAction icon="edit" onClick={() => onAction('rename')}>
-                        Renomear
-                    </ContextAction>
+                    {canWrite && (
+                        <ContextAction icon="edit" onClick={() => onAction('rename')}>
+                            Renomear
+                        </ContextAction>
+                    )}
                     {menu.kind === 'file' && (
                         <ContextAction icon="download" onClick={() => onAction('download')}>
                             Baixar
                         </ContextAction>
                     )}
-                    <div className="my-1 border-t border-border" />
-                    <ContextAction icon="trash" danger onClick={() => onAction('delete')}>
-                        Excluir
-                    </ContextAction>
+                    {canWrite && (
+                        <>
+                            <div className="my-1 border-t border-border" />
+                            <ContextAction icon="trash" danger onClick={() => onAction('delete')}>
+                                Excluir
+                            </ContextAction>
+                        </>
+                    )}
                 </>
             )}
         </div>

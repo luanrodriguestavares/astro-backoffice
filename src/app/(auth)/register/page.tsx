@@ -1,19 +1,25 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 import { AuthToast } from '@/components/auth/auth-toast';
 import { Brand } from '@/components/brand';
 import { RegisterForm } from '@/components/auth/register-form';
 import { Icon } from '@/components/ui/icon';
+import { getInvitationPreview } from '@/lib/auth/invitation';
 
 export const metadata: Metadata = { title: 'Criar conta' };
 
 export default async function RegisterPage({
     searchParams,
 }: {
-    searchParams: Promise<{ error?: string }>;
+    searchParams: Promise<{ error?: string; invite?: string }>;
 }) {
-    const { error } = await searchParams;
+    const { error, invite } = await searchParams;
+    const invitation = invite ? await getInvitationPreview(invite) : undefined;
+    if (invite && invitation === undefined)
+        redirect(`/invitation?token=${encodeURIComponent(invite)}`);
+    const inviteQuery = invite ? `?invite=${encodeURIComponent(invite)}` : '';
     return (
         <div className="relative min-h-screen overflow-x-hidden bg-[#f7f7fb] px-4 py-5 lg:grid lg:h-screen lg:place-items-center lg:overflow-hidden lg:py-4">
             <AuthToast message={error} />
@@ -21,13 +27,13 @@ export default async function RegisterPage({
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_5%,rgba(109,93,244,.12),transparent_28rem),radial-gradient(circle_at_90%_92%,rgba(150,136,240,.1),transparent_30rem)]"
             />
-            <section className="relative mx-auto w-full max-w-[920px]">
+            <section className="relative mx-auto w-full max-w-[720px]">
                 <div className="mb-3 flex items-center justify-between px-1 lg:mb-4">
                     <Brand href="/register" />
                     <p className="text-[11px] text-muted">
                         Já tem uma conta?{' '}
                         <Link
-                            href="/login"
+                            href={`/login${inviteQuery}`}
                             className="font-semibold text-brand-strong hover:text-brand"
                         >
                             Entrar
@@ -45,15 +51,15 @@ export default async function RegisterPage({
                             </p>
                             <div className="flex flex-wrap items-baseline gap-x-3">
                                 <h1 className="text-[23px] font-semibold tracking-[-.045em] text-[#17182f]">
-                                    Crie sua conta
+                                    {invitation ? `Entre em ${invitation.organizationName}` : 'Crie sua conta'}
                                 </h1>
                                 <p className="text-[11px] text-muted">
-                                    Prepare seu workspace em poucos minutos.
+                                    {invitation ? 'Sua conta não precisa de uma organização própria.' : 'Três passos para preparar sua estação.'}
                                 </p>
                             </div>
                         </div>
                     </header>
-                    <RegisterForm />
+                    <RegisterForm invitation={invitation ? { ...invitation, token: invite! } : undefined} />
                 </div>
             </section>
         </div>

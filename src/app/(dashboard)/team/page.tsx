@@ -1,14 +1,22 @@
 import { InviteMember } from '@/components/team/invite-member';
+import { MemberRoleEditor } from '@/components/team/member-role-editor';
 import { PageHeader } from '@/components/ui/page-header';
 import { SummaryCard } from '@/components/ui/resource-table';
 import { Icon } from '@/components/ui/icon';
 import { apiFetch } from '@/lib/api/server';
-import type { OrganizationInvitation, OrganizationMember } from '@/lib/api/types';
+import { currentUser as getCurrentUser } from '@/lib/auth/permissions';
+import type {
+    InvitableRole,
+    OrganizationInvitation,
+    OrganizationMember,
+} from '@/lib/api/types';
 
 export default async function TeamPage() {
-    const [members, invitations] = await Promise.all([
+    const [members, invitations, roles, currentUser] = await Promise.all([
         apiFetch<OrganizationMember[]>('/api/v1/organizations/current/members'),
         apiFetch<OrganizationInvitation[]>('/api/v1/organizations/current/invitations'),
+        apiFetch<InvitableRole[]>('/api/v1/organizations/current/invitable-roles'),
+        getCurrentUser(),
     ]);
     const pending = invitations.filter((item) => !item.acceptedAt && !item.revokedAt);
     const active = members.filter((member) => member.status === 'active').length;
@@ -18,7 +26,7 @@ export default async function TeamPage() {
                 eyebrow="Acesso"
                 title="Equipe"
                 description="Convide membros e acompanhe os acessos à organização."
-                actions={<InviteMember />}
+                actions={<InviteMember roles={roles} />}
             />
             <section className="mb-4 grid gap-3 sm:grid-cols-3">
                 <SummaryCard
@@ -62,15 +70,21 @@ export default async function TeamPage() {
                                             {member.name}
                                         </p>
                                         <p className="mt-1 truncate text-[12px] text-muted">
-                                            {member.email}
+                                            {member.email} · {roleLabel(member.role)}
                                         </p>
                                     </div>
                                 </div>
-                                <span
-                                    className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${member.status === 'active' ? 'bg-[#e8f7f1] text-success' : 'bg-[#fff5e9] text-warning'}`}
-                                >
-                                    {memberStatusLabel(member.status)}
-                                </span>
+                                <div className="flex shrink-0 items-center gap-2">
+                                    <span
+                                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${member.status === 'active' ? 'bg-[#e8f7f1] text-success' : 'bg-[#fff5e9] text-warning'}`}
+                                    >
+                                        {memberStatusLabel(member.status)}
+                                    </span>
+                                    {member.role !== 'owner' &&
+                                        member.userId !== currentUser.id && (
+                                            <MemberRoleEditor member={member} roles={roles} />
+                                        )}
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -86,7 +100,7 @@ export default async function TeamPage() {
                             <div key={invitation.id} className="py-4">
                                 <p className="text-[13px] font-semibold">{invitation.email}</p>
                                 <p className="mt-1 text-[12px] text-muted">
-                                    {invitation.role} · expira{' '}
+                                    {roleLabel(invitation.role)} · expira{' '}
                                     {new Intl.DateTimeFormat('pt-BR').format(
                                         new Date(invitation.expiresAt),
                                     )}
@@ -144,5 +158,19 @@ function memberStatusLabel(status: string) {
         { active: 'Ativo', suspended: 'Suspenso', invited: 'Convidado', inactive: 'Inativo' }[
             status
         ] ?? 'Pendente'
+    );
+}
+
+function roleLabel(role: string) {
+    return (
+        {
+            owner: 'Proprietário',
+            administrator: 'Administrador',
+            developer: 'Desenvolvedor',
+            finance: 'Financeiro',
+            editor: 'Editor',
+            support: 'Suporte',
+            viewer: 'Leitura',
+        }[role] ?? role
     );
 }

@@ -1,15 +1,21 @@
+import { PageHelp } from '@/components/ui/page-help';
+
 export function PageHeader({
     eyebrow,
     title,
     description,
     actions,
+    help,
     hero = false,
+    prominentTitle = false,
 }: {
-    eyebrow?: string;
+    eyebrow?: React.ReactNode;
     title: React.ReactNode;
     description: string;
     actions?: React.ReactNode;
+    help?: { title: string; content: React.ReactNode };
     hero?: boolean;
+    prominentTitle?: boolean;
 }) {
     return (
         <div
@@ -23,11 +29,14 @@ export function PageHeader({
                         {eyebrow}
                     </p>
                 )}
-                <h1
-                    className={`${hero ? 'text-[32px] sm:text-[42px] lg:text-[48px]' : 'text-2xl sm:text-[28px]'} font-semibold leading-[1.05] tracking-[-0.055em]`}
-                >
-                    {title}
-                </h1>
+                <div className="flex items-center gap-2.5">
+                    <h1
+                        className={`${hero ? 'text-[32px] sm:text-[42px] lg:text-[48px]' : prominentTitle ? 'text-[30px] sm:text-[36px] lg:text-[40px]' : 'text-2xl sm:text-[28px]'} font-semibold leading-[1.05] tracking-[-0.055em]`}
+                    >
+                        {title}
+                    </h1>
+                    {help && <PageHelp title={help.title}>{help.content}</PageHelp>}
+                </div>
                 <p
                     className={`${hero ? 'mt-1.5 text-[15px]' : 'mt-1.5 text-sm'} max-w-2xl leading-6 text-muted`}
                 >

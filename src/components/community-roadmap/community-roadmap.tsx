@@ -705,7 +705,7 @@ function RoadmapCard({
                     aria-pressed={idea.likedByMe}
                     disabled={liking}
                     onClick={onLike}
-                    className={`relative inline-flex h-8 shrink-0 items-center gap-1.5 rounded-xl px-2.5 text-[10px] font-semibold transition ${
+                    className={`roadmap-like-button relative inline-flex h-8 shrink-0 items-center gap-1.5 rounded-xl px-2.5 text-[10px] font-semibold transition ${
                         idea.likedByMe
                             ? 'roadmap-like-active bg-[#fff0f2] text-[#e1435a]'
                             : 'bg-surface-muted/70 text-muted hover:bg-[#fff3f4] hover:text-[#d9485f]'

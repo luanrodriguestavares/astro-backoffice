@@ -682,6 +682,36 @@ input[type='number'] {
     outline: none;
 }
 
+.dashboard-chart :focus,
+.dashboard-chart :focus-visible {
+    outline: none !important;
+}
+
+@keyframes notification-badge-arrive {
+    0% {
+        opacity: 0;
+        transform: scale(0.45);
+    }
+    55% {
+        opacity: 1;
+        transform: scale(1.18);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.notification-unseen-badge {
+    animation: notification-badge-arrive 420ms cubic-bezier(0.2, 0.9, 0.25, 1.25) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .notification-unseen-badge {
+        animation: none;
+    }
+}
+
 .dashboard-chart .recharts-tooltip-wrapper {
     z-index: 50 !important;
 }
@@ -855,6 +885,19 @@ html[data-astro-accent='rose'] .dashboard-dark {
     color: var(--brand-strong);
 }
 
+.shell-header-control {
+    border: 1px solid color-mix(in srgb, var(--brand) 10%, transparent);
+    background: rgb(255 255 255 / 55%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 75%);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+}
+
+.shell-header-control:hover {
+    border-color: color-mix(in srgb, var(--brand) 24%, transparent);
+    background: rgb(255 255 255 / 68%);
+}
+
 .dashboard-theme-switch-track {
     position: relative;
     display: block;
@@ -986,6 +1029,17 @@ html[data-astro-accent='rose'] .dashboard-dark {
     background: rgb(30 31 34 / 88%);
     color: #8f8e94;
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
+}
+
+.dashboard-dark .shell-header-control {
+    border-color: rgb(255 255 255 / 8%);
+    background: rgb(30 31 34 / 88%) !important;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
+}
+
+.dashboard-dark .shell-header-control:hover {
+    border-color: rgb(255 255 255 / 14%);
+    background: rgb(33 34 37 / 94%) !important;
 }
 
 .dashboard-dark .dashboard-theme-switch:hover {
@@ -1876,6 +1930,22 @@ html.astro-dark-portals .checkout-hero-layout-option[data-selected='true'] {
     background-color: var(--control-bg) !important;
 }
 
+.astro-shell .global-search.shell-header-control {
+    background-color: rgb(255 255 255 / 55%) !important;
+}
+
+.astro-shell .global-search.shell-header-control:hover {
+    background-color: rgb(255 255 255 / 68%) !important;
+}
+
+.dashboard-dark .global-search.shell-header-control {
+    background-color: rgb(30 31 34 / 88%) !important;
+}
+
+.dashboard-dark .global-search.shell-header-control:hover {
+    background-color: rgb(33 34 37 / 94%) !important;
+}
+
 .astro-shell
     main
     .filter-control
@@ -2042,6 +2112,28 @@ html.astro-dark-portals .checkout-hero-layout-option[data-selected='true'] {
     content: '';
     pointer-events: none;
     animation: roadmap-like-ring 520ms ease-out both;
+}
+
+.dashboard-dark .roadmap-like-button {
+    background: rgb(255 255 255 / 5%) !important;
+    color: #aaa9af !important;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 5%);
+}
+
+.dashboard-dark .roadmap-like-button:hover {
+    background: rgb(225 67 90 / 10%) !important;
+    color: #ff8ca0 !important;
+    box-shadow: inset 0 0 0 1px rgb(225 67 90 / 16%);
+}
+
+.dashboard-dark .roadmap-like-button[aria-pressed='true'] {
+    background: rgb(225 67 90 / 14%) !important;
+    color: #ff8ca0 !important;
+    box-shadow: inset 0 0 0 1px rgb(225 67 90 / 22%);
+}
+
+.dashboard-dark .roadmap-like-active::after {
+    border-color: rgb(255 140 160 / 36%);
 }
 
 button,

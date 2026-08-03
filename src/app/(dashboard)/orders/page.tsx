@@ -2,12 +2,16 @@ import { PageHeader } from '@/components/ui/page-header';
 import { SummaryCard, money } from '@/components/ui/resource-table';
 import { OrdersTable, type OrderRow } from '@/components/orders/orders-table';
 import { apiFetch } from '@/lib/api/server';
+import { currentPermissions } from '@/lib/auth/permissions';
 import type { Customer, Payment } from '@/lib/api/types';
 
 export default async function OrdersPage() {
+    const permissions = await currentPermissions();
     const [orders, customers, payments] = await Promise.all([
         apiFetch<OrderRow[]>('/api/v1/orders'),
-        apiFetch<Customer[]>('/api/v1/customers'),
+        permissions.has('products.read')
+            ? apiFetch<Customer[]>('/api/v1/customers')
+            : Promise.resolve([]),
         apiFetch<Payment[]>('/api/v1/payments'),
     ]);
     const currency = orders[0]?.currency ?? 'BRL';

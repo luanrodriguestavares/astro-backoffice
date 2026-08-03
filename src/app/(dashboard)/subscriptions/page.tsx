@@ -2,15 +2,25 @@ import { SubscriptionCreateAction } from '@/components/resources/create-actions'
 import { PageHeader } from '@/components/ui/page-header';
 import { ResourceTable, SummaryCard, date, money } from '@/components/ui/resource-table';
 import { apiFetch } from '@/lib/api/server';
+import { currentPermissions } from '@/lib/auth/permissions';
 import type { Customer, GatewayConnection, Price, Product, Subscription } from '@/lib/api/types';
 const activeStatuses = ['active', 'trialing'];
 
 export default async function SubscriptionsPage() {
+    const permissions = await currentPermissions();
+    const canReadProducts = permissions.has('products.read');
+    const canManageGateways = permissions.has('gateway_connections.manage');
+    const canCreate =
+        permissions.has('subscriptions.create') && canReadProducts && canManageGateways;
     const [subscriptions, customers, products, gateways] = await Promise.all([
         apiFetch<Subscription[]>('/api/v1/subscriptions'),
-        apiFetch<Customer[]>('/api/v1/customers'),
-        apiFetch<Product[]>('/api/v1/products?limit=100'),
-        apiFetch<GatewayConnection[]>('/api/v1/gateway-connections'),
+        canReadProducts ? apiFetch<Customer[]>('/api/v1/customers') : Promise.resolve([]),
+        canReadProducts
+            ? apiFetch<Product[]>('/api/v1/products?limit=100')
+            : Promise.resolve([]),
+        canManageGateways
+            ? apiFetch<GatewayConnection[]>('/api/v1/gateway-connections')
+            : Promise.resolve([]),
     ]);
     const priceGroups = await Promise.all(
         products.map(async (product) => ({
@@ -32,7 +42,7 @@ export default async function SubscriptionsPage() {
     const currency = subscriptions[0]?.currency ?? 'BRL';
     const recurringRevenue = active.reduce((sum, item) => sum + item.amountMinor, 0);
     const scheduledCancellation = active.filter((item) => item.cancelAtPeriodEnd).length;
-    const action = (
+    const action = canCreate ? (
         <SubscriptionCreateAction
             customers={customers.map((item) => ({
                 value: item.id,
@@ -43,7 +53,7 @@ export default async function SubscriptionsPage() {
                 .filter((item) => item.status === 'active')
                 .map((item) => ({ value: item.id, label: item.name }))}
         />
-    );
+    ) : undefined;
     return (
         <>
             <PageHeader

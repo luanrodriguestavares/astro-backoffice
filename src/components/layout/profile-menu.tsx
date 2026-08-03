@@ -46,7 +46,7 @@ export function ProfileMenu({
                 aria-expanded={open}
                 aria-label="Abrir menu do perfil"
                 onClick={() => setOpen((current) => !current)}
-                className="shell-profile group flex items-center gap-2.5 rounded-2xl px-1.5 py-1 text-left transition hover:bg-white/45"
+                className="shell-profile shell-header-control group flex min-h-11 items-center gap-2.5 rounded-2xl px-1.5 py-1 text-left transition hover:-translate-y-0.5"
             >
                 <span className="shell-avatar grid size-9 shrink-0 place-items-center rounded-full border border-white/90 bg-gradient-to-br from-[#e9e5ff] to-white text-[10px] font-bold text-brand-strong shadow-sm">
                     {initials(user.name)}

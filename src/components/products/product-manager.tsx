@@ -27,10 +27,12 @@ export function ProductManager({
     products,
     prices,
     files,
+    canWrite,
 }: {
     products: Product[];
     prices: Record<string, Price[]>;
     files: MediaFile[];
+    canWrite: boolean;
 }) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
@@ -335,19 +337,21 @@ export function ProductManager({
                     </div>
                 </div>
 
-                <Button
-                    type="button"
-                    variant="primary"
-                    onClick={openCreate}
-                    className="h-10 shrink-0 px-4"
-                >
-                    <Icon name="plus" className="size-3.5" />
-                    Criar produto
-                </Button>
+                {canWrite && (
+                    <Button
+                        type="button"
+                        variant="primary"
+                        onClick={openCreate}
+                        className="h-10 shrink-0 px-4"
+                    >
+                        <Icon name="plus" className="size-3.5" />
+                        Criar produto
+                    </Button>
+                )}
             </section>
 
             {products.length === 0 ? (
-                <EmptyProducts onCreate={openCreate} />
+                <EmptyProducts onCreate={canWrite ? openCreate : undefined} />
             ) : (
                 <ProductTable
                     products={pagedProducts}
@@ -362,6 +366,7 @@ export function ProductManager({
                     onRemove={setDeleteTarget}
                     onStatusChange={changeStatus}
                     statusChanging={statusChanging}
+                    canWrite={canWrite}
                 />
             )}
             {products.length > 0 && visibleProducts.length > 0 && (
@@ -612,6 +617,7 @@ function ProductTable({
     onRemove,
     onStatusChange,
     statusChanging,
+    canWrite,
 }: {
     products: Product[];
     prices: Record<string, Price[]>;
@@ -621,6 +627,7 @@ function ProductTable({
     onRemove: (product: Product) => void;
     onStatusChange: (product: Product, status: 'active' | 'inactive') => void;
     statusChanging?: string;
+    canWrite: boolean;
 }) {
     return (
         <section className="product-table glass-panel overflow-hidden rounded-[28px]">
@@ -752,6 +759,7 @@ function ProductTable({
                                             </time>
                                         </td>
                                         <td className="px-6 py-4 text-right">
+                                            {canWrite && (
                                             <div className="inline-flex items-center gap-1 opacity-65 transition group-hover:opacity-100">
                                                 <ActionButton
                                                     label="Editar produto"
@@ -786,6 +794,7 @@ function ProductTable({
                                                     onClick={() => onRemove(product)}
                                                 />
                                             </div>
+                                            )}
                                         </td>
                                     </tr>
                                 );
@@ -893,7 +902,7 @@ function DeleteProductModal({
     );
 }
 
-function EmptyProducts({ onCreate }: { onCreate: () => void }) {
+function EmptyProducts({ onCreate }: { onCreate?: () => void }) {
     return (
         <section className="glass-panel rounded-[28px] px-5 py-16 text-center sm:py-20">
             <span className="product-empty-icon mx-auto grid size-12 place-items-center rounded-2xl border border-white/85 bg-brand-soft/70 text-brand">
@@ -905,10 +914,12 @@ function EmptyProducts({ onCreate }: { onCreate: () => void }) {
             <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-5 text-muted">
                 Crie o primeiro produto e configure seu preço para começar a vender.
             </p>
-            <Button type="button" variant="primary" onClick={onCreate} className="mt-5">
-                <Icon name="plus" className="size-3.5" />
-                Criar primeiro produto
-            </Button>
+            {onCreate && (
+                <Button type="button" variant="primary" onClick={onCreate} className="mt-5">
+                    <Icon name="plus" className="size-3.5" />
+                    Criar primeiro produto
+                </Button>
+            )}
         </section>
     );
 }

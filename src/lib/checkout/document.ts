@@ -60,7 +60,7 @@ export const blankCheckoutDocument: CheckoutDocument = {
             },
         },
     ],
-    settings: { showPoweredBy: true },
+    settings: {},
     seo: { title: '', description: '' },
 };
 
@@ -181,6 +181,6 @@ export const defaultCheckoutDocument: CheckoutDocument = {
             props: { text: 'Pagamento seguro processado pelo Astro.', showSecurity: true },
         },
     ],
-    settings: { showPoweredBy: true },
+    settings: {},
     seo: { title: 'Checkout seguro', description: 'Finalize sua compra com segurança.' },
 };

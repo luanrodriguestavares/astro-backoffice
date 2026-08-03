@@ -17,6 +17,7 @@ export async function POST(request: Request) {
         documentType: field(form, 'documentType'),
         documentNumber: field(form, 'documentNumber'),
         acceptedTerms: form.get('terms') === 'on',
+        invitationToken: field(form, 'invitationToken'),
     };
     const validationError = validate(input);
     if (validationError !== undefined) return registerError(request, validationError);
@@ -29,13 +30,17 @@ export async function POST(request: Request) {
                 name: input.name,
                 email: input.email,
                 password: input.password,
-                organization: {
-                    legalName: input.legalName,
-                    displayName: input.displayName,
-                    slug: input.slug,
-                    documentType: input.documentType,
-                    documentNumber: input.documentNumber,
-                },
+                ...(input.invitationToken
+                    ? { invitationToken: input.invitationToken }
+                    : {
+                          organization: {
+                              legalName: input.legalName,
+                              displayName: input.displayName,
+                              slug: input.slug,
+                              documentType: input.documentType,
+                              documentNumber: input.documentNumber,
+                          },
+                      }),
             }),
             cache: 'no-store',
         });
@@ -43,23 +48,60 @@ export async function POST(request: Request) {
         if (!response.ok) {
             const problem = payload as ProblemDetails;
             const message =
-                response.status === 409
+                problem.code === 'INVALID_INVITATION'
+                    ? 'Este convite expirou, já foi usado ou pertence a outro e-mail.'
+                    : response.status === 409
                     ? 'Já existe uma conta, organização ou documento com esses dados.'
                     : problem.detail || 'Não foi possível criar sua conta.';
             return registerError(request, message);
         }
-        return authenticatedRedirect(request, (payload as ApiEnvelope<SessionData>).data);
+        const session = (payload as ApiEnvelope<SessionData>).data;
+        const destination = new URL('/dashboard', request.url);
+        if (!input.invitationToken) destination.searchParams.set('onboarding', 'appearance');
+        if (!session.user.emailVerified) {
+            const verificationResult = await requestVerificationEmail(input.email);
+            destination.searchParams.set('email', input.email);
+            destination.searchParams.set(
+                'verification',
+                verificationResult.sent ? 'sent' : 'failed',
+            );
+        }
+        return authenticatedRedirect(
+            request,
+            session,
+            `${destination.pathname}${destination.search}`,
+        );
     } catch {
         return registerError(request, 'A API do Astro está indisponível no momento.');
     }
 }
 
+async function requestVerificationEmail(email: string) {
+    try {
+        const response = await fetch(`${astroApiUrl()}/api/v1/auth/email-verification/request`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', accept: 'application/json' },
+            body: JSON.stringify({ email }),
+            cache: 'no-store',
+        });
+        if (!response.ok) return { sent: false };
+        await response.json();
+        return { sent: true };
+    } catch {
+        return { sent: false };
+    }
+}
+
 function validate(input: Record<string, string | boolean>) {
-    if (Object.entries(input).some(([key, value]) => key !== 'acceptedTerms' && value === ''))
+    const invitation = String(input.invitationToken).length > 0;
+    const alwaysRequired = ['name', 'email', 'password', 'passwordConfirmation'];
+    const organizationRequired = ['legalName', 'displayName', 'slug', 'documentType', 'documentNumber'];
+    if ([...alwaysRequired, ...(invitation ? [] : organizationRequired)].some((key) => !input[key]))
         return 'Preencha todos os campos obrigatórios.';
     if (String(input.password).length < 12) return 'A senha precisa ter pelo menos 12 caracteres.';
     if (input.password !== input.passwordConfirmation) return 'As senhas informadas não coincidem.';
-    if (String(input.slug).length < 2) return 'Informe um identificador válido para a organização.';
+    if (!invitation && String(input.slug).length < 2)
+        return 'Informe um identificador válido para a organização.';
     if (!input.acceptedTerms) return 'Você precisa aceitar os termos para continuar.';
     return undefined;
 }
@@ -81,5 +123,7 @@ function normalizeSlug(value: string) {
 function registerError(request: Request, message: string) {
     const url = new URL('/register', request.url);
     url.searchParams.set('error', message);
+    const invitation = new URL(request.url).searchParams.get('invite');
+    if (invitation) url.searchParams.set('invite', invitation);
     return NextResponse.redirect(url, 303);
 }

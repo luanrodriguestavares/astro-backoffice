@@ -256,7 +256,9 @@ function PlanEditor({
     onSaveEntitlements: (items: PlatformAdminEntitlement[], reason: string) => void;
 }) {
     const [tab, setTab] = useState<'general' | 'limits'>('general');
-    const [entitlements, setEntitlements] = useState(plan.entitlements);
+    const [entitlements, setEntitlements] = useState(() =>
+        ensureBrandingEntitlement(plan.entitlements),
+    );
     const [reason, setReason] = useState('');
 
     return (
@@ -409,6 +411,18 @@ function PlanEditor({
                             </p>
                         </div>
                         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
+                            <BrandingControl
+                                item={entitlements.find(
+                                    (item) => item.feature === 'checkout.remove_branding',
+                                )!}
+                                onChange={(next) =>
+                                    setEntitlements((current) =>
+                                        current.map((candidate) =>
+                                            candidate.feature === next.feature ? next : candidate,
+                                        ),
+                                    )
+                                }
+                            />
                             <EntitlementSection
                                 title="Limites de uso"
                                 description="Quantidades máximas permitidas antes de alertar ou impedir novas ações."
@@ -427,7 +441,9 @@ function PlanEditor({
                                 title="Recursos incluídos"
                                 description="Funcionalidades disponíveis ou indisponíveis para quem assina o plano."
                                 items={entitlements.filter(
-                                    (item) => !quotaFeatures.has(item.feature),
+                                    (item) =>
+                                        !quotaFeatures.has(item.feature) &&
+                                        item.feature !== 'checkout.remove_branding',
                                 )}
                                 onChange={(next) =>
                                     setEntitlements((current) =>
@@ -467,6 +483,53 @@ function PlanEditor({
                 )}
             </div>
         </div>
+    );
+}
+
+function BrandingControl({
+    item,
+    onChange,
+}: {
+    item: PlatformAdminEntitlement;
+    onChange: (item: PlatformAdminEntitlement) => void;
+}) {
+    const showPoweredBy = !item.enabled;
+    return (
+        <section>
+            <div className="mb-2.5">
+                <h3 className="text-[12px] font-semibold">Marca Astro no checkout</h3>
+                <p className="mt-0.5 text-[9px] leading-4 text-muted">
+                    Define se os checkouts publicados por este plano exibem “Powered by Astro”.
+                </p>
+            </div>
+            <label className="flex items-center gap-3 rounded-2xl border border-border bg-surface-muted/25 p-3.5 transition hover:bg-surface-muted/40">
+                <input
+                    type="checkbox"
+                    checked={showPoweredBy}
+                    onChange={(event) => onChange({ ...item, enabled: !event.target.checked })}
+                    className="size-4 accent-[var(--brand)]"
+                />
+                <span className="min-w-0 flex-1">
+                    <span className="block text-[11px] font-semibold">
+                        Exibir “Powered by Astro”
+                    </span>
+                    <span className="mt-0.5 block text-[9px] leading-4 text-muted">
+                        {showPoweredBy
+                            ? 'A marca será obrigatória em todas as páginas de checkout.'
+                            : 'Os checkouts deste plano serão exibidos sem a marca Astro.'}
+                    </span>
+                </span>
+                <span
+                    className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${
+                        showPoweredBy
+                            ? 'bg-brand-soft text-brand-strong'
+                            : 'bg-surface-muted text-muted'
+                    }`}
+                >
+                    {showPoweredBy ? 'Visível' : 'Oculta'}
+                </span>
+            </label>
+        </section>
     );
 }
 
@@ -629,6 +692,20 @@ function primaryEntitlements(items: PlatformAdminEntitlement[]) {
     return priorities
         .map((feature) => items.find((item) => item.feature === feature))
         .filter((item): item is PlatformAdminEntitlement => item !== undefined);
+}
+
+function ensureBrandingEntitlement(items: PlatformAdminEntitlement[]) {
+    if (items.some((item) => item.feature === 'checkout.remove_branding')) return items;
+    return [
+        ...items,
+        {
+            feature: 'checkout.remove_branding',
+            enabled: false,
+            limit: null,
+            resetPeriod: 'none',
+            metadata: { label: 'Remoção da marca Astro' },
+        },
+    ];
 }
 
 function formatLimit(item: PlatformAdminEntitlement) {

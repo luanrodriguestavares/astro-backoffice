@@ -46,7 +46,7 @@ export function AuthToast({
                 </span>
                 <div className="min-w-0 flex-1 pt-0.5">
                     <p className="text-[12px] font-semibold text-[#24253c]">
-                        {error ? 'Não foi possível continuar' : 'Sessão encerrada'}
+                        {error ? 'Não foi possível continuar' : 'Tudo certo'}
                     </p>
                     <p className="mt-1 text-[11px] leading-5 text-[#74758a]">{message}</p>
                 </div>
@@ -72,5 +72,6 @@ function clearAuthFeedbackFromUrl() {
     const url = new URL(window.location.href);
     url.searchParams.delete('error');
     url.searchParams.delete('expired');
+    url.searchParams.delete('message');
     window.history.replaceState(window.history.state, '', url);
 }

@@ -10,7 +10,7 @@ export default async function RoadmapPage() {
             <PageHeader
                 eyebrow="Roadmap do Astro"
                 title="Você pede. A gente constrói."
-                description="Sugira novas funcionalidades, vote nas ideias da comunidade e acompanhe o desenvolvimento do produto."
+                description="Sugira novas funcionalidades, vote nas ideias da comunidade e acompanhe a evolução do nosso produto."
             />
             <CommunityRoadmap roadmap={roadmap} />
         </div>

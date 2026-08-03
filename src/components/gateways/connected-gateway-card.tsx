@@ -16,9 +16,11 @@ import type { GatewayConnection } from '@/lib/api/types';
 export function ConnectedGatewayCard({
     connection,
     metrics,
+    canReadPayments,
 }: {
     connection: GatewayConnection;
     metrics?: { volume: number; transactions: number; currency: string };
+    canReadPayments: boolean;
 }) {
     const router = useRouter();
     const menu = useRef<HTMLDivElement>(null);
@@ -108,12 +110,18 @@ export function ConnectedGatewayCard({
                         <p className="mt-1 text-[10px] text-muted">Taxa contratada</p>
                     </div>
                     <div>
-                        <p className="text-[12px] font-semibold tabular-nums">
-                            {money(metrics?.volume ?? 0, metrics?.currency ?? 'BRL')}
-                        </p>
-                        <p className="mt-1 text-[10px] text-muted">
-                            {metrics?.transactions ?? 0} transações em 30 dias
-                        </p>
+                        {canReadPayments ? (
+                            <>
+                                <p className="text-[12px] font-semibold tabular-nums">
+                                    {money(metrics?.volume ?? 0, metrics?.currency ?? 'BRL')}
+                                </p>
+                                <p className="mt-1 text-[10px] text-muted">
+                                    {metrics?.transactions ?? 0} transações em 30 dias
+                                </p>
+                            </>
+                        ) : (
+                            <p className="text-[10px] text-muted">Sem acesso financeiro</p>
+                        )}
                     </div>
                     <div className="flex items-center justify-end gap-2">
                         <Button

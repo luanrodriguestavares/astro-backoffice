@@ -7,6 +7,8 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import { Brand } from '@/components/brand';
+import { AppearanceOnboarding } from '@/components/dashboard/appearance-onboarding';
+import { setAccentTheme } from '@/components/layout/accent-theme-controller';
 import { HeaderSearch } from '@/components/layout/header-search';
 import { NotificationCenter } from '@/components/layout/notification-center';
 import { ProfileMenu } from '@/components/layout/profile-menu';
@@ -20,6 +22,7 @@ type NavigationItem = {
     icon: IconName;
     exact?: boolean;
     badge?: string;
+    permission?: string;
 };
 
 const dashboardThemeStorageKey = 'astro-dashboard-theme';
@@ -51,13 +54,13 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
     {
         label: 'Vendas',
         items: [
-            { label: 'Produtos', href: '/products', icon: 'box', exact: true },
-            { label: 'Checkouts', href: '/checkouts', icon: 'layout', exact: true },
-            { label: 'Cupons', href: '/coupons', icon: 'tag' },
-            { label: 'Pedidos', href: '/orders', icon: 'cart' },
-            { label: 'Pagamentos', href: '/payments', icon: 'card' },
-            { label: 'Assinaturas', href: '/subscriptions', icon: 'repeat' },
-            { label: 'Clientes', href: '/customers', icon: 'users' },
+            { label: 'Produtos', href: '/products', icon: 'box', exact: true, permission: 'products.read' },
+            { label: 'Checkouts', href: '/checkouts', icon: 'layout', exact: true, permission: 'products.read' },
+            { label: 'Cupons', href: '/coupons', icon: 'tag', permission: 'products.read' },
+            { label: 'Pedidos', href: '/orders', icon: 'cart', permission: 'payments.read' },
+            { label: 'Pagamentos', href: '/payments', icon: 'card', permission: 'payments.read' },
+            { label: 'Assinaturas', href: '/subscriptions', icon: 'repeat', permission: 'subscriptions.read' },
+            { label: 'Clientes', href: '/customers', icon: 'users', permission: 'products.read' },
         ],
     },
     {
@@ -67,6 +70,7 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
                 label: 'Biblioteca de mídia',
                 href: '/files',
                 icon: 'image',
+                permission: 'products.read',
             },
         ],
     },
@@ -88,33 +92,41 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
                 href: '/inventory',
                 icon: 'box',
                 badge: 'Em breve',
+                permission: 'products.read',
             },
             {
                 label: 'Frete',
                 href: '/shipping',
                 icon: 'link',
                 badge: 'Em breve',
+                permission: 'products.read',
             },
         ],
     },
     {
         label: 'Financeiro',
         items: [
-            { label: 'Faturas', href: '/invoices', icon: 'card' },
-            { label: 'Reembolsos', href: '/refunds', icon: 'refund' },
+            { label: 'Faturas', href: '/invoices', icon: 'card', permission: 'invoices.read' },
+            { label: 'Reembolsos', href: '/refunds', icon: 'refund', permission: 'payments.read' },
         ],
     },
     {
         label: 'Integrações',
         items: [
-            { label: 'Gateways', href: '/gateways', icon: 'plug' },
-            { label: 'Webhooks', href: '/webhooks', icon: 'webhook' },
+            { label: 'Gateways', href: '/gateways', icon: 'plug', permission: 'gateway_connections.manage' },
+            { label: 'Webhooks', href: '/webhooks', icon: 'webhook', permission: 'webhooks.manage' },
+            {
+                label: 'Desenvolvedores',
+                href: '/developer',
+                icon: 'code',
+                permission: 'api_keys.manage',
+            },
         ],
     },
     {
         label: 'Configurações',
         items: [
-            { label: 'Equipe', href: '/team', icon: 'team' },
+            { label: 'Equipe', href: '/team', icon: 'team', permission: 'members.manage' },
             { label: 'Conta', href: '/settings', icon: 'user', exact: true },
         ],
     },
@@ -134,6 +146,7 @@ export function DashboardShell({
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const currentView = searchParams.get('view');
+    const appearanceOnboarding = searchParams.get('onboarding') === 'appearance';
     const [open, setOpen] = useState(false);
     const [collapsed, setCollapsed] = useState(false);
     const dashboardTheme = useSyncExternalStore(
@@ -142,6 +155,15 @@ export function DashboardShell({
         getServerDashboardTheme,
     );
     const organizationName = organization.displayName ?? organization.legalName ?? 'Organização';
+    const permissions = new Set(organization.permissions ?? []);
+    const visibleNavigationGroups = navigationGroups
+        .map((group) => ({
+            ...group,
+            items: group.items.filter(
+                (item) => item.permission === undefined || permissions.has(item.permission),
+            ),
+        }))
+        .filter((group) => group.items.length > 0);
     const focusedEditor = /^\/checkouts\/[^/]+\/(?:builder|preview)\/?$/.test(pathname);
     const themeEnabled = !focusedEditor;
     const dashboardDark = themeEnabled && dashboardTheme === 'dark';
@@ -152,6 +174,10 @@ export function DashboardShell({
             document.documentElement.classList.remove('astro-dark-portals');
         };
     }, [dashboardDark]);
+
+    useEffect(() => {
+        setAccentTheme(organization.accentTheme ?? 'astro');
+    }, [organization.accentTheme]);
 
     function toggleDashboardTheme() {
         const nextTheme = dashboardTheme === 'dark' ? 'light' : 'dark';
@@ -168,6 +194,11 @@ export function DashboardShell({
             className={`astro-shell min-h-screen transition-[grid-template-columns] duration-300 lg:grid ${dashboardDark ? 'dashboard-dark' : ''} ${collapsed ? 'lg:grid-cols-[76px_1fr]' : 'lg:grid-cols-[248px_1fr]'}`}
         >
             <AmbientBackground />
+            <AppearanceOnboarding
+                open={appearanceOnboarding}
+                organization={organization}
+                verification={searchParams.get('verification')}
+            />
 
             {open && (
                 <Button
@@ -186,7 +217,7 @@ export function DashboardShell({
                     aria-label={collapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
                     aria-expanded={!collapsed}
                     title={collapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
-                    className="glass-panel-soft absolute -right-3 top-7 z-10 hidden size-7 place-items-center rounded-full text-muted shadow-[0_8px_22px_color-mix(in_srgb,var(--brand)_10%,transparent)] transition hover:scale-105 hover:text-brand lg:grid"
+                    className="shell-header-control absolute -right-3 top-7 z-10 hidden size-7 place-items-center rounded-full text-muted shadow-[0_8px_22px_color-mix(in_srgb,var(--brand)_10%,transparent)] transition hover:scale-105 hover:text-brand lg:grid"
                     onClick={() => setCollapsed((value) => !value)}
                 >
                     <Icon
@@ -236,7 +267,7 @@ export function DashboardShell({
                             onClick={() => setOpen(false)}
                         />
                     ))}
-                    {navigationGroups.map((group) => (
+                    {visibleNavigationGroups.map((group) => (
                         <div key={group.label}>
                             <p
                                 className={`shell-nav-label mb-1.5 px-3 text-[9px] font-semibold uppercase tracking-[0.16em] text-muted ${collapsed ? 'lg:hidden' : ''}`}
@@ -266,7 +297,7 @@ export function DashboardShell({
                     ))}
                 </nav>
 
-                <div className="mt-auto pt-4">{!collapsed && <ProCard />}</div>
+                {/* <div className="mt-auto pt-4">{!collapsed && <ProCard />}</div> */}
             </aside>
 
             <div className="relative z-10 min-w-0">
@@ -280,7 +311,10 @@ export function DashboardShell({
                         <Icon name="menu" />
                     </Button>
 
-                    <HeaderSearch dark={dashboardDark} />
+                    <HeaderSearch
+                        dark={dashboardDark}
+                        permissions={organization.permissions ?? []}
+                    />
 
                     <div className="ml-auto flex items-center gap-2.5">
                         {themeEnabled && (
@@ -300,7 +334,7 @@ export function DashboardShell({
                                 <Icon name="moon" className="size-3.5" />
                             </Button>
                         )}
-                        <NotificationCenter />
+                        <NotificationCenter storageScope={`${user.id}:${organization.id}`} />
                         <ProfileMenu
                             user={user}
                             contextLabel={organizationName}
@@ -363,7 +397,7 @@ function NavItem({
     );
 }
 
-function ProCard() {
+/* function ProCard() {
     return (
         <div className="pro-glass-card group relative hidden overflow-hidden rounded-[22px] p-4 lg:block">
             <div className="relative z-10">
@@ -386,7 +420,7 @@ function ProCard() {
             </div>
         </div>
     );
-}
+} */
 
 function AmbientBackground() {
     return (

@@ -15,7 +15,7 @@ export interface SessionData {
     accessToken: string;
     refreshToken: string;
     expiresIn: number;
-    user: { id: string; name: string; email: string };
+    user: { id: string; name: string; email: string; emailVerified: boolean };
     organization?: { id: string };
 }
 
@@ -58,6 +58,12 @@ export interface PlatformAdminUser {
     emailVerified: boolean;
     lastLoginAt: string | null;
     createdAt: string;
+    organizations: {
+        id: string;
+        displayName: string;
+        slug: string;
+        membershipStatus: string;
+    }[];
 }
 
 export interface PlatformAdminEntitlement {
@@ -110,6 +116,9 @@ export interface Organization {
     defaultCurrency?: string;
     timezone?: string;
     locale?: string;
+    accentTheme?: 'astro' | 'blue' | 'violet' | 'yellow' | 'orange' | 'green' | 'rose';
+    canManageAppearance?: boolean;
+    permissions?: string[];
     version?: number;
 }
 
@@ -293,6 +302,7 @@ export interface OrganizationMember {
     userId: string;
     name: string;
     email: string;
+    role: string;
     status: string;
     joinedAt: string | null;
 }
@@ -304,6 +314,13 @@ export interface OrganizationInvitation {
     expiresAt: string;
     acceptedAt: string | null;
     revokedAt: string | null;
+}
+
+export interface InvitableRole {
+    code: 'administrator' | 'developer' | 'finance' | 'editor' | 'support' | 'viewer';
+    name: string;
+    description: string;
+    permissions: string[];
 }
 
 export type CheckoutSectionType =
@@ -364,7 +381,6 @@ export type CheckoutEnvironment = 'sandbox' | 'production';
 export interface CheckoutSettings extends Record<string, unknown> {
     environment?: CheckoutEnvironment;
     paymentGatewayBindings?: Partial<Record<CheckoutPaymentMethod, string>>;
-    showPoweredBy?: boolean;
 }
 
 export interface Checkout {

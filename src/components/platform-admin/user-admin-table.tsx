@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 
@@ -10,7 +10,13 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import type { PlatformAdminUser } from '@/lib/api/types';
 
-export function UserAdminTable({ users }: { users: PlatformAdminUser[] }) {
+export function UserAdminTable({
+    users,
+    footer,
+}: {
+    users: PlatformAdminUser[];
+    footer?: ReactNode;
+}) {
     const router = useRouter();
     const [target, setTarget] = useState<PlatformAdminUser | null>(null);
     const [pending, setPending] = useState(false);
@@ -63,11 +69,12 @@ export function UserAdminTable({ users }: { users: PlatformAdminUser[] }) {
         <>
             <section className="glass-panel overflow-hidden rounded-[26px]">
                 <div className="overflow-x-auto">
-                    <table className="w-full min-w-[820px] text-left">
+                    <table className="w-full min-w-[1020px] text-left">
                         <thead className="border-b border-border bg-surface-muted/35 text-[10px] uppercase tracking-[.1em] text-muted">
                             <tr>
                                 <th className="px-6 py-3.5 font-semibold">Usuário</th>
                                 <th className="px-5 py-3.5 font-semibold">Status</th>
+                                <th className="px-5 py-3.5 font-semibold">Empresas</th>
                                 <th className="px-5 py-3.5 font-semibold">E-mail</th>
                                 <th className="px-5 py-3.5 font-semibold">Último acesso</th>
                                 <th className="px-5 py-3.5 font-semibold">Cadastro</th>
@@ -95,6 +102,28 @@ export function UserAdminTable({ users }: { users: PlatformAdminUser[] }) {
                                     </td>
                                     <td className="px-5 py-4">
                                         <AdminBadge status={user.status} />
+                                    </td>
+                                    <td className="px-5 py-4">
+                                        {user.organizations.length === 0 ? (
+                                            <span className="text-[10px] text-muted">
+                                                Sem empresa vinculada
+                                            </span>
+                                        ) : (
+                                            <div className="flex max-w-64 flex-wrap gap-1.5">
+                                                {user.organizations.map((organization) => (
+                                                    <span
+                                                        key={organization.id}
+                                                        title={`/${organization.slug} · ${organization.membershipStatus}`}
+                                                        className="inline-flex max-w-44 items-center gap-1.5 rounded-full border border-border bg-surface-muted/45 px-2.5 py-1 text-[9px] font-medium"
+                                                    >
+                                                        <span className="size-1.5 shrink-0 rounded-full bg-brand" />
+                                                        <span className="truncate">
+                                                            {organization.displayName}
+                                                        </span>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </td>
                                     <td className="px-5 py-4">
                                         <span
@@ -131,6 +160,7 @@ export function UserAdminTable({ users }: { users: PlatformAdminUser[] }) {
                         </tbody>
                     </table>
                 </div>
+                {footer}
             </section>
 
             {target &&

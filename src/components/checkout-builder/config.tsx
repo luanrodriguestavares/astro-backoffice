@@ -6,7 +6,10 @@ import { MediaPicker } from '@/components/files/media-picker';
 import type { Config, Data, Slot } from '@puckeditor/core';
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { MediaFile } from '@/lib/api/types';
-import { checkoutThemeVariables } from '@astro/checkout-renderer/theme';
+import {
+    checkoutComponentSurfaceVariables,
+    checkoutThemeVariables,
+} from '@astro/checkout-renderer/theme';
 import { checkoutDesignSystemStyles } from '@astro/checkout-renderer/design-system';
 import {
     CheckoutDataTable,
@@ -709,7 +712,19 @@ const checkoutPageStyles = `
     box-sizing: border-box;
     display: grid;
     align-items: stretch;
-    gap: var(--checkout-component-gap);
+    column-gap: var(--checkout-component-gap);
+    row-gap: var(--checkout-component-gap);
+  }
+  .checkout-page-content > * > [data-puck-component],
+  [data-checkout-grid-column] > * {
+    min-width: 0;
+    display: grid;
+    align-content: start;
+    align-items: stretch;
+    row-gap: var(--checkout-component-gap);
+  }
+  [data-checkout-grid-column] > * {
+    row-gap: var(--checkout-grid-item-gap, var(--checkout-component-gap));
   }
   @media (max-width: 720px) {
     [data-checkout-page] {
@@ -985,7 +1000,7 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             },
             componentBackgroundStyle: {
                 type: 'select',
-                label: 'Fundo de todos os componentes e campos',
+                label: 'Fundo externo dos componentes',
                 options: [
                     { label: 'Exibir fundo', value: 'filled' },
                     { label: 'Remover fundo', value: 'transparent' },
@@ -993,7 +1008,7 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             },
             componentBorderStyle: {
                 type: 'select',
-                label: 'Bordas externas e internas de todos os componentes',
+                label: 'Moldura externa dos componentes',
                 options: [
                     { label: 'Exibir bordas', value: 'visible' },
                     { label: 'Remover bordas', value: 'hidden' },
@@ -1031,17 +1046,12 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
         },
         render: ({ children, ...theme }) => {
             const palette = resolvePalette(theme);
-            const unifiedTheme = {
-                ...theme,
-                inputGroupStyle:
-                    theme.componentBackgroundStyle === 'transparent' ? 'outlined' : 'filled',
-            } as BuilderRootProps;
             return (
                 <div
                     data-checkout-page
                     data-checkout-width={theme.maxWidth ?? 'lg'}
                     style={{
-                        ...variables(unifiedTheme),
+                        ...variables(theme as BuilderRootProps),
                         colorScheme: theme.themeMode === 'system' ? 'light dark' : theme.themeMode,
                         minHeight: '100vh',
                         background: palette.background,
@@ -1061,7 +1071,8 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                             margin: '0 auto',
                             display: 'grid',
                             alignItems: 'stretch',
-                            gap: spacingValue(theme.componentGap),
+                            columnGap: spacingValue(theme.componentGap),
+                            rowGap: spacingValue(theme.componentGap),
                         }}
                     >
                         {children}
@@ -2380,7 +2391,7 @@ function withComponentSurfaceControls(
                             style={{
                                 width: '100%',
                                 minWidth: 0,
-                                ...componentSurfaceVariables(
+                                ...checkoutComponentSurfaceVariables(
                                     (props as { surfaceStyle?: ComponentSurfaceStyle })
                                         .surfaceStyle,
                                 ),
@@ -2394,32 +2405,6 @@ function withComponentSurfaceControls(
         }),
     ) as Config<BuilderProps, BuilderRootProps>['components'];
     return { ...config, components };
-}
-
-function componentSurfaceVariables(value?: ComponentSurfaceStyle): React.CSSProperties {
-    if (value === 'plain') {
-        return {
-            '--checkout-card-bg': 'transparent',
-            '--checkout-card-border-width': '0px',
-            '--checkout-card-shadow': 'none',
-            '--checkout-group-bg': 'transparent',
-            '--checkout-group-border-width': '0px',
-            '--checkout-group-shadow': 'none',
-        } as React.CSSProperties;
-    }
-    if (value === 'boxed') {
-        return {
-            '--checkout-card-bg': 'var(--checkout-surface)',
-            '--checkout-card-border': 'var(--checkout-configured-border)',
-            '--checkout-card-border-width': 'var(--checkout-configured-border-width)',
-            '--checkout-card-shadow': 'var(--checkout-configured-shadow)',
-            '--checkout-group-bg': 'var(--checkout-surface)',
-            '--checkout-group-border': 'var(--checkout-configured-border)',
-            '--checkout-group-border-width': 'var(--checkout-configured-border-width)',
-            '--checkout-group-shadow': 'var(--checkout-configured-shadow)',
-        } as React.CSSProperties;
-    }
-    return {};
 }
 
 type TemplateOption<T extends string> = { value: T; label: string; description: string };

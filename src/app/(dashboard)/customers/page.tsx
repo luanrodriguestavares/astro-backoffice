@@ -2,19 +2,23 @@ import { CustomerCreate } from '@/components/customers/customer-create';
 import { PageHeader } from '@/components/ui/page-header';
 import { ResourceTable, SummaryCard, date } from '@/components/ui/resource-table';
 import { apiFetch } from '@/lib/api/server';
+import { currentPermissions } from '@/lib/auth/permissions';
 import type { Customer } from '@/lib/api/types';
 
 export default async function CustomersPage() {
+    const permissions = await currentPermissions();
     const [customers, orders] = await Promise.all([
         apiFetch<Customer[]>('/api/v1/customers'),
-        apiFetch<
-            Array<{
-                customerId: string;
-                paidMinor: number;
-                paidAt: string | null;
-                placedAt: string;
-            }>
-        >('/api/v1/orders'),
+        permissions.has('payments.read')
+            ? apiFetch<
+                  Array<{
+                      customerId: string;
+                      paidMinor: number;
+                      paidAt: string | null;
+                      placedAt: string;
+                  }>
+              >('/api/v1/orders')
+            : Promise.resolve([]),
     ]);
     const purchaseDates = new Map<string, string[]>();
     for (const order of orders) {
@@ -42,7 +46,7 @@ export default async function CustomersPage() {
                 eyebrow="Relacionamento"
                 title="Clientes"
                 description="Consulte clientes e o histórico de compras em uma visão unificada."
-                actions={<CustomerCreate />}
+                actions={permissions.has('products.write') ? <CustomerCreate /> : undefined}
             />
             <section className="mb-4 grid gap-3 sm:grid-cols-3">
                 <SummaryCard

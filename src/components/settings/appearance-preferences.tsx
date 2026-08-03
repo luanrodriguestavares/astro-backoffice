@@ -1,6 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
+import { useRouter } from 'next/navigation';
 
 import {
     accentThemes,
@@ -10,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { showToast } from '@/components/ui/toast';
+import type { Organization } from '@/lib/api/types';
 
 type DashboardTheme = 'light' | 'dark';
 
@@ -31,7 +33,8 @@ const themeOptions = [
     },
 ];
 
-export function AppearancePreferences() {
+export function AppearancePreferences({ organization }: { organization: Organization }) {
+    const router = useRouter();
     const theme = useSyncExternalStore<DashboardTheme>(subscribeTheme, currentTheme, () => 'dark');
     const accent = useAccentTheme();
     const selectedAccent = accentThemes.find((item) => item.value === accent) ?? accentThemes[0];
@@ -46,14 +49,29 @@ export function AppearancePreferences() {
         });
     }
 
-    function chooseAccent(next: (typeof accentThemes)[number]['value']) {
+    async function chooseAccent(next: (typeof accentThemes)[number]['value']) {
+        if (!organization.canManageAppearance) return;
+        const response = await fetch('/api/settings/organization', {
+            method: 'PATCH',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ accentTheme: next, version: organization.version }),
+        });
+        if (!response.ok) {
+            const payload = (await response.json()) as { detail?: string };
+            showToast({
+                tone: 'error',
+                description: payload.detail ?? 'Não foi possível atualizar a cor da workspace.',
+            });
+            return;
+        }
         setAccentTheme(next);
         const selected = accentThemes.find((item) => item.value === next);
         showToast({
             tone: 'success',
             title: 'Cor de destaque atualizada',
-            description: `${selected?.label ?? 'A nova cor'} foi aplicada ao painel.`,
+            description: `${selected?.label ?? 'A nova cor'} foi aplicada para toda a workspace.`,
         });
+        router.refresh();
     }
 
     return (
@@ -135,7 +153,9 @@ export function AppearancePreferences() {
                     <div>
                         <p className="text-[12px] font-semibold">Cor de destaque</p>
                         <p className="mt-1 text-[11px] leading-4 text-muted">
-                            Afeta botoes, links, selecao e estados ativos.
+                            {organization.canManageAppearance
+                                ? 'Administradores definem esta identidade para toda a equipe.'
+                                : 'Definida pelos administradores desta workspace.'}
                         </p>
                         <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                             {accentThemes.map((option) => (
@@ -144,11 +164,12 @@ export function AppearancePreferences() {
                                     type="button"
                                     aria-label={`Usar cor ${option.label}`}
                                     aria-pressed={accent === option.value}
-                                    onClick={() => chooseAccent(option.value)}
+                                    disabled={!organization.canManageAppearance}
+                                    onClick={() => void chooseAccent(option.value)}
                                     className={`flex min-h-[74px] items-center gap-3 rounded-2xl border p-3 text-left transition ${
                                         accent === option.value
                                             ? 'border-brand/42 bg-brand-soft/68 shadow-[0_10px_26px_color-mix(in_srgb,var(--brand)_10%,transparent)]'
-                                            : 'border-border bg-[var(--control-bg)] hover:border-brand/24 hover:bg-surface-muted/55'
+                                            : `border-border bg-[var(--control-bg)] ${organization.canManageAppearance ? 'hover:border-brand/24 hover:bg-surface-muted/55' : 'cursor-not-allowed opacity-65'}`
                                     }`}
                                 >
                                     <span

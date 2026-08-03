@@ -2,14 +2,14 @@ import { OrganizationForm } from '@/components/settings/organization-form';
 import { AppearancePreferences } from '@/components/settings/appearance-preferences';
 import { PageHeader } from '@/components/ui/page-header';
 import { Icon } from '@/components/ui/icon';
-import { apiFetch } from '@/lib/api/server';
-import type { CurrentUser, Organization } from '@/lib/api/types';
+import { currentOrganization, currentUser } from '@/lib/auth/permissions';
 
 export default async function SettingsPage() {
     const [organization, user] = await Promise.all([
-        apiFetch<Organization>('/api/v1/organizations/current'),
-        apiFetch<CurrentUser>('/api/v1/auth/me'),
+        currentOrganization(),
+        currentUser(),
     ]);
+    const canManageOrganization = organization.permissions?.includes('members.manage') ?? false;
     return (
         <>
             <PageHeader
@@ -18,7 +18,7 @@ export default async function SettingsPage() {
                 description="Configure a organização e consulte os dados da sua conta."
             />
             <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-                <OrganizationForm organization={organization} />
+                {canManageOrganization && <OrganizationForm organization={organization} />}
                 <aside className="glass-panel rounded-[28px] p-6">
                     <div className="flex items-center gap-3">
                         <span className="grid size-10 place-items-center rounded-[13px] border border-white/80 bg-brand-soft/75 text-brand">
@@ -44,7 +44,7 @@ export default async function SettingsPage() {
                         />
                     </dl>
                 </aside>
-                <AppearancePreferences />
+                <AppearancePreferences organization={organization} />
             </div>
         </>
     );

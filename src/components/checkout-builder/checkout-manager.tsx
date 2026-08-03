@@ -66,9 +66,11 @@ const templates: {
 export function CheckoutManager({
     checkouts,
     catalog,
+    canWrite,
 }: {
     checkouts: Checkout[];
     catalog: CheckoutCatalogOption[];
+    canWrite: boolean;
 }) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
@@ -177,9 +179,11 @@ export function CheckoutManager({
                         Crie e edite suas páginas de conversão
                     </p>
                 </div>
-                <Button type="button" variant="primary" onClick={openCreate} className="h-10 px-4">
-                    <Icon name="plus" className="size-3.5" /> Criar checkout
-                </Button>
+                {canWrite && (
+                    <Button type="button" variant="primary" onClick={openCreate} className="h-10 px-4">
+                        <Icon name="plus" className="size-3.5" /> Criar checkout
+                    </Button>
+                )}
             </div>
 
             {checkouts.length === 0 ? (
@@ -199,6 +203,7 @@ export function CheckoutManager({
                             key={checkout.id}
                             checkout={checkout}
                             onDelete={() => setDeleteTarget(checkout)}
+                            canWrite={canWrite}
                         />
                     ))}
                 </section>
@@ -437,13 +442,21 @@ export function CheckoutManager({
     );
 }
 
-function CheckoutCard({ checkout, onDelete }: { checkout: Checkout; onDelete: () => void }) {
+function CheckoutCard({
+    checkout,
+    onDelete,
+    canWrite,
+}: {
+    checkout: Checkout;
+    onDelete: () => void;
+    canWrite: boolean;
+}) {
     const previewUrl = `/checkouts/${checkout.id}/preview?embed=1&saved=${encodeURIComponent(checkout.updatedAt)}`;
     const publicUrl = checkoutPublicUrl(checkout.slug);
     return (
         <article className="checkout-list-card glass-panel group overflow-hidden rounded-[20px] p-3.5 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_48px_rgba(66,57,128,.08)]">
             <Link
-                href={`/checkouts/${checkout.id}/builder`}
+                href={canWrite ? `/checkouts/${checkout.id}/builder` : `/checkouts/${checkout.id}/preview`}
                 className="relative block h-32 overflow-hidden rounded-[14px] border border-[#dfddea]/70 bg-gradient-to-br from-[#f5f3ff] to-[#edf4ff]"
                 aria-label={`Abrir editor de ${checkout.name}`}
             >
@@ -488,15 +501,17 @@ function CheckoutCard({ checkout, onDelete }: { checkout: Checkout; onDelete: ()
             <div className="checkout-list-footer mt-3.5 flex items-center justify-between border-t border-white/70 px-0.5 pt-3">
                 <span className="text-[11px] text-muted">Versão {checkout.version}</span>
                 <div className="flex items-center gap-1">
-                    <Button
-                        type="button"
-                        variant="icon"
-                        onClick={onDelete}
-                        aria-label={`Excluir ${checkout.name}`}
-                        className="size-8 rounded-lg hover:border-danger/20 hover:bg-danger/10 hover:text-danger"
-                    >
-                        <Icon name="trash" className="size-3.5" />
-                    </Button>
+                    {canWrite && (
+                        <Button
+                            type="button"
+                            variant="icon"
+                            onClick={onDelete}
+                            aria-label={`Excluir ${checkout.name}`}
+                            className="size-8 rounded-lg hover:border-danger/20 hover:bg-danger/10 hover:text-danger"
+                        >
+                            <Icon name="trash" className="size-3.5" />
+                        </Button>
+                    )}
                     {checkout.status === 'published' && (
                         <Button
                             type="button"
@@ -510,11 +525,11 @@ function CheckoutCard({ checkout, onDelete }: { checkout: Checkout; onDelete: ()
                         </Button>
                     )}
                     <ButtonLink
-                        href={`/checkouts/${checkout.id}/builder`}
+                        href={canWrite ? `/checkouts/${checkout.id}/builder` : `/checkouts/${checkout.id}/preview`}
                         variant="ghost"
                         className="h-8 rounded-lg px-2.5"
                     >
-                        Editar <Icon name="arrow-right" className="size-3.5" />
+                        {canWrite ? 'Editar' : 'Visualizar'} <Icon name="arrow-right" className="size-3.5" />
                     </ButtonLink>
                 </div>
             </div>

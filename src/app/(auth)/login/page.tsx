@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { AuthToast } from '@/components/auth/auth-toast';
+import { PasswordInput } from '@/components/auth/password-input';
 import { Brand } from '@/components/brand';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -11,11 +12,13 @@ export const metadata: Metadata = { title: 'Entrar' };
 export default async function LoginPage({
     searchParams,
 }: {
-    searchParams: Promise<{ error?: string; expired?: string }>;
+    searchParams: Promise<{ error?: string; expired?: string; message?: string; invite?: string }>;
 }) {
-    const { error, expired } = await searchParams;
+    const { error, expired, message, invite } = await searchParams;
+    const inviteQuery = invite ? `?invite=${encodeURIComponent(invite)}` : '';
     const feedback =
         error ??
+        message ??
         (expired === '1' ? 'Sua sessão expirou. Entre novamente para continuar.' : undefined);
     return (
         <div className="relative grid min-h-screen place-items-center overflow-hidden bg-[#f7f7fb] px-4 py-10">
@@ -45,10 +48,11 @@ export default async function LoginPage({
                     <h1 className="mt-7 text-[28px] font-semibold tracking-[-.05em] text-[#17182f]">
                         Bem-vindo de volta
                     </h1>
-                    <p className="mt-2 text-[12px] leading-5 text-muted">
+                    <p className="text-[12px] leading-5 text-muted">
                         Entre para continuar cuidando da sua operação no Astro.
                     </p>
-                    <form action="/api/auth/login" method="post" className="mt-7 space-y-4">
+                    <form action={`/api/auth/login${inviteQuery}`} method="post" className="mt-7 space-y-4">
+                        {invite && <input type="hidden" name="invitationToken" value={invite} />}
                         <Field label="E-mail">
                             <input
                                 name="email"
@@ -60,23 +64,30 @@ export default async function LoginPage({
                             />
                         </Field>
                         <Field label="Senha">
-                            <input
+                            <PasswordInput
                                 name="password"
-                                type="password"
                                 required
                                 autoComplete="current-password"
                                 placeholder="Sua senha"
                                 className={inputClass}
                             />
                         </Field>
-                        <label className="flex items-center gap-2.5 text-[11px] text-muted">
-                            <input
-                                type="checkbox"
-                                name="remember"
-                                className="size-4 rounded border-[#d9d7e8] accent-brand"
-                            />
-                            Manter conectado
-                        </label>
+                        <div className="flex items-center justify-between gap-3">
+                            <label className="flex items-center gap-2.5 text-[11px] text-muted">
+                                <input
+                                    type="checkbox"
+                                    name="remember"
+                                    className="size-4 rounded border-[#d9d7e8] accent-brand"
+                                />
+                                Manter conectado
+                            </label>
+                            <Link
+                                href="/forgot-password"
+                                className="text-[11px] font-semibold text-brand-strong hover:text-brand"
+                            >
+                                Esqueci minha senha
+                            </Link>
+                        </div>
                         <Button type="submit" variant="primary" className="mt-2 w-full">
                             Entrar no Astro
                             <Icon name="arrow-right" className="size-4" />
@@ -85,7 +96,7 @@ export default async function LoginPage({
                     <p className="mt-6 border-t border-[#ecebf3] pt-5 text-center text-[11px] text-muted">
                         Ainda não usa o Astro?{' '}
                         <Link
-                            href="/register"
+                            href={`/register${inviteQuery}`}
                             className="font-semibold text-brand-strong transition hover:text-brand"
                         >
                             Criar uma conta
