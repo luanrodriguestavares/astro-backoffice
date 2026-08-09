@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
-import { Modal, ModalFooter, ModalHeader } from '@/components/ui/modal';
+import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
 import { showToast } from '@/components/ui/toast';
 import type { InvitableRole, OrganizationMember } from '@/lib/api/types';
 
@@ -91,7 +91,8 @@ export function MemberRoleEditor({
                     onClose={close}
                 />
 
-                <div className="mt-7">
+                <ModalBody>
+                <div>
                     <label className="text-[13px] font-semibold">
                         Perfil
                         <div className="mt-2">
@@ -131,6 +132,7 @@ export function MemberRoleEditor({
                         </div>
                     )}
                 </div>
+                </ModalBody>
 
                 <ModalFooter>
                     <Button type="button" variant="secondary" disabled={loading} onClick={close}>

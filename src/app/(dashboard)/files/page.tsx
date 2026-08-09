@@ -18,12 +18,14 @@ export default async function FilesPage() {
                 title="Biblioteca de mídia"
                 description="Organize e reutilize imagens e documentos da sua operação."
             />
-            <FileLibrary
-                files={files}
-                folders={folders}
-                storage={storage}
-                canWrite={permissions.has('products.write')}
-            />
+            <div data-tour="page-primary">
+                <FileLibrary
+                    files={files}
+                    folders={folders}
+                    storage={storage}
+                    canWrite={permissions.has('products.write')}
+                />
+            </div>
         </div>
     );
 }

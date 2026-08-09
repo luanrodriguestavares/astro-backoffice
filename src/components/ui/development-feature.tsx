@@ -22,7 +22,10 @@ export function DevelopmentFeature({
     return (
         <>
             <PageHeader eyebrow={eyebrow} title={title} description={description} />
-            <section className="glass-panel overflow-hidden rounded-[28px] px-6 pb-12 pt-5 text-center sm:px-10 sm:pb-14">
+            <section
+                data-tour="page-primary"
+                className="glass-panel overflow-hidden rounded-[28px] px-6 pb-12 pt-5 text-center sm:px-10 sm:pb-14"
+            >
                 <div
                     role="img"
                     aria-label="Robô do Astro trabalhando no desenvolvimento deste recurso"

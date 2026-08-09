@@ -165,8 +165,7 @@ export function DashboardShell({
         }))
         .filter((group) => group.items.length > 0);
     const focusedEditor = /^\/checkouts\/[^/]+\/(?:builder|preview)\/?$/.test(pathname);
-    const themeEnabled = !focusedEditor;
-    const dashboardDark = themeEnabled && dashboardTheme === 'dark';
+    const dashboardDark = dashboardTheme === 'dark';
 
     useEffect(() => {
         document.documentElement.classList.toggle('astro-dark-portals', dashboardDark);
@@ -186,7 +185,11 @@ export function DashboardShell({
     }
 
     if (focusedEditor) {
-        return <div className="min-h-screen bg-[#f7f7fc]">{children}</div>;
+        return (
+            <div className={dashboardDark ? 'dashboard-dark min-h-screen' : 'min-h-screen bg-[#f7f7fc]'}>
+                {children}
+            </div>
+        );
     }
 
     return (
@@ -210,6 +213,7 @@ export function DashboardShell({
             )}
 
             <aside
+                data-tour="main-navigation"
                 className={`astro-sidebar fixed inset-y-0 left-0 z-40 flex w-[280px] flex-col border-r border-border/70 bg-white/62 px-4 py-5 shadow-[20px_0_80px_color-mix(in_srgb,var(--brand)_3.5%,transparent)] backdrop-blur-3xl transition-all duration-300 lg:sticky lg:top-0 lg:h-screen lg:w-auto ${collapsed ? 'lg:px-2.5' : ''} ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
             >
                 <Button
@@ -311,36 +315,38 @@ export function DashboardShell({
                         <Icon name="menu" />
                     </Button>
 
-                    <HeaderSearch
-                        dark={dashboardDark}
-                        permissions={organization.permissions ?? []}
-                    />
+                    <div data-tour="global-search">
+                        <HeaderSearch
+                            dark={dashboardDark}
+                            permissions={organization.permissions ?? []}
+                        />
+                    </div>
 
                     <div className="ml-auto flex items-center gap-2.5">
-                        {themeEnabled && (
-                            <Button
-                                type="button"
-                                role="switch"
-                                aria-checked={dashboardDark}
-                                aria-label={`Usar tema ${dashboardDark ? 'claro' : 'escuro'}`}
-                                title={`Mudar para tema ${dashboardDark ? 'claro' : 'escuro'}`}
-                                className="dashboard-theme-switch"
-                                onClick={toggleDashboardTheme}
-                            >
-                                <Icon name="sun" className="size-3.5" />
-                                <span className="dashboard-theme-switch-track" aria-hidden="true">
-                                    <span className="dashboard-theme-switch-thumb" />
-                                </span>
-                                <Icon name="moon" className="size-3.5" />
-                            </Button>
-                        )}
+                        <Button
+                            type="button"
+                            role="switch"
+                            aria-checked={dashboardDark}
+                            aria-label={`Usar tema ${dashboardDark ? 'claro' : 'escuro'}`}
+                            title={`Mudar para tema ${dashboardDark ? 'claro' : 'escuro'}`}
+                            className="dashboard-theme-switch"
+                            onClick={toggleDashboardTheme}
+                        >
+                            <Icon name="sun" className="size-3.5" />
+                            <span className="dashboard-theme-switch-track" aria-hidden="true">
+                                <span className="dashboard-theme-switch-thumb" />
+                            </span>
+                            <Icon name="moon" className="size-3.5" />
+                        </Button>
                         <NotificationCenter storageScope={`${user.id}:${organization.id}`} />
-                        <ProfileMenu
-                            user={user}
-                            contextLabel={organizationName}
-                            settingsHref="/settings"
-                            logoutAction="/api/auth/logout"
-                        />
+                        <div data-tour="account-menu">
+                            <ProfileMenu
+                                user={user}
+                                contextLabel={organizationName}
+                                settingsHref="/settings"
+                                logoutAction="/api/auth/logout"
+                            />
+                        </div>
                     </div>
                 </header>
 

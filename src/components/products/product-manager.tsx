@@ -270,7 +270,10 @@ export function ProductManager({
 
     return (
         <>
-            <section className="glass-panel mb-4 flex flex-col gap-3 rounded-[22px] p-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <section
+                data-tour="product-controls"
+                className="glass-panel mb-4 flex flex-col gap-3 rounded-[22px] p-2.5 sm:flex-row sm:items-center sm:justify-between"
+            >
                 <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
                     <label className="product-search filter-control flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-white/70 px-3.5 transition focus-within:border-brand/70 focus-within:bg-white focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)] sm:max-w-[310px]">
                         <Icon name="search" className="size-3.5 shrink-0 text-muted" />
@@ -341,6 +344,7 @@ export function ProductManager({
                     <Button
                         type="button"
                         variant="primary"
+                        data-tour="product-create"
                         onClick={openCreate}
                         className="h-10 shrink-0 px-4"
                     >
@@ -350,59 +354,32 @@ export function ProductManager({
                 )}
             </section>
 
-            {products.length === 0 ? (
-                <EmptyProducts onCreate={canWrite ? openCreate : undefined} />
-            ) : (
-                <ProductTable
-                    products={pagedProducts}
-                    prices={prices}
-                    hasFilters={Boolean(query) || status !== 'all'}
-                    onClear={() => {
-                        setQuery('');
-                        setStatus('all');
-                        setPage(1);
-                    }}
-                    onEdit={openEdit}
-                    onRemove={setDeleteTarget}
-                    onStatusChange={changeStatus}
-                    statusChanging={statusChanging}
-                    canWrite={canWrite}
-                />
-            )}
-            {products.length > 0 && visibleProducts.length > 0 && (
-                <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-white/65 bg-white/25 px-4 py-3 text-[12px] text-muted sm:flex-row sm:items-center sm:justify-between">
-                    <span>
-                        {(currentPage - 1) * pageSize + 1}–
-                        {Math.min(currentPage * pageSize, visibleProducts.length)} de{' '}
-                        {visibleProducts.length}
-                    </span>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            type="button"
-                            variant="icon"
-                            aria-label="Página anterior"
-                            title="Página anterior"
-                            disabled={currentPage === 1}
-                            onClick={() => setPage(currentPage - 1)}
-                        >
-                            <Icon name="arrow-right" className="size-3.5 rotate-180" />
-                        </Button>
-                        <span>
-                            Página {currentPage} de {pageCount}
-                        </span>
-                        <Button
-                            type="button"
-                            variant="icon"
-                            aria-label="Próxima página"
-                            title="Próxima página"
-                            disabled={currentPage === pageCount}
-                            onClick={() => setPage(currentPage + 1)}
-                        >
-                            <Icon name="arrow-right" className="size-3.5" />
-                        </Button>
-                    </div>
-                </div>
-            )}
+            <div data-tour="products-list">
+                {products.length === 0 ? (
+                    <EmptyProducts onCreate={canWrite ? openCreate : undefined} />
+                ) : (
+                    <ProductTable
+                        products={pagedProducts}
+                        prices={prices}
+                        hasFilters={Boolean(query) || status !== 'all'}
+                        onClear={() => {
+                            setQuery('');
+                            setStatus('all');
+                            setPage(1);
+                        }}
+                        onEdit={openEdit}
+                        onRemove={setDeleteTarget}
+                        onStatusChange={changeStatus}
+                        statusChanging={statusChanging}
+                        canWrite={canWrite}
+                        resultCount={visibleProducts.length}
+                        currentPage={currentPage}
+                        pageCount={pageCount}
+                        onPreviousPage={() => setPage(currentPage - 1)}
+                        onNextPage={() => setPage(currentPage + 1)}
+                    />
+                )}
+            </div>
 
             {open &&
                 createPortal(
@@ -618,6 +595,11 @@ function ProductTable({
     onStatusChange,
     statusChanging,
     canWrite,
+    resultCount,
+    currentPage,
+    pageCount,
+    onPreviousPage,
+    onNextPage,
 }: {
     products: Product[];
     prices: Record<string, Price[]>;
@@ -628,6 +610,11 @@ function ProductTable({
     onStatusChange: (product: Product, status: 'active' | 'inactive') => void;
     statusChanging?: string;
     canWrite: boolean;
+    resultCount: number;
+    currentPage: number;
+    pageCount: number;
+    onPreviousPage: () => void;
+    onNextPage: () => void;
 }) {
     return (
         <section className="product-table glass-panel overflow-hidden rounded-[28px]">
@@ -803,6 +790,32 @@ function ProductTable({
                     </table>
                 </div>
             )}
+            <div className="flex items-center justify-between border-t border-white/65 px-5 py-4 text-xs text-muted sm:px-6">
+                <span>
+                    {resultCount} {resultCount === 1 ? 'resultado' : 'resultados'}
+                </span>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="icon"
+                        aria-label="Página anterior"
+                        disabled={currentPage === 1}
+                        onClick={onPreviousPage}
+                    >
+                        <Icon name="arrow-right" className="size-3.5 rotate-180" />
+                    </Button>
+                    <span>
+                        Página {currentPage} de {pageCount}
+                    </span>
+                    <Button
+                        variant="icon"
+                        aria-label="Próxima página"
+                        disabled={currentPage >= pageCount}
+                        onClick={onNextPage}
+                    >
+                        <Icon name="arrow-right" className="size-3.5" />
+                    </Button>
+                </div>
+            </div>
         </section>
     );
 }

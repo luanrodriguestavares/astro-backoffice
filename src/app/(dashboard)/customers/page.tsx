@@ -48,7 +48,7 @@ export default async function CustomersPage() {
                 description="Consulte clientes e o histórico de compras em uma visão unificada."
                 actions={permissions.has('products.write') ? <CustomerCreate /> : undefined}
             />
-            <section className="mb-4 grid gap-3 sm:grid-cols-3">
+            <section data-tour="page-summary" className="mb-4 grid gap-3 sm:grid-cols-3">
                 <SummaryCard
                     label="Clientes cadastrados"
                     value={String(customers.length)}

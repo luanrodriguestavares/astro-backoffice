@@ -28,7 +28,10 @@ export function ResourceTable<T>({
     const tableId = `resource-${title?.toLocaleLowerCase('pt-BR').replace(/[^a-z0-9]+/g, '-') ?? 'table'}`;
 
     return (
-        <section className="resource-table glass-panel overflow-hidden rounded-[28px]">
+        <section
+            data-tour="page-primary"
+            className="resource-table glass-panel overflow-hidden rounded-[28px]"
+        >
             {(title || description) && (
                 <div className="flex items-center justify-between gap-4 border-b border-white/65 px-5 py-5 sm:px-6">
                     <div>

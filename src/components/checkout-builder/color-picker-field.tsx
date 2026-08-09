@@ -131,7 +131,7 @@ export function ColorPickerField({
             role="dialog"
             aria-label={`Selecionar ${label?.toLowerCase() ?? 'cor'}`}
             style={popoverStyle}
-            className="overflow-y-auto rounded-2xl border border-[#e1dfea] bg-white p-3.5 text-[#24253c] shadow-[0_22px_65px_rgba(35,30,74,.22)]"
+            className="checkout-color-popover overflow-y-auto rounded-2xl border border-border bg-surface p-3.5 text-foreground shadow-[0_22px_65px_rgba(35,30,74,.22)]"
         >
             <div className="flex items-start justify-between gap-3">
                 <div>
@@ -152,7 +152,7 @@ export function ColorPickerField({
 
             <SaturationValue value={draft} onChange={updateDraft} />
 
-            <label className="mt-3 grid gap-1.5 text-[11px] font-semibold text-[#67677b]">
+            <label className="mt-3 grid gap-1.5 text-[11px] font-semibold text-muted">
                 Matiz
                 <input
                     className="checkout-color-hue"
@@ -169,17 +169,17 @@ export function ColorPickerField({
 
             <div className="mt-3 grid grid-cols-[42px_minmax(0,1fr)] gap-2">
                 <span
-                    className="rounded-xl border border-black/10"
+                    className="rounded-xl border border-border"
                     style={{ background: hsvToHex(draft) }}
                     aria-hidden="true"
                 />
-                <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-[.08em] text-[#77778a]">
+                <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-[.08em] text-muted">
                     Hexadecimal
                     <input
                         value={hexInput}
                         maxLength={7}
                         spellCheck={false}
-                        className="h-10 rounded-xl border border-[#dcd9e8] bg-white px-3 font-mono text-[13px] uppercase text-[#24253c] outline-none transition focus:border-brand focus:shadow-[0_0_0_3px_rgba(109,93,244,.13)]"
+                        className="h-10 rounded-xl border border-border bg-[var(--control-bg)] px-3 font-mono text-[13px] uppercase text-foreground outline-none transition focus:border-brand focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)]"
                         onChange={(event) => {
                             const next = event.currentTarget.value;
                             setHexInput(next);
@@ -197,7 +197,7 @@ export function ColorPickerField({
             </div>
 
             <div className="mt-3">
-                <span className="text-[10px] font-semibold uppercase tracking-[.08em] text-[#77778a]">
+                <span className="text-[10px] font-semibold uppercase tracking-[.08em] text-muted">
                     Cores rápidas
                 </span>
                 <div className="mt-2 grid grid-cols-5 gap-1.5">
@@ -208,7 +208,7 @@ export function ColorPickerField({
                             aria-label={`Selecionar ${color}`}
                             aria-pressed={hexInput.toLowerCase() === color}
                             onClick={() => chooseQuickColor(color)}
-                            className={`h-8 rounded-lg border transition ${hexInput.toLowerCase() === color ? 'border-brand shadow-[0_0_0_2px_rgba(109,93,244,.18)]' : 'border-black/10 hover:scale-[1.04]'}`}
+                            className={`h-8 rounded-lg border transition ${hexInput.toLowerCase() === color ? 'border-brand shadow-[0_0_0_2px_color-mix(in_srgb,var(--brand)_20%,transparent)]' : 'border-border hover:scale-[1.04]'}`}
                             style={{ background: color }}
                         />
                     ))}
@@ -227,10 +227,10 @@ export function ColorPickerField({
                     aria-haspopup="dialog"
                     aria-expanded={open}
                     onClick={openPicker}
-                    className={`flex h-11 w-full items-center gap-2.5 rounded-xl border bg-white px-2.5 text-left outline-none transition ${open ? 'border-brand shadow-[0_0_0_3px_rgba(109,93,244,.13)]' : 'border-[#dedce8] hover:border-brand/40'}`}
+                    className={`checkout-color-trigger flex h-11 w-full items-center gap-2.5 rounded-xl border bg-[var(--control-bg)] px-2.5 text-left outline-none transition ${open ? 'border-brand shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)]' : 'border-border hover:border-brand/40'}`}
                 >
                     <span
-                        className="size-7 shrink-0 rounded-lg border border-black/10 shadow-inner"
+                        className="size-7 shrink-0 rounded-lg border border-border shadow-inner"
                         style={{ background: selected }}
                     />
                     <span className="min-w-0 flex-1">
@@ -267,7 +267,7 @@ function SaturationValue({ value, onChange }: { value: Hsv; onChange: (value: Hs
     return (
         <div
             ref={surface}
-            className="relative mt-3 h-36 touch-none cursor-crosshair overflow-hidden rounded-xl border border-black/10"
+            className="relative mt-3 h-36 touch-none cursor-crosshair overflow-hidden rounded-xl border border-border"
             style={{
                 background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent), hsl(${value.h} 100% 50%)`,
             }}

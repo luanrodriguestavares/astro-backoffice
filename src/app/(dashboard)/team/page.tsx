@@ -28,7 +28,7 @@ export default async function TeamPage() {
                 description="Convide membros e acompanhe os acessos à organização."
                 actions={<InviteMember roles={roles} />}
             />
-            <section className="mb-4 grid gap-3 sm:grid-cols-3">
+            <section data-tour="page-summary" className="mb-4 grid gap-3 sm:grid-cols-3">
                 <SummaryCard
                     label="Membros"
                     value={String(members.length)}
@@ -48,7 +48,7 @@ export default async function TeamPage() {
                     icon="clock"
                 />
             </section>
-            <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
+            <div data-tour="page-primary" className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
                 <section className="glass-panel rounded-[28px] p-5 sm:p-6">
                     <PanelTitle
                         icon="team"

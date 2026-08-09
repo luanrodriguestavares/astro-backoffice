@@ -1046,13 +1046,15 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
         },
         render: ({ children, ...theme }) => {
             const palette = resolvePalette(theme);
+            const colorScheme = theme.themeMode === 'system' ? 'light dark' : theme.themeMode;
             return (
                 <div
                     data-checkout-page
                     data-checkout-width={theme.maxWidth ?? 'lg'}
                     style={{
                         ...variables(theme as BuilderRootProps),
-                        colorScheme: theme.themeMode === 'system' ? 'light dark' : theme.themeMode,
+                        colorScheme,
+                        boxSizing: 'border-box',
                         minHeight: '100vh',
                         background: palette.background,
                         color: palette.text,
@@ -1061,6 +1063,22 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                         padding: spacingValue(theme.pagePadding),
                     }}
                 >
+                    <style>{`
+                        :host {
+                            display: block;
+                            min-height: 100vh;
+                            background: ${palette.background};
+                            color-scheme: ${colorScheme};
+                        }
+                        html, body {
+                            margin: 0;
+                            background: ${palette.background};
+                            color-scheme: ${colorScheme};
+                        }
+                        #frame-root {
+                            background: ${palette.background};
+                        }
+                    `}</style>
                     <style>{checkoutDesignSystemStyles}</style>
                     <style>{checkoutPageStyles}</style>
                     <main

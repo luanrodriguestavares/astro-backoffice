@@ -39,7 +39,8 @@ export function MediaPicker({
             onMouseDown={(event) => event.target === event.currentTarget && onClose()}
             className="fixed inset-0 z-[140] grid place-items-center overflow-y-auto bg-[#11111d]/45 p-4 backdrop-blur-sm"
         >
-            <section className="modal-surface glass-panel my-6 flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col rounded-[28px] p-5 sm:p-6">
+            <section className="modal-surface glass-panel flex max-h-[min(720px,calc(100dvh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-[24px]">
+                <div className="shrink-0 border-b border-border/70 px-5 py-4 sm:px-6">
                 <div className="flex shrink-0 items-start justify-between gap-5">
                     <div>
                         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-strong">
@@ -55,7 +56,7 @@ export function MediaPicker({
                     </Button>
                 </div>
 
-                <label className="relative mt-5 block shrink-0">
+                <label className="relative mt-4 block shrink-0">
                     <Icon
                         name="search"
                         className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted"
@@ -68,8 +69,9 @@ export function MediaPicker({
                         className="h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] pl-10 pr-4 text-[13px] outline-none focus:border-brand/55 focus:shadow-[0_0_0_3px_rgba(109,93,244,.12)]"
                     />
                 </label>
+                </div>
 
-                <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
+                <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
                     {images.length ? (
                         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
                             {images.map((file) => {

@@ -20,7 +20,7 @@ export default async function ProductsPage() {
         ),
     );
     return (
-        <div className="astro-themed-page products-page">
+        <div className="astro-themed-page products-page" data-tour="products-page">
             <PageHeader
                 eyebrow="Catálogo"
                 title="Produtos"

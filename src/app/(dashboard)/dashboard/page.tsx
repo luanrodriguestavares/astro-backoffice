@@ -82,7 +82,7 @@ export default async function DashboardPage() {
     );
 
     return (
-        <div className="dashboard-home">
+        <div className="dashboard-home" data-tour="dashboard-home">
             <PageHeader
                 prominentTitle
                 eyebrow={
@@ -111,6 +111,7 @@ export default async function DashboardPage() {
             />
 
             {canReadPayments ? <section
+                data-tour="dashboard-metrics"
                 aria-label="Indicadores da operação"
                 className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
             >
@@ -162,7 +163,10 @@ export default async function DashboardPage() {
                 <RestrictedOverview />
             )}
 
-            {canReadPayments && <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,.95fr)]">
+            {canReadPayments && <section
+                data-tour="dashboard-performance"
+                className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,.95fr)]"
+            >
                 <article className="glass-panel min-w-0 rounded-[28px] p-5 sm:p-6">
                     <div className="flex items-start justify-between gap-4">
                         <div>
@@ -242,7 +246,10 @@ export default async function DashboardPage() {
                 )}
             </section>}
 
-            <section className={`mt-4 grid gap-4 ${canReadProducts ? 'xl:grid-cols-2' : ''}`}>
+            <section
+                data-tour="dashboard-recent"
+                className={`mt-4 grid gap-4 ${canReadProducts ? 'xl:grid-cols-2' : ''}`}
+            >
                 {canReadProducts && <RecentCheckouts checkouts={recentCheckouts.slice(0, 4)} />}
                 <RecentActivities activities={activities.slice(0, 5)} />
             </section>

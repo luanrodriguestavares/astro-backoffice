@@ -81,7 +81,12 @@ export function CouponCreate({
 
     return (
         <>
-            <Button type="button" variant="primary" onClick={() => setOpen(true)}>
+            <Button
+                type="button"
+                variant="primary"
+                data-tour="coupon-create"
+                onClick={() => setOpen(true)}
+            >
                 <Icon name="plus" className="size-3.5" />
                 Criar cupom
             </Button>

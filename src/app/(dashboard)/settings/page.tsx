@@ -17,7 +17,7 @@ export default async function SettingsPage() {
                 title="Configurações"
                 description="Configure a organização e consulte os dados da sua conta."
             />
-            <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
+            <div data-tour="page-primary" className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
                 {canManageOrganization && <OrganizationForm organization={organization} />}
                 <aside className="glass-panel rounded-[28px] p-6">
                     <div className="flex items-center gap-3">

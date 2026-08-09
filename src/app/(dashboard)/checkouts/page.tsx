@@ -44,7 +44,7 @@ export default async function CheckoutsPage() {
                 title="Checkouts"
                 description="Crie páginas de venda com componentes visuais e pagamento protegido pelo Astro."
             />
-            <section className="mb-4 grid gap-3 sm:grid-cols-3">
+            <section data-tour="page-summary" className="mb-4 grid gap-3 sm:grid-cols-3">
                 <SummaryCard
                     label="Checkouts criados"
                     value={String(checkouts.length)}
@@ -64,11 +64,13 @@ export default async function CheckoutsPage() {
                     icon="edit"
                 />
             </section>
-            <CheckoutManager
-                checkouts={checkouts}
-                catalog={catalog}
-                canWrite={permissions.has('products.write')}
-            />
+            <div data-tour="page-primary">
+                <CheckoutManager
+                    checkouts={checkouts}
+                    catalog={catalog}
+                    canWrite={permissions.has('products.write')}
+                />
+            </div>
         </div>
     );
 }

@@ -1,11 +1,10 @@
-import { PageHelp } from '@/components/ui/page-help';
+import { GuidedTourTrigger } from '@/components/layout/guided-tour-trigger';
 
 export function PageHeader({
     eyebrow,
     title,
     description,
     actions,
-    help,
     hero = false,
     prominentTitle = false,
 }: {
@@ -13,12 +12,12 @@ export function PageHeader({
     title: React.ReactNode;
     description: string;
     actions?: React.ReactNode;
-    help?: { title: string; content: React.ReactNode };
     hero?: boolean;
     prominentTitle?: boolean;
 }) {
     return (
         <div
+            data-tour="page-header"
             className={`${hero ? 'mb-9' : 'mb-7'} flex flex-col justify-between gap-5 sm:flex-row sm:items-end`}
         >
             <div>
@@ -35,7 +34,7 @@ export function PageHeader({
                     >
                         {title}
                     </h1>
-                    {help && <PageHelp title={help.title}>{help.content}</PageHelp>}
+                    <GuidedTourTrigger />
                 </div>
                 <p
                     className={`${hero ? 'mt-1.5 text-[15px]' : 'mt-1.5 text-sm'} max-w-2xl leading-6 text-muted`}
@@ -43,7 +42,11 @@ export function PageHeader({
                     {description}
                 </p>
             </div>
-            {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+            {actions && (
+                <div data-tour="page-actions" className="flex shrink-0 items-center gap-2">
+                    {actions}
+                </div>
+            )}
         </div>
     );
 }

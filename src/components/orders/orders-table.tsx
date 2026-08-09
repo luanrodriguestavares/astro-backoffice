@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
-import { Modal, ModalFooter, ModalHeader } from '@/components/ui/modal';
+import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
 import { TableActionButton } from '@/components/ui/table-action-button';
 import type { Customer, Payment } from '@/lib/api/types';
 import { orderStatusLabel } from '@/lib/commerce-status';
@@ -60,7 +60,7 @@ export function OrdersTable({
 
     return (
         <>
-            <section className="glass-panel overflow-hidden rounded-[28px]">
+            <section data-tour="page-primary" className="glass-panel overflow-hidden rounded-[28px]">
                 <div className="border-b border-white/65 px-5 py-5 sm:px-6">
                     <h2 className="text-sm font-semibold">Pedidos recentes</h2>
                     <p className="mt-1 text-[12px] text-muted">
@@ -205,7 +205,8 @@ export function OrdersTable({
                             titleId="order-detail-title"
                             onClose={() => setSelected(undefined)}
                         />
-                        <div className="mt-7 flex items-center justify-between rounded-[22px] border border-brand/15 bg-brand-soft/35 p-5">
+                        <ModalBody>
+                        <div className="flex items-center justify-between rounded-[22px] border border-brand/15 bg-brand-soft/35 p-5">
                             <div>
                                 <p className="text-[11px] uppercase tracking-[.12em] text-muted">
                                     Total do pedido
@@ -253,6 +254,7 @@ export function OrdersTable({
                             />
                             <Line label="Realizado em" value={dateTime(selected.placedAt)} />
                         </Section>
+                        </ModalBody>
                         <ModalFooter>
                             {payment && (
                                 <ButtonLink

@@ -71,6 +71,7 @@ export default async function GatewaysPage() {
             />
 
             <section
+                data-tour="page-summary"
                 aria-label="Indicadores dos gateways"
                 className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
             >
@@ -109,12 +110,14 @@ export default async function GatewaysPage() {
                 />
             </section>
 
-            <GatewayCenter
-                connections={connections}
-                payments={payments}
-                gateways={gateways}
-                canReadPayments={canReadPayments}
-            />
+            <div data-tour="page-primary">
+                <GatewayCenter
+                    connections={connections}
+                    payments={payments}
+                    gateways={gateways}
+                    canReadPayments={canReadPayments}
+                />
+            </div>
         </>
     );
 }

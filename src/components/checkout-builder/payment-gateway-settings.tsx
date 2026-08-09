@@ -3,7 +3,7 @@
 import { Button, ButtonLink } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
-import { Modal, ModalFooter, ModalHeader } from '@/components/ui/modal';
+import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
 import {
     paymentMethods,
     requiredCheckoutComponents,
@@ -79,7 +79,8 @@ export function PaymentGatewaySettings({
                 onClose={onClose}
             />
 
-            <section className="mt-7">
+            <ModalBody>
+            <section>
                 <div className="flex items-center justify-between gap-4">
                     <div>
                         <h3 className="text-[14px] font-semibold">Componentes obrigatórios</h3>
@@ -259,6 +260,7 @@ export function PaymentGatewaySettings({
                     </p>
                 )}
             </section>
+            </ModalBody>
 
             <ModalFooter>
                 <ButtonLink href="/gateways" variant="secondary">

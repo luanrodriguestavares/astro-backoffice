@@ -62,7 +62,7 @@ export default async function SubscriptionsPage() {
                 description="Acompanhe ciclos, valores, renovações e cancelamentos."
                 actions={action}
             />
-            <section className="mb-4 grid gap-3 sm:grid-cols-3">
+            <section data-tour="page-summary" className="mb-4 grid gap-3 sm:grid-cols-3">
                 <SummaryCard
                     label="Assinaturas ativas"
                     value={String(active.length)}

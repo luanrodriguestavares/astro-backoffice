@@ -21,7 +21,7 @@ export default async function NotificationsPage() {
                 title="Notificações"
                 description="Acompanhe as atualizações recentes da sua operação."
             />
-            <section className="glass-panel overflow-hidden rounded-[28px]">
+            <section data-tour="page-primary" className="glass-panel overflow-hidden rounded-[28px]">
                 {notifications.length ? (
                     <div className="grid gap-1 p-3 sm:p-4">
                         {notifications.map((item) => (

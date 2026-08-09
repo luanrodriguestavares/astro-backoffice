@@ -34,7 +34,7 @@ export default async function OrdersPage() {
                 title="Pedidos"
                 description="Entenda o que foi comprado, por quem e a situação comercial de cada venda."
             />
-            <section className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <section data-tour="page-summary" className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <SummaryCard
                     label="Valor dos pedidos"
                     value={money(total, currency)}

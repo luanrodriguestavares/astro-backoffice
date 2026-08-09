@@ -13,7 +13,9 @@ import {
     type BuilderData,
 } from '@/components/checkout-builder/config';
 import { CheckoutSelectField } from '@/components/checkout-builder/checkout-select-field';
+import { CheckoutVersionHistory } from '@/components/checkout-builder/checkout-version-history';
 import { PaymentGatewaySettings } from '@/components/checkout-builder/payment-gateway-settings';
+import { GuidedTourTrigger } from '@/components/layout/guided-tour-trigger';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { showToast } from '@/components/ui/toast';
 import { documentToPuck, puckToDocument } from '@/lib/checkout/puck-data';
@@ -30,6 +32,7 @@ import type {
     CheckoutDraft,
     CheckoutEnvironment,
     CheckoutPaymentMethod,
+    CheckoutVersion,
     GatewayConnection,
     MediaFile,
 } from '@/lib/api/types';
@@ -38,7 +41,7 @@ const checkoutEditorPlugins = [
     {
         name: 'legacy-side-bar',
         render: () => (
-            <div className="checkout-components-panel">
+            <div className="checkout-components-panel" data-tour="builder-components">
                 <Puck.Components />
             </div>
         ),
@@ -126,12 +129,14 @@ export function CheckoutEditor({
     mediaApiUrl: string;
 }) {
     const publicUrl = checkoutPublicUrl(checkout.slug);
-    const [initialData] = useState<BuilderData>(() => documentToPuck(draft.document));
-    const current = useRef<BuilderData>(initialData);
+    const [editorData, setEditorData] = useState<BuilderData>(() => documentToPuck(draft.document));
+    const [editorGeneration, setEditorGeneration] = useState(0);
+    const current = useRef<BuilderData>(editorData);
     const revision = useRef(draft.revision);
     const document = useRef<CheckoutDocument>(draft.document);
     const saving = useRef(false);
     const [paymentSettingsOpen, setPaymentSettingsOpen] = useState(false);
+    const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
     const [environment, setEnvironment] = useState<CheckoutEnvironment>(
         draft.document.settings.environment ?? 'sandbox',
     );
@@ -139,11 +144,11 @@ export function CheckoutEditor({
         draft.document.settings.paymentGatewayBindings ?? {},
     );
     const [enabledMethods, setEnabledMethods] = useState<CheckoutPaymentMethod[]>(() =>
-        enabledPaymentMethods(initialData.content),
+        enabledPaymentMethods(editorData.content),
     );
-    const [builderContent, setBuilderContent] = useState(initialData.content);
+    const [builderContent, setBuilderContent] = useState(editorData.content);
     const [presentComponents, setPresentComponents] = useState<RequiredCheckoutComponent[]>(() =>
-        presentRequiredComponents(initialData.content),
+        presentRequiredComponents(editorData.content),
     );
     const readinessIssues = checkoutReadinessIssues({
         content: builderContent,
@@ -207,6 +212,29 @@ export function CheckoutEditor({
             return next;
         });
         setState('changed');
+    }
+
+    function restoreVersion(restoredDraft: CheckoutDraft, version: CheckoutVersion) {
+        const restoredData = documentToPuck(restoredDraft.document);
+        const restoredEnvironment = restoredDraft.document.settings.environment ?? 'sandbox';
+        const restoredBindings = restoredDraft.document.settings.paymentGatewayBindings ?? {};
+        current.current = restoredData;
+        revision.current = restoredDraft.revision;
+        document.current = restoredDraft.document;
+        setEditorData(restoredData);
+        setEditorGeneration((generation) => generation + 1);
+        setEnvironment(restoredEnvironment);
+        setBindings(restoredBindings);
+        setBuilderContent(restoredData.content);
+        setEnabledMethods(enabledPaymentMethods(restoredData.content));
+        setPresentComponents(presentRequiredComponents(restoredData.content));
+        setState('saved');
+        setVersionHistoryOpen(false);
+        showToast({
+            tone: 'success',
+            title: `Versão ${version.versionNumber} restaurada`,
+            description: 'A versão foi carregada como rascunho no editor.',
+        });
     }
 
     async function publish(data: BuilderData) {
@@ -284,8 +312,9 @@ export function CheckoutEditor({
                 value={{ files: mediaFiles, apiUrl: mediaApiUrl }}
             >
                 <Puck
+                    key={editorGeneration}
                     config={checkoutBuilderConfig}
-                    data={initialData}
+                    data={editorData}
                     height="100dvh"
                     overrides={{
                         fieldTypes: { select: CheckoutSelectField },
@@ -308,8 +337,8 @@ export function CheckoutEditor({
                     }}
                     onPublish={publish}
                     renderHeader={({ children }) => (
-                        <header className="checkout-editor-header">
-                            <div className="flex min-w-0 items-center gap-3">
+                        <header className="checkout-editor-header" data-tour="builder-header">
+                            <div className="checkout-editor-identity">
                                 <ButtonLink
                                     href="/checkouts"
                                     variant="icon"
@@ -327,97 +356,131 @@ export function CheckoutEditor({
                                             /{checkout.slug}
                                         </p>
                                         <span
-                                            className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold ${state === 'error' ? 'bg-[#fff2f4] text-danger' : state === 'published' ? 'bg-[#e8f7f1] text-success' : 'bg-surface-muted text-muted'}`}
+                                            className={`checkout-editor-status checkout-editor-status--${state}`}
                                         >
                                             {statusLabel(state)}
                                         </span>
                                     </div>
                                 </div>
+                                <GuidedTourTrigger />
                             </div>
-                            <div className="ml-auto flex shrink-0 items-center gap-2">
-                                {children}
-                            </div>
+                            <div className="checkout-editor-toolbar">{children}</div>
                         </header>
                     )}
                     renderHeaderActions={() => (
-                        <>
-                            {(checkout.status === 'published' || state === 'published') && (
-                                <>
-                                    <Button
-                                        type="button"
-                                        variant="secondary"
-                                        className="hidden h-9 rounded-xl px-3 text-[11px] md:inline-flex"
-                                        onClick={() => {
-                                            void navigator.clipboard.writeText(publicUrl);
-                                            showToast({
-                                                tone: 'success',
-                                                title: 'Link copiado',
-                                                description:
-                                                    'O link público do checkout foi copiado.',
-                                            });
-                                        }}
-                                    >
-                                        <Icon name="link" className="size-3.5" /> Copiar link
-                                    </Button>
-                                    <a
-                                        href={publicUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className={buttonClassName(
-                                            'secondary',
-                                            'h-9 rounded-xl px-3 text-[11px]',
-                                        )}
-                                    >
-                                        Abrir checkout{' '}
-                                        <Icon name="arrow-right" className="size-3.5 -rotate-45" />
-                                    </a>
-                                </>
-                            )}
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                className="h-9 rounded-xl px-3 text-[11px]"
-                                onClick={() => setPaymentSettingsOpen(true)}
-                            >
-                                <Icon
-                                    name={readinessIssues.length === 0 ? 'check' : 'bolt'}
-                                    className="size-3.5"
-                                />
-                                Prontidão
-                                {readinessIssues.length > 0 && (
-                                    <span className="grid min-w-5 place-items-center rounded-full bg-warning/15 px-1.5 py-0.5 text-[9px] font-semibold text-warning">
-                                        {readinessIssues.length}
-                                    </span>
+                        <div className="checkout-editor-actions">
+                            <div className="checkout-editor-action-group">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    title="Histórico de versões"
+                                    aria-label="Abrir histórico de versões"
+                                    data-tour="builder-history"
+                                    className="h-9 rounded-xl px-3 text-[11px]"
+                                    disabled={state === 'saving'}
+                                    onClick={() => setVersionHistoryOpen(true)}
+                                >
+                                    <Icon name="clock" className="size-3.5" />
+                                    Histórico
+                                </Button>
+                                {(checkout.status === 'published' || state === 'published') && (
+                                    <>
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            title="Copiar link público"
+                                            aria-label="Copiar link público"
+                                            data-tour="builder-public-link"
+                                            className="hidden h-9 rounded-xl px-3 text-[11px] md:inline-flex"
+                                            onClick={() => {
+                                                void navigator.clipboard.writeText(publicUrl);
+                                                showToast({
+                                                    tone: 'success',
+                                                    title: 'Link copiado',
+                                                    description:
+                                                        'O link público do checkout foi copiado.',
+                                                });
+                                            }}
+                                        >
+                                            <Icon name="link" className="size-3.5" />
+                                            Copiar link
+                                        </Button>
+                                        <a
+                                            href={publicUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        title="Abrir checkout publicado"
+                                        aria-label="Abrir checkout publicado"
+                                        data-tour="builder-open-checkout"
+                                            className={buttonClassName(
+                                                'secondary',
+                                                'h-9 rounded-xl px-3 text-[11px]',
+                                            )}
+                                        >
+                                            <Icon
+                                                name="arrow-right"
+                                                className="size-3.5 -rotate-45"
+                                            />
+                                            Abrir
+                                        </a>
+                                    </>
                                 )}
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                className="h-9 rounded-xl px-3 text-[11px]"
-                                disabled={state === 'saving'}
-                                onClick={() => void openPreview()}
-                            >
-                                <Icon name="layout" className="size-3.5" /> Preview
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                className="hidden h-9 rounded-xl px-3 text-[11px] sm:inline-flex"
-                                disabled={state === 'saving'}
-                                onClick={() => void save()}
-                            >
-                                Salvar
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="primary"
-                                className="h-9 rounded-xl px-3.5 text-[11px]"
-                                disabled={state === 'saving'}
-                                onClick={() => void publish(current.current)}
-                            >
-                                Publicar
-                            </Button>
-                        </>
+                            </div>
+                            <span className="checkout-editor-action-divider" aria-hidden="true" />
+                            <div className="checkout-editor-action-group">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    data-tour="builder-readiness"
+                                    className="h-9 rounded-xl px-3 text-[11px]"
+                                    onClick={() => setPaymentSettingsOpen(true)}
+                                >
+                                    <Icon
+                                        name={readinessIssues.length === 0 ? 'check' : 'bolt'}
+                                        className="size-3.5"
+                                    />
+                                    Prontidão
+                                    {readinessIssues.length > 0 && (
+                                        <span className="grid min-w-5 place-items-center rounded-full bg-warning/15 px-1.5 py-0.5 text-[9px] font-semibold text-warning">
+                                            {readinessIssues.length}
+                                        </span>
+                                    )}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    data-tour="builder-preview"
+                                    className="h-9 rounded-xl px-3 text-[11px]"
+                                    disabled={state === 'saving'}
+                                    onClick={() => void openPreview()}
+                                >
+                                    <Icon name="layout" className="size-3.5" /> Preview
+                                </Button>
+                            </div>
+                            <span className="checkout-editor-action-divider" aria-hidden="true" />
+                            <div className="checkout-editor-action-group">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    data-tour="builder-save"
+                                    className="hidden h-9 rounded-xl px-3 text-[11px] sm:inline-flex"
+                                    disabled={state === 'saving'}
+                                    onClick={() => void save()}
+                                >
+                                    Salvar
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="primary"
+                                    data-tour="builder-publish"
+                                    className="h-9 rounded-xl px-3.5 text-[11px]"
+                                    disabled={state === 'saving'}
+                                    onClick={() => void publish(current.current)}
+                                >
+                                    Publicar
+                                </Button>
+                            </div>
+                        </div>
                     )}
                 />
             </CheckoutBuilderMediaContext.Provider>
@@ -432,6 +495,14 @@ export function CheckoutEditor({
                 onBindingChange={changeBinding}
                 onClose={() => setPaymentSettingsOpen(false)}
             />
+            {versionHistoryOpen && (
+                <CheckoutVersionHistory
+                    checkoutId={checkout.id}
+                    hasUnsavedChanges={state === 'changed'}
+                    onClose={() => setVersionHistoryOpen(false)}
+                    onRestored={restoreVersion}
+                />
+            )}
         </div>
     );
 }

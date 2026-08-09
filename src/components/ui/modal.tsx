@@ -45,7 +45,7 @@ export function Modal({
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={labelledBy}
-                className={`theme-modal modal-surface glass-panel my-6 max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.22)] sm:p-7 ${maxWidth}`}
+                className={`theme-modal modal-surface glass-panel flex max-h-[min(720px,calc(100dvh-2rem))] w-full flex-col overflow-hidden rounded-[24px] shadow-[0_32px_100px_rgba(37,31,76,.22)] ${maxWidth}`}
             >
                 {children}
             </section>
@@ -68,7 +68,7 @@ export function ModalHeader({
     onClose(): void;
 }) {
     return (
-        <div className="flex items-start justify-between gap-5">
+        <div className="shrink-0 flex items-start justify-between gap-5 border-b border-border/70 px-5 py-4 sm:px-6">
             <div>
                 {eyebrow && (
                     <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-strong">
@@ -89,6 +89,24 @@ export function ModalHeader({
     );
 }
 
+export function ModalBody({
+    children,
+    className = '',
+}: {
+    children: ReactNode;
+    className?: string;
+}) {
+    return (
+        <div className={`min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6 ${className}`}>
+            {children}
+        </div>
+    );
+}
+
 export function ModalFooter({ children }: { children: ReactNode }) {
-    return <div className="mt-7 flex flex-wrap justify-end gap-2">{children}</div>;
+    return (
+        <div className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-border/70 px-5 py-4 sm:px-6">
+            {children}
+        </div>
+    );
 }

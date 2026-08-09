@@ -30,29 +30,16 @@ export default async function CouponsPage() {
     const active = coupons.filter((coupon) => coupon.status === 'active');
     const expiring = active.filter((coupon) => coupon.expiresAt !== null);
     return (
-        <>
+        <div data-tour="coupons-page">
             <PageHeader
                 eyebrow="Vendas"
                 title="Cupons"
                 description="Consulte promoções e regras de desconto disponíveis nos checkouts."
-                help={{
-                    title: 'Como usar cupons',
-                    content: (
-                        <p>
-                            Ao criar, escolha um checkout ou produto. O código só será aceito nesse
-                            escopo. O checkout também precisa conter o componente{' '}
-                            <strong className="font-semibold text-foreground">
-                                Campo de cupom
-                            </strong>
-                            .
-                        </p>
-                    ),
-                }}
                 actions={
                     canWrite ? <CouponCreate checkouts={checkouts} products={products} /> : undefined
                 }
             />
-            <section className="mb-4 grid gap-3 sm:grid-cols-3">
+            <section data-tour="coupon-summary" className="mb-4 grid gap-3 sm:grid-cols-3">
                 <SummaryCard
                     label="Cupons cadastrados"
                     value={String(coupons.length)}
@@ -72,12 +59,13 @@ export default async function CouponsPage() {
                     icon="clock"
                 />
             </section>
-            <ResourceTable
-                title="Cupons e promoções"
-                description="Regras de desconto configuradas para sua operação"
-                rows={coupons}
-                empty="Nenhum cupom cadastrado."
-                columns={[
+            <div data-tour="coupon-list">
+                <ResourceTable
+                    title="Cupons e promoções"
+                    description="Regras de desconto configuradas para sua operação"
+                    rows={coupons}
+                    empty="Nenhum cupom cadastrado."
+                    columns={[
                     { label: 'Cupom', value: (row) => row.name },
                     { label: 'Código', value: (row) => row.code, mono: true },
                     {
@@ -107,8 +95,9 @@ export default async function CouponsPage() {
                             : {}),
                     },
                     { label: 'Expira em', value: (row) => date(row.expiresAt) },
-                ]}
-            />
-        </>
+                    ]}
+                />
+            </div>
+        </div>
     );
 }

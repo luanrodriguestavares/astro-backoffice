@@ -401,6 +401,13 @@ export interface CheckoutDraft {
     updatedAt: string;
 }
 
+export interface CheckoutVersion {
+    id: string;
+    versionNumber: number;
+    checksum: string;
+    createdAt: string;
+}
+
 export interface CheckoutPublication {
     id: string;
     checkoutId: string;

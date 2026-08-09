@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
-import { Modal, ModalFooter, ModalHeader } from '@/components/ui/modal';
+import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
 import { TableActionButton } from '@/components/ui/table-action-button';
 import type { Customer, GatewayConnection, Payment } from '@/lib/api/types';
 import { paymentStatusLabel, paymentStatusLabels } from '@/lib/commerce-status';
@@ -64,7 +64,7 @@ export function PaymentsTable({
 
     return (
         <>
-            <section className="glass-panel overflow-hidden rounded-[28px]">
+            <section data-tour="page-primary" className="glass-panel overflow-hidden rounded-[28px]">
                 <div className="border-b border-white/65 px-5 py-5 sm:px-6">
                     <h2 className="text-sm font-semibold">Transações recentes</h2>
                     <p className="mt-1 text-[12px] text-muted">
@@ -221,7 +221,8 @@ export function PaymentsTable({
                             titleId="payment-detail-title"
                             onClose={() => setSelected(undefined)}
                         />
-                        <div className="mt-7 flex flex-col gap-5 rounded-[22px] border border-brand/15 bg-brand-soft/35 p-5 sm:flex-row sm:items-center sm:justify-between">
+                        <ModalBody>
+                        <div className="flex flex-col gap-5 rounded-[22px] border border-brand/15 bg-brand-soft/35 p-5 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <p className="text-[11px] uppercase tracking-[.12em] text-muted">
                                     Valor solicitado
@@ -266,6 +267,7 @@ export function PaymentsTable({
                                 }
                             />
                         </DetailSection>
+                        </ModalBody>
                         <ModalFooter>
                             <Button variant="secondary" onClick={() => setSelected(undefined)}>
                                 Fechar

@@ -10,7 +10,7 @@ import {
 } from '@/components/layout/accent-theme-controller';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { Modal } from '@/components/ui/modal';
+import { Modal, ModalBody } from '@/components/ui/modal';
 import type { Organization } from '@/lib/api/types';
 
 type DashboardTheme = 'light' | 'dark';
@@ -64,6 +64,7 @@ export function AppearanceOnboarding({
 
     return (
         <Modal open={open} onClose={() => undefined} labelledBy="appearance-onboarding-title">
+            <ModalBody>
             <div className="text-center">
                 <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-brand-soft text-brand shadow-[0_12px_30px_color-mix(in_srgb,var(--brand)_15%,transparent)]">
                     <Icon name="bolt" className="size-5" />
@@ -172,6 +173,7 @@ export function AppearanceOnboarding({
                     {!saving && <Icon name="arrow-right" className="size-4" />}
                 </Button>
             </div>
+            </ModalBody>
         </Modal>
     );
 }
