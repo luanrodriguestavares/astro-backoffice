@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import { Brand } from '@/components/brand';
@@ -23,6 +23,7 @@ type NavigationItem = {
     exact?: boolean;
     badge?: string;
     permission?: string;
+    feature?: string;
 };
 
 const dashboardThemeStorageKey = 'astro-dashboard-theme';
@@ -48,19 +49,71 @@ function getServerDashboardTheme(): 'dark' {
 
 const overview: NavigationItem[] = [
     { label: 'Visão geral', href: '/dashboard', icon: 'home', exact: true },
+    {
+        label: 'Analytics',
+        href: '/analytics',
+        icon: 'chart',
+        exact: true,
+        permission: 'analytics.read',
+        feature: 'reports.essential',
+    },
 ];
 
 const navigationGroups: { label: string; items: NavigationItem[] }[] = [
     {
         label: 'Vendas',
         items: [
-            { label: 'Produtos', href: '/products', icon: 'box', exact: true, permission: 'products.read' },
-            { label: 'Checkouts', href: '/checkouts', icon: 'layout', exact: true, permission: 'products.read' },
-            { label: 'Cupons', href: '/coupons', icon: 'tag', permission: 'products.read' },
-            { label: 'Pedidos', href: '/orders', icon: 'cart', permission: 'payments.read' },
-            { label: 'Pagamentos', href: '/payments', icon: 'card', permission: 'payments.read' },
-            { label: 'Assinaturas', href: '/subscriptions', icon: 'repeat', permission: 'subscriptions.read' },
-            { label: 'Clientes', href: '/customers', icon: 'users', permission: 'products.read' },
+            {
+                label: 'Produtos',
+                href: '/products',
+                icon: 'box',
+                exact: true,
+                permission: 'products.read',
+                feature: 'catalog.active_products',
+            },
+            {
+                label: 'Checkouts',
+                href: '/checkouts',
+                icon: 'layout',
+                exact: true,
+                permission: 'products.read',
+                feature: 'checkout.published',
+            },
+            {
+                label: 'Cupons',
+                href: '/coupons',
+                icon: 'tag',
+                permission: 'products.read',
+                feature: 'coupons',
+            },
+            {
+                label: 'Pedidos',
+                href: '/orders',
+                icon: 'cart',
+                permission: 'payments.read',
+                feature: 'commerce.orders',
+            },
+            {
+                label: 'Pagamentos',
+                href: '/payments',
+                icon: 'card',
+                permission: 'payments.read',
+                feature: 'commerce.orders',
+            },
+            {
+                label: 'Assinaturas',
+                href: '/subscriptions',
+                icon: 'repeat',
+                permission: 'subscriptions.read',
+                feature: 'subscriptions.active',
+            },
+            {
+                label: 'Clientes',
+                href: '/customers',
+                icon: 'users',
+                permission: 'products.read',
+                feature: 'catalog.active_products',
+            },
         ],
     },
     {
@@ -71,6 +124,7 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
                 href: '/files',
                 icon: 'image',
                 permission: 'products.read',
+                feature: 'media.storage_bytes',
             },
         ],
     },
@@ -93,6 +147,7 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
                 icon: 'box',
                 badge: 'Em breve',
                 permission: 'products.read',
+                feature: 'products.physical',
             },
             {
                 label: 'Frete',
@@ -100,33 +155,77 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
                 icon: 'link',
                 badge: 'Em breve',
                 permission: 'products.read',
+                feature: 'products.physical',
             },
         ],
     },
     {
         label: 'Financeiro',
         items: [
-            { label: 'Faturas', href: '/invoices', icon: 'card', permission: 'invoices.read' },
-            { label: 'Reembolsos', href: '/refunds', icon: 'refund', permission: 'payments.read' },
+            {
+                label: 'Faturas',
+                href: '/invoices',
+                icon: 'card',
+                permission: 'invoices.read',
+                feature: 'commerce.orders',
+            },
+            {
+                label: 'Reembolsos',
+                href: '/refunds',
+                icon: 'refund',
+                permission: 'payments.read',
+                feature: 'commerce.orders',
+            },
         ],
     },
     {
         label: 'Integrações',
         items: [
-            { label: 'Gateways', href: '/gateways', icon: 'plug', permission: 'gateway_connections.manage' },
-            { label: 'Webhooks', href: '/webhooks', icon: 'webhook', permission: 'webhooks.manage' },
+            {
+                label: 'Gateways',
+                href: '/gateways',
+                icon: 'plug',
+                permission: 'gateway_connections.manage',
+                feature: 'gateways.connected',
+            },
+            {
+                label: 'Webhooks',
+                href: '/webhooks',
+                icon: 'webhook',
+                permission: 'webhooks.manage',
+                feature: 'webhooks.custom',
+            },
             {
                 label: 'Desenvolvedores',
                 href: '/developer',
                 icon: 'code',
                 permission: 'api_keys.manage',
+                feature: 'api',
             },
         ],
     },
     {
         label: 'Configurações',
         items: [
-            { label: 'Equipe', href: '/team', icon: 'team', permission: 'members.manage' },
+            {
+                label: 'Equipe',
+                href: '/team',
+                icon: 'team',
+                permission: 'members.manage',
+                feature: 'workspace.members',
+            },
+            {
+                label: 'Domínios do checkout',
+                href: '/domains',
+                icon: 'link',
+                permission: 'checkouts.publish',
+                feature: 'domains.custom',
+            },
+            {
+                label: 'Plano e cobrança',
+                href: '/settings?view=plan',
+                icon: 'card',
+            },
             { label: 'Conta', href: '/settings', icon: 'user', exact: true },
         ],
     },
@@ -137,13 +236,16 @@ export function DashboardShell({
     user,
     organization,
     organizations,
+    billingAccess,
 }: {
     children: React.ReactNode;
     user: CurrentUser;
     organization: Organization;
     organizations: Organization[];
+    billingAccess: { active: boolean; features: string[] };
 }) {
     const pathname = usePathname();
+    const router = useRouter();
     const searchParams = useSearchParams();
     const currentView = searchParams.get('view');
     const appearanceOnboarding = searchParams.get('onboarding') === 'appearance';
@@ -156,14 +258,20 @@ export function DashboardShell({
     );
     const organizationName = organization.displayName ?? organization.legalName ?? 'Organização';
     const permissions = new Set(organization.permissions ?? []);
+    const planFeatures = new Set(billingAccess.features);
+    const canSee = (item: NavigationItem) =>
+        (item.permission === undefined || permissions.has(item.permission)) &&
+        (item.feature === undefined ||
+            (billingAccess.active && planFeatures.has(item.feature)));
     const visibleNavigationGroups = navigationGroups
         .map((group) => ({
             ...group,
-            items: group.items.filter(
-                (item) => item.permission === undefined || permissions.has(item.permission),
-            ),
+            items: group.items.filter(canSee),
         }))
         .filter((group) => group.items.length > 0);
+    const inaccessibleRoute = [...overview, ...navigationGroups.flatMap((group) => group.items)]
+        .filter((item) => item.feature !== undefined)
+        .find((item) => matchesNavigationPath(pathname, item.href) && !canSee(item));
     const focusedEditor = /^\/checkouts\/[^/]+\/(?:builder|preview)\/?$/.test(pathname);
     const dashboardDark = dashboardTheme === 'dark';
 
@@ -178,15 +286,31 @@ export function DashboardShell({
         setAccentTheme(organization.accentTheme ?? 'astro');
     }, [organization.accentTheme]);
 
+    useEffect(() => {
+        if (inaccessibleRoute !== undefined) router.replace('/settings?view=plan');
+    }, [inaccessibleRoute, router]);
+
     function toggleDashboardTheme() {
         const nextTheme = dashboardTheme === 'dark' ? 'light' : 'dark';
         window.localStorage.setItem(dashboardThemeStorageKey, nextTheme);
         window.dispatchEvent(new Event(dashboardThemeChangeEvent));
     }
 
+    if (inaccessibleRoute !== undefined) {
+        return (
+            <div className="grid min-h-screen place-items-center bg-background text-[13px] text-muted">
+                Redirecionando para os planos disponíveis…
+            </div>
+        );
+    }
+
     if (focusedEditor) {
         return (
-            <div className={dashboardDark ? 'dashboard-dark min-h-screen' : 'min-h-screen bg-[#f7f7fc]'}>
+            <div
+                className={
+                    dashboardDark ? 'dashboard-dark min-h-screen' : 'min-h-screen bg-[#f7f7fc]'
+                }
+            >
                 {children}
             </div>
         );
@@ -259,18 +383,22 @@ export function DashboardShell({
                     className="mt-5 min-h-0 flex-1 space-y-5 overflow-y-auto pr-1 [scrollbar-width:none]"
                     aria-label="Navegação principal"
                 >
-                    {overview.map((item) => (
-                        <NavItem
-                            key={item.href}
-                            label={item.label}
-                            href={item.href}
-                            icon={item.icon}
-                            active={isActive(pathname, item.href, currentView, item.exact)}
-                            collapsed={collapsed}
-                            badge={item.badge}
-                            onClick={() => setOpen(false)}
-                        />
-                    ))}
+                    <div className="space-y-0.5">
+                        {overview
+                            .filter(canSee)
+                            .map((item) => (
+                                <NavItem
+                                    key={item.href}
+                                    label={item.label}
+                                    href={item.href}
+                                    icon={item.icon}
+                                    active={isActive(pathname, item.href, currentView, item.exact)}
+                                    collapsed={collapsed}
+                                    badge={item.badge}
+                                    onClick={() => setOpen(false)}
+                                />
+                            ))}
+                    </div>
                     {visibleNavigationGroups.map((group) => (
                         <div key={group.label}>
                             <p
@@ -319,6 +447,7 @@ export function DashboardShell({
                         <HeaderSearch
                             dark={dashboardDark}
                             permissions={organization.permissions ?? []}
+                            billingAccess={billingAccess}
                         />
                     </div>
 
@@ -448,4 +577,9 @@ function isActive(pathname: string, href: string, currentView: string | null, ex
         (pathname === path && (!exact || currentView === null)) ||
         (!exact && path !== '/dashboard' && pathname.startsWith(`${path}/`))
     );
+}
+
+function matchesNavigationPath(pathname: string, href: string) {
+    const [path] = href.split('?');
+    return pathname === path || (path !== '/dashboard' && pathname.startsWith(`${path}/`));
 }

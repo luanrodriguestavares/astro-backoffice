@@ -70,6 +70,8 @@ export function GuidedTour() {
 
 function stepsForPath(pathname: string): DriveStep[] {
     if (pathname === '/dashboard') return dashboardSteps;
+    if (pathname === '/analytics') return analyticsSteps;
+    if (pathname === '/developer') return developerSteps;
     if (pathname === '/products') return productSteps;
     if (pathname === '/coupons') return couponSteps;
     if (/^\/checkouts\/[^/]+\/builder\/?$/.test(pathname)) return checkoutBuilderSteps;
@@ -158,13 +160,15 @@ const pageTours: Record<string, PageTour> = {
         description: 'Gerencie as credenciais usadas para integrar sistemas externos ao Astro.',
         action: 'Crie uma nova chave e selecione somente os escopos necessários para a integração.',
         contentTitle: 'Chaves de API',
-        content: 'Confira prefixo, permissões, limite de uso, status e último acesso de cada chave.',
+        content:
+            'Confira prefixo, permissões, limite de uso, status e último acesso de cada chave.',
     },
     '/files': {
         title: 'Biblioteca de mídia',
         description: 'Centralize imagens e documentos reutilizados em produtos e checkouts.',
         contentTitle: 'Arquivos e pastas',
-        content: 'Envie arquivos, organize-os em pastas, pesquise e acompanhe o armazenamento usado.',
+        content:
+            'Envie arquivos, organize-os em pastas, pesquise e acompanhe o armazenamento usado.',
     },
     '/gateways': {
         title: 'Gateways',
@@ -203,7 +207,8 @@ const pageTours: Record<string, PageTour> = {
         description: 'Acompanhe as transações enviadas aos gateways conectados.',
         summary: 'Veja volume recebido, aprovação, processamentos e falhas.',
         contentTitle: 'Transações',
-        content: 'Use os filtros para localizar pagamentos e abra uma transação para ver seus detalhes.',
+        content:
+            'Use os filtros para localizar pagamentos e abra uma transação para ver seus detalhes.',
     },
     '/refunds': {
         title: 'Reembolsos',
@@ -213,7 +218,8 @@ const pageTours: Record<string, PageTour> = {
     },
     '/roadmap': {
         title: 'Roadmap',
-        description: 'Sugira melhorias, vote na comunidade e acompanhe o que está em desenvolvimento.',
+        description:
+            'Sugira melhorias, vote na comunidade e acompanhe o que está em desenvolvimento.',
         contentTitle: 'Ideias da comunidade',
         content: 'Navegue pelas etapas, pesquise propostas, vote e envie uma nova sugestão.',
     },
@@ -221,7 +227,8 @@ const pageTours: Record<string, PageTour> = {
         title: 'Configurações',
         description: 'Gerencie os dados, a identidade visual e as preferências da organização.',
         contentTitle: 'Preferências da conta',
-        content: 'Atualize a organização, consulte sua conta e personalize tema, cores e aparência.',
+        content:
+            'Atualize a organização, consulte sua conta e personalize tema, cores e aparência.',
     },
     '/shipping': {
         title: 'Frete',
@@ -242,7 +249,8 @@ const pageTours: Record<string, PageTour> = {
         action: 'Envie um convite informando o e-mail e o nível de acesso do novo membro.',
         summary: 'Acompanhe membros, acessos ativos e convites pendentes.',
         contentTitle: 'Membros e convites',
-        content: 'Revise os acessos atuais, altere funções permitidas e acompanhe convites enviados.',
+        content:
+            'Revise os acessos atuais, altere funções permitidas e acompanhe convites enviados.',
     },
     '/webhooks': {
         title: 'Webhooks',
@@ -338,6 +346,164 @@ const dashboardSteps: DriveStep[] = [
             description: 'Aqui você encontra as configurações da conta e a opção de sair.',
             side: 'bottom',
             align: 'end',
+        },
+    },
+];
+
+const analyticsSteps: DriveStep[] = [
+    {
+        element: '[data-tour="page-header"]',
+        popover: {
+            title: 'Central de Analytics',
+            description:
+                'Explore indicadores financeiros, tendências, desempenho de vendas, recorrência e relatórios detalhados da sua operação.',
+            side: 'bottom',
+            align: 'start',
+        },
+    },
+    {
+        element: '[data-tour="analytics-tab-overview"]',
+        popover: {
+            title: 'Resumo',
+            description:
+                'Reúne os principais indicadores da operação e as tendências ao longo do tempo: receita, pedidos, ticket médio, conversão, MRR e assinaturas.',
+            side: 'bottom',
+            align: 'center',
+        },
+    },
+    {
+        element: '[data-tour="analytics-tab-performance"]',
+        popover: {
+            title: 'Desempenho',
+            description:
+                'Compara gateways, produtos, métodos de pagamento e checkouts. Use esta visão para descobrir o que mais vende e gera receita.',
+            side: 'bottom',
+            align: 'center',
+        },
+    },
+    {
+        element: '[data-tour="analytics-tab-customers"]',
+        popover: {
+            title: 'Clientes',
+            description:
+                'Apresenta o funil do checkout, abandono, clientes novos e recorrentes, LTV, situação das assinaturas e resultados das renovações.',
+            side: 'bottom',
+            align: 'center',
+        },
+    },
+    {
+        element: '[data-tour="analytics-tab-reports"]',
+        popover: {
+            title: 'Relatórios',
+            description:
+                'Disponibiliza tabelas detalhadas de pedidos, assinaturas, clientes, reembolsos, atividades e falhas, além do uso do plano e da projeção de receita.',
+            side: 'bottom',
+            align: 'center',
+        },
+    },
+    {
+        element: '[data-tour="analytics-period"]',
+        popover: {
+            title: 'Período da análise',
+            description:
+                'Escolha de 24 horas a 12 meses. Esse período é global e atualiza os indicadores e gráficos de qualquer aba selecionada.',
+            side: 'bottom',
+            align: 'end',
+        },
+    },
+    {
+        element: '[data-tour="analytics-metrics"]',
+        popover: {
+            title: 'Indicadores principais',
+            description:
+                'Acompanhe receita, pedidos, ticket médio, conversão, MRR, assinaturas e pagamentos. O ícone de download exporta cada indicador em CSV.',
+            side: 'bottom',
+            align: 'center',
+        },
+    },
+    {
+        element: '[data-tour="analytics-trend"]',
+        skipMissingElement: true,
+        popover: {
+            title: 'Tendências e seleção',
+            description:
+                'Passe o cursor para ver cada ponto ou clique e arraste quando houver mais de um ponto para analisar um trecho específico do período.',
+            side: 'top',
+            align: 'center',
+        },
+    },
+    {
+        element: '[data-tour="analytics-download"]',
+        skipMissingElement: true,
+        popover: {
+            title: 'Exportação integral',
+            description:
+                'Use o botão CSV de qualquer gráfico ou relatório para baixar os dados completos com os filtros atuais.',
+            side: 'left',
+            align: 'center',
+        },
+    },
+];
+
+const developerSteps: DriveStep[] = [
+    {
+        element: '[data-tour="page-header"]',
+        popover: {
+            title: 'API e desenvolvedores',
+            description:
+                'Esta área concentra as credenciais usadas por servidores, automações e integrações externas para acessar a API do Astro.',
+            side: 'bottom',
+            align: 'start',
+        },
+    },
+    {
+        element: '[data-tour="developer-summary"]',
+        popover: {
+            title: 'Saúde das credenciais',
+            description:
+                'Veja quantas chaves estão ativas, quais foram usadas nos últimos 30 dias e quais precisam ser renovadas em breve.',
+            side: 'bottom',
+            align: 'center',
+        },
+    },
+    {
+        element: '[data-tour="developer-auth"]',
+        popover: {
+            title: 'Como autenticar',
+            description:
+                'Envie a chave pelo header x-api-key. O segredo completo aparece somente uma vez e deve ficar no servidor ou em um cofre de segredos, nunca no frontend.',
+            side: 'bottom',
+            align: 'center',
+        },
+    },
+    {
+        element: '[data-tour="developer-endpoints"]',
+        popover: {
+            title: 'Endpoints e escopos',
+            description:
+                'Consulte quais operações aceitam API key e qual escopo cada uma exige. Separe chaves por integração e conceda apenas as permissões necessárias.',
+            side: 'top',
+            align: 'center',
+        },
+    },
+    {
+        element: '[data-tour="developer-create"]',
+        popover: {
+            title: 'Criar uma chave',
+            description:
+                'Defina nome, limite por minuto, validade e escopos. As opções são agrupadas como em Webhooks para deixar clara a finalidade de cada permissão.',
+            side: 'bottom',
+            align: 'end',
+        },
+    },
+    {
+        element: '[data-tour="developer-keys"]',
+        popover: {
+            title: 'Gerenciar acessos',
+            description:
+                'Acompanhe último uso e expiração. Rotacionar gera um novo segredo e revoga o anterior; revogar interrompe a integração imediatamente.',
+            side: 'top',
+            align: 'center',
         },
     },
 ];

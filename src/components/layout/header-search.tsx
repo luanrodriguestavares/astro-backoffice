@@ -16,6 +16,7 @@ const destinations: {
     keywords?: string;
     badge?: string;
     permission?: string;
+    feature?: string;
 }[] = [
     {
         label: 'Visão geral',
@@ -24,25 +25,27 @@ const destinations: {
         icon: 'home',
         keywords: 'início dashboard',
     },
-    { label: 'Produtos', group: 'Vendas', href: '/products', icon: 'box', permission: 'products.read' },
-    { label: 'Checkouts', group: 'Vendas', href: '/checkouts', icon: 'layout', permission: 'products.read' },
-    { label: 'Cupons', group: 'Vendas', href: '/coupons', icon: 'tag', permission: 'products.read' },
+    { label: 'Produtos', group: 'Vendas', href: '/products', icon: 'box', permission: 'products.read', feature: 'catalog.active_products' },
+    { label: 'Checkouts', group: 'Vendas', href: '/checkouts', icon: 'layout', permission: 'products.read', feature: 'checkout.published' },
+    { label: 'Cupons', group: 'Vendas', href: '/coupons', icon: 'tag', permission: 'products.read', feature: 'coupons' },
     {
         label: 'Pedidos',
         group: 'Vendas',
         href: '/orders',
         icon: 'cart',
         permission: 'payments.read',
+        feature: 'commerce.orders',
     },
-    { label: 'Pagamentos', group: 'Vendas', href: '/payments', icon: 'card', permission: 'payments.read' },
+    { label: 'Pagamentos', group: 'Vendas', href: '/payments', icon: 'card', permission: 'payments.read', feature: 'commerce.orders' },
     {
         label: 'Assinaturas',
         group: 'Vendas',
         href: '/subscriptions',
         icon: 'repeat',
         permission: 'subscriptions.read',
+        feature: 'subscriptions.active',
     },
-    { label: 'Clientes', group: 'Vendas', href: '/customers', icon: 'users', permission: 'products.read' },
+    { label: 'Clientes', group: 'Vendas', href: '/customers', icon: 'users', permission: 'products.read', feature: 'catalog.active_products' },
     {
         label: 'Estoque',
         group: 'Produtos físicos',
@@ -50,6 +53,7 @@ const destinations: {
         icon: 'box',
         badge: 'Em breve',
         permission: 'products.read',
+        feature: 'products.physical',
     },
     {
         label: 'Frete',
@@ -58,6 +62,7 @@ const destinations: {
         icon: 'link',
         badge: 'Em breve',
         permission: 'products.read',
+        feature: 'products.physical',
     },
     {
         label: 'Faturas',
@@ -65,6 +70,7 @@ const destinations: {
         href: '/invoices',
         icon: 'card',
         permission: 'invoices.read',
+        feature: 'commerce.orders',
     },
     {
         label: 'Reembolsos',
@@ -72,14 +78,16 @@ const destinations: {
         href: '/refunds',
         icon: 'refund',
         permission: 'payments.read',
+        feature: 'commerce.orders',
     },
-    { label: 'Gateways', group: 'Integrações', href: '/gateways', icon: 'plug', permission: 'gateway_connections.manage' },
+    { label: 'Gateways', group: 'Integrações', href: '/gateways', icon: 'plug', permission: 'gateway_connections.manage', feature: 'gateways.connected' },
     {
         label: 'Webhooks',
         group: 'Integrações',
         href: '/webhooks',
         icon: 'webhook',
         permission: 'webhooks.manage',
+        feature: 'webhooks.custom',
     },
     {
         label: 'Desenvolvedores',
@@ -88,6 +96,7 @@ const destinations: {
         icon: 'code',
         keywords: 'api chaves integração',
         permission: 'api_keys.manage',
+        feature: 'api',
     },
     {
         label: 'Biblioteca de mídia',
@@ -96,6 +105,7 @@ const destinations: {
         icon: 'image',
         keywords: 'arquivos imagens documentos pdf',
         permission: 'products.read',
+        feature: 'media.storage_bytes',
     },
     {
         label: 'Roadmap',
@@ -104,7 +114,23 @@ const destinations: {
         icon: 'layout',
         keywords: 'ideias sugestões comunidade melhorias',
     },
-    { label: 'Equipe', group: 'Configurações', href: '/team', icon: 'team', permission: 'members.manage' },
+    { label: 'Equipe', group: 'Configurações', href: '/team', icon: 'team', permission: 'members.manage', feature: 'workspace.members' },
+    {
+        label: 'Domínios do checkout',
+        group: 'Configurações',
+        href: '/domains',
+        icon: 'link',
+        permission: 'checkouts.publish',
+        feature: 'domains.custom',
+        keywords: 'domínio dns cname checkout white label',
+    },
+    {
+        label: 'Plano e cobrança',
+        group: 'Configurações',
+        href: '/settings?view=plan',
+        icon: 'card',
+        keywords: 'plano assinatura cobrança pagamento',
+    },
     {
         label: 'Conta',
         group: 'Configurações',
@@ -124,9 +150,11 @@ const destinations: {
 export function HeaderSearch({
     dark = false,
     permissions = [],
+    billingAccess,
 }: {
     dark?: boolean;
     permissions?: string[];
+    billingAccess: { active: boolean; features: string[] };
 }) {
     const router = useRouter();
     const rootRef = useRef<HTMLDivElement>(null);
@@ -143,15 +171,19 @@ export function HeaderSearch({
 
     const results = useMemo(() => {
         const granted = new Set(permissions);
+        const planFeatures = new Set(billingAccess.features);
         const available = destinations.filter(
-            (item) => item.permission === undefined || granted.has(item.permission),
+            (item) =>
+                (item.permission === undefined || granted.has(item.permission)) &&
+                (item.feature === undefined ||
+                    (billingAccess.active && planFeatures.has(item.feature))),
         );
         const normalized = normalize(query.trim());
         if (!normalized) return available.slice(0, 7);
         return available.filter((item) =>
             normalize(`${item.label} ${item.group} ${item.keywords ?? ''}`).includes(normalized),
         );
-    }, [permissions, query]);
+    }, [billingAccess, permissions, query]);
 
     useEffect(() => {
         function handleShortcut(event: KeyboardEvent) {

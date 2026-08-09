@@ -90,6 +90,72 @@ export interface PlatformAdminPlan {
     entitlements: PlatformAdminEntitlement[];
 }
 
+export interface PlatformBillingSummary {
+    billingConfigured: boolean;
+    subscription: {
+        id: string;
+        status: string;
+        planCode: string;
+        planName: string;
+        priceMinor: number;
+        currency: string;
+        currentPeriodStartsAt: string;
+        currentPeriodEndsAt: string;
+        gracePeriodEndsAt: string | null;
+        checkoutUrl: string | null;
+        checkoutStatus: string | null;
+        paymentMethod: string | null;
+        billingProvider: string | null;
+        providerSubscriptionId: string | null;
+        cancelAtPeriodEnd: boolean;
+    };
+    plans: Array<{
+        id: string;
+        code: string;
+        name: string;
+        description: string | null;
+        audience: string | null;
+        pricingType: 'fixed' | 'custom';
+        priceMinor: number;
+        currency: string;
+        billingInterval: string;
+    }>;
+    usage: Array<{
+        feature: string;
+        enabled: boolean;
+        limit: number | null;
+        resetPeriod: string;
+        metadata: Record<string, unknown>;
+        used: number;
+        remaining: number | null;
+        usagePercent: number | null;
+    }>;
+    history: Array<{
+        id: string;
+        type: string;
+        status: string;
+        amountMinor: number;
+        currency: string;
+        paymentMethod: string | null;
+        receiptUrl: string | null;
+        failureReason: string | null;
+        occurredAt: string;
+    }>;
+}
+
+export interface CustomDomain {
+    id: string;
+    hostname: string;
+    status: 'pending_verification' | 'active' | 'verification_failed' | 'disabled';
+    cnameTarget: string;
+    checkoutId: string;
+    checkoutName: string;
+    verifiedAt: string | null;
+    lastCheckedAt: string | null;
+    verificationError: string | null;
+    createdAt: string;
+}
+
 export interface PlatformAdminAuditEntry {
     id: string;
     actorName: string | null;

@@ -29,6 +29,7 @@ const featureLabels: Record<string, string> = {
     'gateways.routing_rules': 'Regras de gateway por checkout',
     'workspace.permissions': 'Permissões da equipe',
     'support.priority': 'Suporte prioritário',
+    'notifications.sale_email': 'E-mail a cada venda aprovada',
 };
 
 const quotaFeatures = new Set([

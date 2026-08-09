@@ -41,10 +41,14 @@ src/
 ├── app/
 │   ├── (auth)/login/       # autenticação
 │   ├── (auth)/register/    # criação da conta e organização
-│   ├── (dashboard)/        # áreas internas protegidas
-│   └── api/auth/           # BFF de sessão
+│   ├── (dashboard)/        # áreas internas protegidas, incluindo /analytics
+│   ├── (platform-admin)/   # administração global, organizações e planos
+│   ├── api/auth/           # BFF de sessão
+│   └── api/analytics/      # proxy autenticado de relatórios JSON/CSV
 ├── components/
-│   ├── layout/             # shell, navegação e cabeçalho
+│   ├── analytics/          # cards, gráficos, funil e relatórios
+│   ├── layout/             # shell, navegação, cabeçalho e tours guiados
+│   ├── platform-admin/     # configuração de planos e entitlements
 │   └── ui/                 # componentes visuais compartilhados
 ├── lib/api/                # cliente e contratos da API Astro
 └── proxy.ts                # proteção das rotas internas
@@ -61,6 +65,88 @@ Produtos, preços, checkouts, cupons, clientes, gateways, arquivos, inventário,
 equipe, notificações, developer API keys, roadmap e administração da plataforma já possuem
 integrações com endpoints da API. Algumas telas de consulta ainda podem apresentar estados vazios ou
 conteúdo de apoio enquanto seus fluxos completos são finalizados.
+
+## Analytics
+
+A rota protegida `/analytics` exige `analytics.read` e complementa a Visão geral rápida do painel.
+Ela está dividida em quatro abas:
+
+- **Resumo:** métricas financeiras e operacionais, incluindo receita, pedidos, ticket, conversão,
+  MRR, churn, pagamentos, reembolsos e vendas recuperadas por e-mail;
+- **Desempenho:** comparações por gateway, produto, método de pagamento e checkout;
+- **Clientes:** funil, abandono, novos versus recorrentes, LTV, assinaturas e renovações;
+- **Relatórios:** tabelas de pedidos, assinaturas, clientes, reembolsos, atividades, falhas de
+  pagamento, uso da plataforma e projeção de receita.
+
+O seletor global suporta 24H, 7D, 30D, 90D e 12M. Gráficos temporais permitem selecionar um trecho
+com clique e arraste quando existe mais de um ponto. Datas, situações e legendas são apresentadas em
+português; rótulos longos permanecem horizontais e abreviados para preservar leitura. Relatórios
+extensos usam paginação/limite visual em vez de crescer indefinidamente.
+
+Cada card, gráfico ou tabela possui download CSV integral. O BFF
+`/api/analytics/[report]` encaminha sessão, query string e headers de download para
+`/api/v1/analytics/:report`, sem expor o access token ao navegador.
+
+O card **Vendas recuperadas** conta somente compras concluídas depois que a sessão foi retomada por um
+link de recuperação. O período considera a data de conclusão da sessão; um e-mail enviado ou aberto
+sem venda não aumenta o indicador.
+
+A página possui tour guiado específico, sem etapa sobre a sidebar. Ele explica separadamente as abas
+Resumo, Desempenho, Clientes e Relatórios, além do período, indicadores, seleção de trecho e
+exportação.
+
+## E-mails e recursos dos planos
+
+O backoffice não envia e-mails diretamente. A API entrega pelo Resend as mensagens de conta, convite,
+venda aprovada e recuperação de checkout. O admin global pode alterar os recursos por plano em
+`http://localhost:3001/admin/plans`:
+
+- `notifications.sale_email` — e-mail ao proprietário a cada venda aprovada;
+- `checkout.abandoned_recovery` — e-mail ao comprador identificado quando a sessão expira.
+
+Os defaults atuais habilitam ambos no Pro; recuperação também vem habilitada em Business e
+Enterprise. O valor salvo no plano é a fonte da verdade, portanto a disponibilidade pode ser ajustada
+pela interface sem alteração de código.
+
+## Plano e cobrança do tenant
+
+`/settings?view=plan` é a área de self-billing acessível pelo item **Plano e cobrança** da sidebar.
+Ela apresenta:
+
+- plano atual, situação, valor, forma de pagamento e próxima renovação;
+- comparação dos planos ativos e contratação com cartão dentro de um modal do Astro;
+- consumo e limites de cada entitlement do plano;
+- últimos 50 eventos de pagamento, com comprovante quando disponível;
+- aviso de pagamento atrasado e data final da carência;
+- cancelamento ao fim do ciclo para usuários com `platform_billing.manage`.
+
+A tela é organizada nas abas **Plano e pagamento**, **Uso e limites** e **Histórico de cobranças**.
+O Stripe Payment Element coleta e tokeniza o cartão dentro da interface, sem página externa. Número
+e CVV não passam pela API do Astro; pagamentos, renovações e falhas aparecem no histórico a partir
+dos webhooks assinados do Stripe.
+
+## Domínio próprio do checkout
+
+`/domains` permite que clientes Pro ou superiores vinculem um checkout ao endereço
+`checkout.empresa.com`. A tela mostra o registro CNAME, permite copiar os valores, verificar a
+propagação, acompanhar o estado do SSL e remover o domínio. O item só aparece na sidebar quando a
+assinatura está ativa, o entitlement `domains.custom` está habilitado e o usuário possui
+`checkouts.publish`; a API repete a validação de plano e limite em todas as criações.
+
+## API e desenvolvedores
+
+`/developer` apresenta a saúde das credenciais, instruções de autenticação e os endpoints disponíveis
+por escopo. A criação permite configurar validade, limite por minuto e permissões agrupadas; a lista
+traduz estados e escopos, mostra último uso e expiração e oferece rotação e revogação. O segredo é
+exibido apenas na criação ou rotação. O tutorial específico explica autenticação, escopos e o impacto
+das ações de segurança.
+
+## Tema e tipografia
+
+O backoffice usa Inter na pilha tipográfica global e os tokens de tema definidos em `globals.css` para
+superfícies, cards, controles, gráficos e estados. Essa configuração pertence somente a esta aplicação:
+o checkout público continua usando a tipografia e o tema definidos no documento do checkout e no
+`@astro/checkout-renderer`.
 
 ## Verificação
 

@@ -306,6 +306,10 @@ const webhookEventGroups = [
 
 export function ApiKeyCreateAction() {
     const [secret, setSecret] = useState<string>();
+    const [selectedScopes, setSelectedScopes] = useState<string[]>([
+        'analytics.read',
+        'analytics.write',
+    ]);
     const action = useCreate('/api/developer/api-keys', (body) =>
         setSecret(String((body.data as { secret?: string })?.secret ?? '')),
     );
@@ -314,10 +318,18 @@ export function ApiKeyCreateAction() {
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         const form = new FormData(event.currentTarget);
+        if (selectedScopes.length === 0) {
+            showToast({ tone: 'warning', description: 'Selecione pelo menos um escopo.' });
+            return;
+        }
+        const expiresInDays = Number(form.get('expiresInDays') ?? 0);
         await action.send({
             name: form.get('name'),
-            scopes: form.getAll('scopes'),
+            scopes: selectedScopes,
             rateLimitPerMinute: Number(form.get('rateLimitPerMinute')),
+            ...(expiresInDays > 0
+                ? { expiresAt: new Date(Date.now() + expiresInDays * 86_400_000).toISOString() }
+                : {}),
         });
     }
 
@@ -328,11 +340,11 @@ export function ApiKeyCreateAction() {
                 {...action}
                 eyebrow="Desenvolvedores"
                 title="Nova chave de API"
-                description="Defina os escopos e o limite de requisições da integração."
+                description="Defina permissões mínimas, validade e limite de requisições da integração."
                 submitLabel="Criar chave"
                 onSubmit={submit}
             >
-                <Field name="name" label="Nome" placeholder="Ex.: Integração principal" required />
+                <Field name="name" label="Nome" placeholder="Ex.: Integração principal" wide required />
                 <Field
                     name="rateLimitPerMinute"
                     label="Limite por minuto"
@@ -342,20 +354,62 @@ export function ApiKeyCreateAction() {
                     defaultValue="60"
                     required
                 />
+                <SelectField
+                    name="expiresInDays"
+                    label="Validade"
+                    defaultValue="0"
+                    options={[
+                        { value: '0', label: 'Sem expiração' },
+                        { value: '30', label: '30 dias' },
+                        { value: '90', label: '90 dias' },
+                        { value: '180', label: '180 dias' },
+                        { value: '365', label: '1 ano' },
+                    ]}
+                />
                 <fieldset className="sm:col-span-2">
                     <legend className="text-[13px] font-semibold">Escopos</legend>
-                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                        {['analytics.read', 'analytics.write', 'usage.read', 'usage.write'].map(
-                            (scope) => (
-                                <CheckboxOption
-                                    key={scope}
-                                    name="scopes"
-                                    value={scope}
-                                    label={scope}
-                                />
-                            ),
-                        )}
+                    <div className="flex items-center justify-between gap-3">
+                        <p className="text-[11px] text-muted">Escolha as operações permitidas</p>
+                        <div className="flex gap-1">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={() => setSelectedScopes(apiKeyScopeGroups.flatMap((group) => group.scopes.map((scope) => scope.value)))}
+                            >
+                                Selecionar todos
+                            </Button>
+                            <Button type="button" variant="ghost" onClick={() => setSelectedScopes([])}>
+                                Limpar
+                            </Button>
+                        </div>
                     </div>
+                    <div className="mt-2 grid gap-5">
+                        {apiKeyScopeGroups.map((group) => (
+                            <section key={group.label}>
+                                <p className="mb-2 text-[12px] font-semibold text-muted">{group.label}</p>
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    {group.scopes.map((scope) => (
+                                        <CheckboxOption
+                                            key={scope.value}
+                                            name="scopes"
+                                            value={scope.value}
+                                            label={scope.label}
+                                            description={scope.description}
+                                            checked={selectedScopes.includes(scope.value)}
+                                            onChange={(checked) =>
+                                                setSelectedScopes((current) =>
+                                                    checked
+                                                        ? [...new Set([...current, scope.value])]
+                                                        : current.filter((item) => item !== scope.value),
+                                                )
+                                            }
+                                        />
+                                    ))}
+                                </div>
+                            </section>
+                        ))}
+                    </div>
+                    <p className="mt-3 text-[11px] leading-5 text-muted">Conceda somente o necessário. A chave completa será exibida uma única vez.</p>
                 </fieldset>
             </ResourceModal>
             {secret &&
@@ -378,6 +432,18 @@ export function ApiKeyCreateAction() {
                             <div className="mt-6 flex justify-end">
                                 <Button
                                     type="button"
+                                    variant="secondary"
+                                    className="mr-2"
+                                    onClick={() => {
+                                        void navigator.clipboard.writeText(secret);
+                                        showToast({ tone: 'success', description: 'Chave copiada.' });
+                                    }}
+                                >
+                                    <Icon name="copy" className="size-4" />
+                                    Copiar chave
+                                </Button>
+                                <Button
+                                    type="button"
                                     variant="primary"
                                     onClick={() => setSecret(undefined)}
                                 >
@@ -392,11 +458,68 @@ export function ApiKeyCreateAction() {
     );
 }
 
-function CheckboxOption({ name, value, label }: { name: string; value: string; label: string }) {
+const apiKeyScopeGroups = [
+    {
+        label: 'Analytics',
+        scopes: [
+            {
+                value: 'analytics.read',
+                label: 'Consultar analytics',
+                description: 'Leitura de métricas e dados analíticos.',
+            },
+            {
+                value: 'analytics.write',
+                label: 'Enviar eventos',
+                description: 'Ingestão idempotente de eventos analíticos.',
+            },
+        ],
+    },
+    {
+        label: 'Uso da plataforma',
+        scopes: [
+            {
+                value: 'usage.read',
+                label: 'Consultar consumo',
+                description: 'Leitura de uso e limites da organização.',
+            },
+            {
+                value: 'usage.write',
+                label: 'Registrar consumo',
+                description: 'Registro idempotente de consumo por recurso.',
+            },
+        ],
+    },
+] as const;
+
+function CheckboxOption({
+    name,
+    value,
+    label,
+    description,
+    checked,
+    onChange,
+}: {
+    name: string;
+    value: string;
+    label: string;
+    description?: string;
+    checked?: boolean;
+    onChange?: (checked: boolean) => void;
+}) {
     return (
-        <label className="flex items-center gap-2 rounded-xl border border-border bg-[var(--control-bg)] p-3 text-[12px]">
-            <input name={name} value={value} type="checkbox" className="size-4 accent-brand" />
-            {label}
+        <label className="flex items-start gap-3 rounded-xl border border-border bg-[var(--control-bg)] p-3 text-[12px] transition hover:border-brand/30">
+            <input
+                name={name}
+                value={value}
+                type="checkbox"
+                checked={checked}
+                onChange={onChange === undefined ? undefined : (event) => onChange(event.target.checked)}
+                className="mt-0.5 size-4 shrink-0 accent-brand"
+            />
+            <span>
+                <span className="block font-semibold text-foreground">{label}</span>
+                {description && <span className="mt-1 block leading-4 text-muted">{description}</span>}
+            </span>
         </label>
     );
 }

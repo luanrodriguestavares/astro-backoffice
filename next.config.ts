@@ -6,12 +6,12 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   "frame-ancestors 'self'",
   "form-action 'self'",
-  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'production' ? '' : " 'unsafe-eval'"}`,
+  `script-src 'self' 'unsafe-inline' https://js.stripe.com${process.env.NODE_ENV === 'production' ? '' : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  `connect-src 'self'${process.env.NODE_ENV === 'production' ? '' : ' ws: wss:'}`,
-  "frame-src 'self'",
+  `connect-src 'self' https://api.stripe.com https://*.stripe.com${process.env.NODE_ENV === 'production' ? '' : ' ws: wss:'}`,
+  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
 ].join('; ');
 
 const nextConfig: NextConfig = {
