@@ -391,7 +391,7 @@ export function ProductManager({
                     >
                         <form
                             onSubmit={submit}
-                            className="product-modal theme-modal modal-surface glass-panel my-6 w-full max-w-2xl overflow-hidden rounded-[28px] p-5 sm:p-7"
+                            className="product-modal theme-modal modal-surface modal-form-layout glass-panel my-6 w-full max-w-2xl rounded-[28px] p-5 sm:p-7"
                         >
                             <div className="flex items-start justify-between gap-5">
                                 <div>
@@ -747,40 +747,40 @@ function ProductTable({
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             {canWrite && (
-                                            <div className="inline-flex items-center gap-1 opacity-65 transition group-hover:opacity-100">
-                                                <ActionButton
-                                                    label="Editar produto"
-                                                    icon="edit"
-                                                    onClick={() => onEdit(product)}
-                                                />
-                                                <ActionButton
-                                                    label={
-                                                        product.status === 'active'
-                                                            ? 'Desativar produto'
-                                                            : 'Ativar produto'
-                                                    }
-                                                    icon={
-                                                        product.status === 'active'
-                                                            ? 'close'
-                                                            : 'check'
-                                                    }
-                                                    disabled={statusChanging === product.id}
-                                                    onClick={() =>
-                                                        onStatusChange(
-                                                            product,
+                                                <div className="inline-flex items-center gap-1 opacity-65 transition group-hover:opacity-100">
+                                                    <ActionButton
+                                                        label="Editar produto"
+                                                        icon="edit"
+                                                        onClick={() => onEdit(product)}
+                                                    />
+                                                    <ActionButton
+                                                        label={
                                                             product.status === 'active'
-                                                                ? 'inactive'
-                                                                : 'active',
-                                                        )
-                                                    }
-                                                />
-                                                <ActionButton
-                                                    label="Excluir produto"
-                                                    icon="trash"
-                                                    danger
-                                                    onClick={() => onRemove(product)}
-                                                />
-                                            </div>
+                                                                ? 'Desativar produto'
+                                                                : 'Ativar produto'
+                                                        }
+                                                        icon={
+                                                            product.status === 'active'
+                                                                ? 'close'
+                                                                : 'check'
+                                                        }
+                                                        disabled={statusChanging === product.id}
+                                                        onClick={() =>
+                                                            onStatusChange(
+                                                                product,
+                                                                product.status === 'active'
+                                                                    ? 'inactive'
+                                                                    : 'active',
+                                                            )
+                                                        }
+                                                    />
+                                                    <ActionButton
+                                                        label="Excluir produto"
+                                                        icon="trash"
+                                                        danger
+                                                        onClick={() => onRemove(product)}
+                                                    />
+                                                </div>
                                             )}
                                         </td>
                                     </tr>

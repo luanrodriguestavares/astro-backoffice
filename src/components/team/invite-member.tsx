@@ -112,7 +112,7 @@ export function InviteMember({ roles }: { roles: InvitableRole[] }) {
                     >
                         <form
                             onSubmit={submit}
-                            className="modal-surface glass-panel my-6 w-full max-w-lg rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
+                            className="modal-surface modal-form-layout glass-panel my-6 w-full max-w-lg rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
                         >
                             <div className="flex items-start justify-between gap-5">
                                 <div>

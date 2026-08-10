@@ -25,6 +25,7 @@ const featureLabels: Record<string, string> = {
     'checkout.remove_branding': 'Remoção da marca Astro',
     'reports.advanced': 'Relatórios avançados',
     'webhooks.custom': 'Webhooks personalizados',
+    'marketing.pixels': 'Pixels e conversões server-side',
     'checkout.abandoned_recovery': 'Recuperação de checkout abandonado',
     'gateways.routing_rules': 'Regras de gateway por checkout',
     'workspace.permissions': 'Permissões da equipe',
@@ -43,6 +44,7 @@ const quotaFeatures = new Set([
     'media.storage_bytes',
     'api_keys',
     'analytics.events',
+    'marketing.pixels',
 ]);
 
 export function PlanAdminManager({ initialPlans }: { initialPlans: PlatformAdminPlan[] }) {

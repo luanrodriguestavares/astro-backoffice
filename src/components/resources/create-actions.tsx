@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { CustomSelect, type SelectOption } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
+import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
 import { showToast } from '@/components/ui/toast';
 import { useEscapeClose } from '@/hooks/use-escape-close';
 
@@ -23,45 +24,24 @@ type ModalProps = {
 };
 
 function ResourceModal(props: ModalProps) {
-    useEscapeClose(props.open, props.close);
-    if (!props.open) return null;
-    return createPortal(
-        <div
-            onMouseDown={(event) => {
-                if (event.target === event.currentTarget) props.close();
-            }}
-            className="fixed inset-0 z-[100] grid place-items-center bg-[#17172c]/20 p-4 backdrop-blur-sm"
+    return (
+        <Modal
+            open={props.open}
+            onClose={props.loading ? () => undefined : props.close}
+            labelledBy="resource-modal-title"
         >
-            <form
-                onSubmit={props.onSubmit}
-                className="modal-surface glass-panel flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
-            >
-                <div className="flex shrink-0 items-start justify-between gap-5">
-                    <div>
-                        <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-strong">
-                            {props.eyebrow}
-                        </p>
-                        <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
-                            {props.title}
-                        </h2>
-                        <p className="mt-1.5 text-[13px] leading-5 text-muted">
-                            {props.description}
-                        </p>
-                    </div>
-                    <Button
-                        type="button"
-                        variant="icon"
-                        aria-label="Fechar"
-                        disabled={props.loading}
-                        onClick={props.close}
-                    >
-                        <Icon name="close" className="size-4" />
-                    </Button>
-                </div>
-                <div className="-mx-1 mt-6 grid min-h-0 flex-1 gap-4 overflow-y-auto p-1 sm:grid-cols-2">
+            <form onSubmit={props.onSubmit}>
+                <ModalHeader
+                    eyebrow={props.eyebrow}
+                    title={props.title}
+                    description={props.description}
+                    titleId="resource-modal-title"
+                    onClose={props.loading ? () => undefined : props.close}
+                />
+                <ModalBody className="grid content-start gap-4 sm:grid-cols-2">
                     {props.children}
-                </div>
-                <div className="mt-7 flex shrink-0 flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                </ModalBody>
+                <ModalFooter>
                     <Button
                         type="button"
                         variant="secondary"
@@ -73,10 +53,9 @@ function ResourceModal(props: ModalProps) {
                     <Button variant="primary" disabled={props.loading}>
                         {props.loading ? 'Salvando...' : props.submitLabel}
                     </Button>
-                </div>
+                </ModalFooter>
             </form>
-        </div>,
-        document.body,
+        </Modal>
     );
 }
 
@@ -344,7 +323,13 @@ export function ApiKeyCreateAction() {
                 submitLabel="Criar chave"
                 onSubmit={submit}
             >
-                <Field name="name" label="Nome" placeholder="Ex.: Integração principal" wide required />
+                <Field
+                    name="name"
+                    label="Nome"
+                    placeholder="Ex.: Integração principal"
+                    wide
+                    required
+                />
                 <Field
                     name="rateLimitPerMinute"
                     label="Limite por minuto"
@@ -374,11 +359,21 @@ export function ApiKeyCreateAction() {
                             <Button
                                 type="button"
                                 variant="ghost"
-                                onClick={() => setSelectedScopes(apiKeyScopeGroups.flatMap((group) => group.scopes.map((scope) => scope.value)))}
+                                onClick={() =>
+                                    setSelectedScopes(
+                                        apiKeyScopeGroups.flatMap((group) =>
+                                            group.scopes.map((scope) => scope.value),
+                                        ),
+                                    )
+                                }
                             >
                                 Selecionar todos
                             </Button>
-                            <Button type="button" variant="ghost" onClick={() => setSelectedScopes([])}>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={() => setSelectedScopes([])}
+                            >
                                 Limpar
                             </Button>
                         </div>
@@ -386,7 +381,9 @@ export function ApiKeyCreateAction() {
                     <div className="mt-2 grid gap-5">
                         {apiKeyScopeGroups.map((group) => (
                             <section key={group.label}>
-                                <p className="mb-2 text-[12px] font-semibold text-muted">{group.label}</p>
+                                <p className="mb-2 text-[12px] font-semibold text-muted">
+                                    {group.label}
+                                </p>
                                 <div className="grid gap-2 sm:grid-cols-2">
                                     {group.scopes.map((scope) => (
                                         <CheckboxOption
@@ -400,7 +397,9 @@ export function ApiKeyCreateAction() {
                                                 setSelectedScopes((current) =>
                                                     checked
                                                         ? [...new Set([...current, scope.value])]
-                                                        : current.filter((item) => item !== scope.value),
+                                                        : current.filter(
+                                                              (item) => item !== scope.value,
+                                                          ),
                                                 )
                                             }
                                         />
@@ -409,7 +408,9 @@ export function ApiKeyCreateAction() {
                             </section>
                         ))}
                     </div>
-                    <p className="mt-3 text-[11px] leading-5 text-muted">Conceda somente o necessário. A chave completa será exibida uma única vez.</p>
+                    <p className="mt-3 text-[11px] leading-5 text-muted">
+                        Conceda somente o necessário. A chave completa será exibida uma única vez.
+                    </p>
                 </fieldset>
             </ResourceModal>
             {secret &&
@@ -436,7 +437,10 @@ export function ApiKeyCreateAction() {
                                     className="mr-2"
                                     onClick={() => {
                                         void navigator.clipboard.writeText(secret);
-                                        showToast({ tone: 'success', description: 'Chave copiada.' });
+                                        showToast({
+                                            tone: 'success',
+                                            description: 'Chave copiada.',
+                                        });
                                     }}
                                 >
                                     <Icon name="copy" className="size-4" />
@@ -513,12 +517,16 @@ function CheckboxOption({
                 value={value}
                 type="checkbox"
                 checked={checked}
-                onChange={onChange === undefined ? undefined : (event) => onChange(event.target.checked)}
+                onChange={
+                    onChange === undefined ? undefined : (event) => onChange(event.target.checked)
+                }
                 className="mt-0.5 size-4 shrink-0 accent-brand"
             />
             <span>
                 <span className="block font-semibold text-foreground">{label}</span>
-                {description && <span className="mt-1 block leading-4 text-muted">{description}</span>}
+                {description && (
+                    <span className="mt-1 block leading-4 text-muted">{description}</span>
+                )}
             </span>
         </label>
     );

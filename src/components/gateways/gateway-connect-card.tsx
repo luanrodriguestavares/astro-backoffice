@@ -89,7 +89,7 @@ export function GatewayConnectCard({ gateway }: { gateway: GatewayDefinition }) 
                     >
                         <form
                             onSubmit={submit}
-                            className="modal-surface glass-panel my-6 w-full max-w-2xl rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.22)] sm:p-7"
+                            className="modal-surface modal-form-layout glass-panel my-6 w-full max-w-2xl rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.22)] sm:p-7"
                         >
                             <div className="flex items-start justify-between gap-5">
                                 <div>
@@ -250,7 +250,7 @@ export function GatewayEditModal({
         >
             <form
                 onSubmit={submit}
-                className="modal-surface glass-panel my-6 w-full max-w-2xl rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.22)] sm:p-7"
+                className="modal-surface modal-form-layout glass-panel my-6 w-full max-w-2xl rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.22)] sm:p-7"
             >
                 <div className="flex items-start justify-between gap-5">
                     <div>

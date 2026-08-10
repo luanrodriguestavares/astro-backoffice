@@ -141,6 +141,23 @@ traduz estados e escopos, mostra último uso e expiração e oferece rotação e
 exibido apenas na criação ou rotação. O tutorial específico explica autenticação, escopos e o impacto
 das ações de segurança.
 
+## Pixels e conversões
+
+`/pixels` está disponível quando `marketing.pixels` está habilitado no plano e o membro possui
+`tracking.manage`. O item fica em Integrações, participa da busca global e não aparece na sidebar fora
+do Pro+; acesso direto sem entitlement redireciona para Plano e cobrança.
+
+A aba **Destinos** cria e edita Meta Pixel, Google Analytics/Ads e TikTok Pixel com o select
+personalizado do backoffice. Cada destino define envio pelo navegador, pelo servidor ou ambos,
+eventos habilitados e escopo para todos os checkouts ou uma seleção. Credenciais server-side são
+enviadas ao BFF e persistidas criptografadas pela API; o valor atual nunca retorna à interface.
+
+A aba **Histórico de envios** exibe até 100 conversões server-side recentes, situação, tentativas,
+resposta e motivo de falha. O checkout público mostra o aviso de privacidade no próprio tema e não
+carrega pixels antes da autorização. Compras usam o mesmo ID do pedido no browser e no backend para
+deduplicação. O tour guiado explica resumo, criação, as duas abas, consentimento e deduplicação sem
+criar uma etapa para a sidebar.
+
 ## Tema e tipografia
 
 O backoffice usa Inter na pilha tipográfica global e os tokens de tema definidos em `globals.css` para

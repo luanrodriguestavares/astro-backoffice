@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/**/*.test.ts",
+    "test:coverage": "tsx --test --experimental-test-coverage tests/**/*.test.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "smoke:production": "node scripts/smoke-production.mjs",
     "docker:build": "docker build -t astro-backoffice ."

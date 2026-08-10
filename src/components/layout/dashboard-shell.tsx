@@ -15,6 +15,7 @@ import { ProfileMenu } from '@/components/layout/profile-menu';
 import { WorkspaceSwitcher } from '@/components/layout/workspace-switcher';
 import { Icon, type IconName } from '@/components/ui/icon';
 import type { CurrentUser, Organization } from '@/lib/api/types';
+import { canAccessNavigationItem } from '@/lib/navigation/access';
 
 type NavigationItem = {
     label: string;
@@ -196,6 +197,13 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
                 feature: 'webhooks.custom',
             },
             {
+                label: 'Pixels',
+                href: '/pixels',
+                icon: 'chart',
+                permission: 'tracking.manage',
+                feature: 'marketing.pixels',
+            },
+            {
                 label: 'Desenvolvedores',
                 href: '/developer',
                 icon: 'code',
@@ -258,11 +266,8 @@ export function DashboardShell({
     );
     const organizationName = organization.displayName ?? organization.legalName ?? 'Organização';
     const permissions = new Set(organization.permissions ?? []);
-    const planFeatures = new Set(billingAccess.features);
     const canSee = (item: NavigationItem) =>
-        (item.permission === undefined || permissions.has(item.permission)) &&
-        (item.feature === undefined ||
-            (billingAccess.active && planFeatures.has(item.feature)));
+        canAccessNavigationItem(item, permissions, billingAccess);
     const visibleNavigationGroups = navigationGroups
         .map((group) => ({
             ...group,
@@ -384,20 +389,18 @@ export function DashboardShell({
                     aria-label="Navegação principal"
                 >
                     <div className="space-y-0.5">
-                        {overview
-                            .filter(canSee)
-                            .map((item) => (
-                                <NavItem
-                                    key={item.href}
-                                    label={item.label}
-                                    href={item.href}
-                                    icon={item.icon}
-                                    active={isActive(pathname, item.href, currentView, item.exact)}
-                                    collapsed={collapsed}
-                                    badge={item.badge}
-                                    onClick={() => setOpen(false)}
-                                />
-                            ))}
+                        {overview.filter(canSee).map((item) => (
+                            <NavItem
+                                key={item.href}
+                                label={item.label}
+                                href={item.href}
+                                icon={item.icon}
+                                active={isActive(pathname, item.href, currentView, item.exact)}
+                                collapsed={collapsed}
+                                badge={item.badge}
+                                onClick={() => setOpen(false)}
+                            />
+                        ))}
                     </div>
                     {visibleNavigationGroups.map((group) => (
                         <div key={group.label}>

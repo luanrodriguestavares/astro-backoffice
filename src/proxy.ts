@@ -82,6 +82,7 @@ export const config = {
         '/team/:path*',
         '/settings/:path*',
         '/webhooks/:path*',
+        '/pixels/:path*',
         '/admin/:path*',
     ],
 };

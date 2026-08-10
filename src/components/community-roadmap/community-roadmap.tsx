@@ -933,7 +933,7 @@ function SuggestionModal({
                         description: String(data.get('description') ?? '').trim(),
                     });
                 }}
-                className="theme-modal modal-surface glass-panel my-6 w-full max-w-xl rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
+                className="theme-modal modal-surface modal-form-layout glass-panel my-6 w-full max-w-xl rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
             >
                 <ModalHeader
                     eyebrow={
@@ -1043,7 +1043,7 @@ function ModerationModal({
                     event.preventDefault();
                     void onSubmit(values('approved'));
                 }}
-                className="theme-modal modal-surface glass-panel my-6 w-full max-w-2xl rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
+                className="theme-modal modal-surface modal-form-layout glass-panel my-6 w-full max-w-2xl rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
             >
                 <ModalHeader
                     eyebrow={target.kind === 'queue' ? 'Moderação' : 'Roadmap público'}

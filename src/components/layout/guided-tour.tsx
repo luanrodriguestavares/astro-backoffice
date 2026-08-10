@@ -72,6 +72,7 @@ function stepsForPath(pathname: string): DriveStep[] {
     if (pathname === '/dashboard') return dashboardSteps;
     if (pathname === '/analytics') return analyticsSteps;
     if (pathname === '/developer') return developerSteps;
+    if (pathname === '/pixels') return trackingSteps;
     if (pathname === '/products') return productSteps;
     if (pathname === '/coupons') return couponSteps;
     if (/^\/checkouts\/[^/]+\/builder\/?$/.test(pathname)) return checkoutBuilderSteps;
@@ -277,6 +278,70 @@ const sharedNavigationStep: DriveStep = {
         align: 'start',
     },
 };
+
+const trackingSteps: DriveStep[] = [
+    {
+        element: '[data-tour="page-header"]',
+        popover: {
+            title: 'Pixels e conversões',
+            description:
+                'Centralize a mensuração dos seus checkouts com Meta, Google e TikTok, sem inserir códigos personalizados na página.',
+            side: 'bottom',
+            align: 'start',
+        },
+    },
+    {
+        element: '[data-tour="tracking-summary"]',
+        popover: {
+            title: 'Visão rápida da integração',
+            description:
+                'Acompanhe quantos destinos estão ativos e identifique imediatamente entregas concluídas ou falhas recentes.',
+            side: 'bottom',
+            align: 'center',
+        },
+    },
+    {
+        element: '[data-tour="tracking-create"]',
+        skipMissingElement: true,
+        popover: {
+            title: 'Configure um destino',
+            description:
+                'Escolha o provedor, informe o ID, defina navegador e servidor, selecione os eventos e limite a integração a checkouts específicos quando necessário.',
+            side: 'left',
+            align: 'center',
+        },
+    },
+    {
+        element: '[data-tour="tracking-tabs"]',
+        popover: {
+            title: 'Aba Destinos',
+            description:
+                'Em Destinos você gerencia IDs, credenciais criptografadas, escopo dos checkouts e canais de envio de cada pixel.',
+            side: 'bottom',
+            align: 'start',
+        },
+    },
+    {
+        element: '[data-tour="tracking-tabs"]',
+        popover: {
+            title: 'Aba Histórico de envios',
+            description:
+                'Abra Histórico de envios para conferir as conversões server-side, tentativas, resposta do provedor e o motivo de eventuais falhas.',
+            side: 'bottom',
+            align: 'start',
+        },
+    },
+    {
+        element: '[data-tour="tracking-destinations"]',
+        popover: {
+            title: 'Consentimento e deduplicação',
+            description:
+                'O checkout só carrega pixels após autorização do comprador. Compras usam o mesmo ID de pedido no navegador e no servidor para evitar contagem duplicada.',
+            side: 'top',
+            align: 'center',
+        },
+    },
+];
 
 const dashboardSteps: DriveStep[] = [
     {

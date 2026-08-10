@@ -156,6 +156,45 @@ export interface CustomDomain {
     createdAt: string;
 }
 
+export type TrackingProvider = 'meta' | 'google' | 'tiktok';
+export type TrackingEventName =
+    'checkout.viewed' | 'checkout.started' | 'payment.info_added' | 'purchase.completed';
+
+export interface TrackingDestination {
+    id: string;
+    name: string;
+    provider: TrackingProvider;
+    externalId: string;
+    credentialsConfigured: boolean;
+    browserEnabled: boolean;
+    serverEnabled: boolean;
+    checkoutScope: 'all_checkouts' | 'selected_checkouts';
+    checkoutIds: string[];
+    enabledEvents: TrackingEventName[];
+    configuration: Record<string, unknown>;
+    status: 'active' | 'disabled';
+    lastDeliveryAt: string | null;
+    lastFailureAt: string | null;
+    lastFailureReason: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface TrackingDelivery {
+    id: string;
+    destinationId: string;
+    destinationName: string;
+    provider: TrackingProvider;
+    eventName: string;
+    eventId: string;
+    status: 'pending' | 'delivering' | 'delivered' | 'failed';
+    attemptCount: number;
+    responseStatus: number | null;
+    errorMessage: string | null;
+    deliveredAt: string | null;
+    createdAt: string;
+}
+
 export interface PlatformAdminAuditEntry {
     id: string;
     actorName: string | null;
