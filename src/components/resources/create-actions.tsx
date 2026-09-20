@@ -479,6 +479,46 @@ const apiKeyScopeGroups = [
         ],
     },
     {
+        label: 'Catálogo',
+        scopes: [
+            {
+                value: 'products.read',
+                label: 'Consultar produtos',
+                description: 'Leitura de produtos, preços e variantes da organização.',
+            },
+        ],
+    },
+    {
+        label: 'Vendas e clientes',
+        scopes: [
+            {
+                value: 'orders.read',
+                label: 'Consultar pedidos',
+                description: 'Leitura de pedidos e pedidos vinculados a um cliente.',
+            },
+            {
+                value: 'customers.read',
+                label: 'Consultar clientes',
+                description: 'Leitura dos clientes da organização.',
+            },
+        ],
+    },
+    {
+        label: 'Recorrência',
+        scopes: [
+            {
+                value: 'subscriptions.read',
+                label: 'Consultar assinaturas',
+                description: 'Leitura de assinaturas, ciclos, histórico e faturas relacionadas.',
+            },
+            {
+                value: 'invoices.read',
+                label: 'Consultar faturas',
+                description: 'Leitura de faturas e seu histórico.',
+            },
+        ],
+    },
+    {
         label: 'Uso da plataforma',
         scopes: [
             {

@@ -185,6 +185,7 @@ body {
 
 .astro-shell {
     isolation: isolate;
+    position: relative;
     background:
         radial-gradient(
             circle at 72% -8%,
@@ -202,6 +203,14 @@ body {
             transparent 32rem
         ),
         linear-gradient(135deg, #fbfbfe 0%, #f7f7fc 48%, #fafaff 100%);
+}
+
+.astro-ambient {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
 }
 
 .glass-panel {
@@ -1133,6 +1142,25 @@ html[data-astro-accent='rose'] .dashboard-dark {
     background: #ffffff;
     box-shadow: 0 2px 6px rgb(34 31 62 / 24%);
     transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.dashboard-theme-switch-sun,
+.dashboard-theme-switch-moon {
+    transform-origin: center;
+}
+
+html.dashboard-dark .dashboard-theme-switch-thumb {
+    transform: translateX(0.9rem);
+}
+
+html.dashboard-dark .dashboard-theme-switch-sun {
+    opacity: 0.55;
+    transform: rotate(-70deg) scale(0.78);
+}
+
+html:not(.dashboard-dark) .dashboard-theme-switch-moon {
+    opacity: 0.55;
+    transform: rotate(70deg) scale(0.78);
 }
 
 .dashboard-theme-switch[aria-checked='true'] .dashboard-theme-switch-track {

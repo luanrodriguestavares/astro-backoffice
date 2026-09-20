@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -20,6 +21,7 @@ export function WorkspaceSwitcher({
     const root = useRef<HTMLDivElement>(null);
     const [open, setOpen] = useState(false);
     const [switching, setSwitching] = useState<string>();
+    const reduceMotion = useReducedMotion();
     const currentName = organizationName(current);
 
     useEffect(() => {
@@ -96,65 +98,84 @@ export function WorkspaceSwitcher({
                 />
             </Button>
 
-            {open && (
-                <div
-                    role="menu"
-                    aria-label="Trocar workspace"
-                    className={`workspace-popover glass-popover absolute z-50 min-w-[248px] overflow-hidden rounded-[20px] border p-2 shadow-[0_24px_70px_rgba(42,35,88,.18)] ${
-                        collapsed
-                            ? 'left-0 top-[calc(100%+8px)] lg:left-[calc(100%+10px)] lg:top-0'
-                            : 'left-0 right-0 top-[calc(100%+8px)]'
-                    }`}
-                >
-                    <div className="px-2 pb-2 pt-1">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
-                            Seus workspaces
-                        </p>
-                    </div>
-                    <div className="space-y-1">
-                        {organizations.map((organization) => {
-                            const active = organization.id === current.id;
-                            const loading = switching === organization.id;
-                            const name = organizationName(organization);
-                            return (
-                                <Button
-                                    key={organization.id}
-                                    type="button"
-                                    role="menuitemradio"
-                                    aria-checked={active}
-                                    disabled={Boolean(switching)}
-                                    onClick={() => switchWorkspace(organization)}
-                                    className="workspace-option flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition hover:bg-white/55 disabled:cursor-wait disabled:opacity-65"
-                                >
-                                    <WorkspaceAvatar
-                                        name={name}
-                                        accentTheme={organization.accentTheme}
-                                        active={active}
-                                        compact
-                                    />
-                                    <span className="min-w-0 flex-1">
-                                        <span className="block truncate text-[11px] font-semibold">
-                                            {name}
+            <AnimatePresence>
+                {open && (
+                    <motion.div
+                        role="menu"
+                        aria-label="Trocar workspace"
+                        initial={
+                            reduceMotion
+                                ? false
+                                : { opacity: 0, y: -8, scale: 0.97, filter: 'blur(5px)' }
+                        }
+                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                        exit={
+                            reduceMotion
+                                ? { opacity: 0 }
+                                : { opacity: 0, y: -5, scale: 0.98, filter: 'blur(3px)' }
+                        }
+                        transition={
+                            reduceMotion
+                                ? { duration: 0 }
+                                : { type: 'spring', stiffness: 430, damping: 32, mass: 0.72 }
+                        }
+                        style={{ transformOrigin: collapsed ? 'top left' : 'top center' }}
+                        className={`workspace-popover glass-popover absolute z-50 min-w-[248px] overflow-hidden rounded-[20px] border p-2 shadow-[0_24px_70px_rgba(42,35,88,.18)] ${
+                            collapsed
+                                ? 'left-0 top-[calc(100%+8px)] lg:left-[calc(100%+10px)] lg:top-0'
+                                : 'left-0 right-0 top-[calc(100%+8px)]'
+                        }`}
+                    >
+                        <div className="px-2 pb-2 pt-1">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+                                Seus workspaces
+                            </p>
+                        </div>
+                        <div className="space-y-1">
+                            {organizations.map((organization) => {
+                                const active = organization.id === current.id;
+                                const loading = switching === organization.id;
+                                const name = organizationName(organization);
+                                return (
+                                    <Button
+                                        key={organization.id}
+                                        type="button"
+                                        role="menuitemradio"
+                                        aria-checked={active}
+                                        disabled={Boolean(switching)}
+                                        onClick={() => switchWorkspace(organization)}
+                                        className="workspace-option flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition hover:bg-white/55 disabled:cursor-wait disabled:opacity-65"
+                                    >
+                                        <WorkspaceAvatar
+                                            name={name}
+                                            accentTheme={organization.accentTheme}
+                                            active={active}
+                                            compact
+                                        />
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block truncate text-[11px] font-semibold">
+                                                {name}
+                                            </span>
+                                            <span className="mt-0.5 block truncate text-[9px] text-muted">
+                                                {organization.slug
+                                                    ? `/${organization.slug}`
+                                                    : 'Workspace Astro'}
+                                            </span>
                                         </span>
-                                        <span className="mt-0.5 block truncate text-[9px] text-muted">
-                                            {organization.slug
-                                                ? `/${organization.slug}`
-                                                : 'Workspace Astro'}
-                                        </span>
-                                    </span>
-                                    {loading ? (
-                                        <span className="size-3.5 animate-spin rounded-full border-2 border-brand/25 border-t-brand" />
-                                    ) : active ? (
-                                        <span className="grid size-5 place-items-center rounded-full bg-brand-soft text-brand">
-                                            <Icon name="check" className="size-3" />
-                                        </span>
-                                    ) : null}
-                                </Button>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
+                                        {loading ? (
+                                            <span className="size-3.5 animate-spin rounded-full border-2 border-brand/25 border-t-brand" />
+                                        ) : active ? (
+                                            <span className="grid size-5 place-items-center rounded-full bg-brand-soft text-brand">
+                                                <Icon name="check" className="size-3" />
+                                            </span>
+                                        ) : null}
+                                    </Button>
+                                );
+                            })}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

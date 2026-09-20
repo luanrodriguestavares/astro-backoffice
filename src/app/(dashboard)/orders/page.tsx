@@ -5,7 +5,12 @@ import { apiFetch } from '@/lib/api/server';
 import { currentPermissions } from '@/lib/auth/permissions';
 import type { Customer, Payment } from '@/lib/api/types';
 
-export default async function OrdersPage() {
+export default async function OrdersPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ q?: string; focus?: string }>;
+}) {
+    const { q = '', focus } = await searchParams;
     const permissions = await currentPermissions();
     const [orders, customers, payments] = await Promise.all([
         apiFetch<OrderRow[]>('/api/v1/orders'),
@@ -60,7 +65,14 @@ export default async function OrdersPage() {
                     icon="tag"
                 />
             </section>
-            <OrdersTable orders={orders} customers={customers} payments={payments} />
+            <OrdersTable
+                key={`${q}:${focus ?? ''}`}
+                orders={orders}
+                customers={customers}
+                payments={payments}
+                initialQuery={q}
+                highlightedOrderId={focus}
+            />
         </>
     );
 }

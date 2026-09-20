@@ -17,6 +17,8 @@ export function ResourceTable<T>({
     title,
     description,
     searchable = true,
+    initialQuery = '',
+    focusId,
 }: {
     rows: T[];
     columns: ResourceColumn<T>[];
@@ -24,6 +26,8 @@ export function ResourceTable<T>({
     title?: string;
     description?: string;
     searchable?: boolean;
+    initialQuery?: string;
+    focusId?: string;
 }) {
     const tableId = `resource-${title?.toLocaleLowerCase('pt-BR').replace(/[^a-z0-9]+/g, '-') ?? 'table'}`;
 
@@ -48,7 +52,13 @@ export function ResourceTable<T>({
                 </div>
             )}
             {searchable && rows.length > 0 && (
-                <ResourceTableControls tableId={tableId} total={rows.length} position="top" />
+                <ResourceTableControls
+                    tableId={tableId}
+                    total={rows.length}
+                    position="top"
+                    initialQuery={initialQuery}
+                    focusId={focusId}
+                />
             )}
             {rows.length === 0 ? (
                 <div className="px-5 py-14 text-center">
@@ -71,15 +81,24 @@ export function ResourceTable<T>({
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/65">
-                            {rows.map((row, index) => (
+                            {rows.map((row, index) => {
+                                const rowId = String((row as { id?: string }).id ?? index);
+                                const focused = focusId === rowId;
+                                return (
                                 <tr
-                                    key={String((row as { id?: string }).id ?? index)}
+                                    id={`resource-row-${rowId}`}
+                                    key={rowId}
                                     data-resource-row
+                                    data-resource-id={rowId}
+                                    data-global-focus={focused || undefined}
                                     data-search={columns
                                         .map((column) => String(column.value(row) ?? ''))
+                                        .concat(rowId)
                                         .join(' ')
+                                        .normalize('NFD')
+                                        .replace(/[\u0300-\u036f]/g, '')
                                         .toLocaleLowerCase('pt-BR')}
-                                    className="text-[13px] transition hover:bg-white/34"
+                                    className={`text-[13px] transition hover:bg-white/34 ${focused ? 'bg-brand-soft/70 ring-1 ring-inset ring-brand/30' : ''}`}
                                 >
                                     {columns.map((column) => (
                                         <td
@@ -92,13 +111,20 @@ export function ResourceTable<T>({
                                         </td>
                                     ))}
                                 </tr>
-                            ))}
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
             )}
             {rows.length > 0 && (
-                <ResourceTableControls tableId={tableId} total={rows.length} position="bottom" />
+                <ResourceTableControls
+                    tableId={tableId}
+                    total={rows.length}
+                    position="bottom"
+                    initialQuery={initialQuery}
+                    focusId={focusId}
+                />
             )}
         </section>
     );

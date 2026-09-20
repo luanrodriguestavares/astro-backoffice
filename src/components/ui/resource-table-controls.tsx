@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
@@ -16,11 +16,16 @@ export function ResourceTableControls({
     tableId,
     total,
     position,
+    initialQuery = '',
+    focusId,
 }: {
     tableId: string;
     total: number;
     position: 'top' | 'bottom';
+    initialQuery?: string;
+    focusId?: string;
 }) {
+    const initialization = useRef('');
     const state = useSyncExternalStore(
         (listener) => subscribe(tableId, listener),
         () => states.get(tableId) ?? defaultState,
@@ -38,6 +43,34 @@ export function ResourceTableControls({
         apply(tableId, state);
     }, [state, tableId]);
 
+    useEffect(() => {
+        if (position !== 'top') return;
+        const signature = `${initialQuery}\u0000${focusId ?? ''}`;
+        if (initialization.current === signature) return;
+        initialization.current = signature;
+        const query = normalize(initialQuery);
+        const matching = rows(tableId).filter((row) =>
+            (row.dataset.search ?? '').includes(query),
+        );
+        const focusIndex = focusId
+            ? matching.findIndex((row) => row.dataset.resourceId === focusId)
+            : -1;
+        const next = {
+            ...defaultState,
+            query,
+            page: focusIndex < 0 ? 1 : Math.floor(focusIndex / defaultState.pageSize) + 1,
+        };
+        states.set(tableId, next);
+        for (const listener of listeners.get(tableId) ?? []) listener();
+        apply(tableId, next);
+        if (focusId)
+            window.requestAnimationFrame(() =>
+                document
+                    .getElementById(`resource-row-${focusId}`)
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+            );
+    }, [focusId, initialQuery, position, tableId]);
+
     const matching = matchingCount(tableId, state.query) || (state.query ? 0 : total);
     const pages = Math.max(1, Math.ceil(matching / state.pageSize));
     const currentPage = Math.min(state.page, pages);
@@ -54,7 +87,7 @@ export function ResourceTableControls({
                         value={state.query}
                         onChange={(event) =>
                             update({
-                                query: event.target.value.toLocaleLowerCase('pt-BR'),
+                                query: normalize(event.target.value),
                                 page: 1,
                             })
                         }
@@ -144,4 +177,11 @@ function apply(tableId: string, state: State) {
     const page = Math.min(state.page, pages);
     const visible = new Set(matching.slice((page - 1) * state.pageSize, page * state.pageSize));
     for (const row of rows(tableId)) row.hidden = !visible.has(row);
+}
+
+function normalize(value: string) {
+    return value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase('pt-BR');
 }

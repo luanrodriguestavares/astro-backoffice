@@ -8,6 +8,7 @@ import {
     type FormEvent,
     isValidElement,
     type ReactElement,
+    useEffect,
     useMemo,
     useState,
 } from 'react';
@@ -28,11 +29,15 @@ export function ProductManager({
     prices,
     files,
     canWrite,
+    initialQuery = '',
+    focusId,
 }: {
     products: Product[];
     prices: Record<string, Price[]>;
     files: MediaFile[];
     canWrite: boolean;
+    initialQuery?: string;
+    focusId?: string;
 }) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
@@ -40,10 +45,9 @@ export function ProductManager({
     const [deleteTarget, setDeleteTarget] = useState<Product>();
     const [deleting, setDeleting] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [query, setQuery] = useState('');
+    const [query, setQuery] = useState(initialQuery);
     const [status, setStatus] = useState<StatusFilter>('all');
     const [pageSize, setPageSize] = useState(10);
-    const [page, setPage] = useState(1);
     const [pricingType, setPricingType] = useState('one_time');
     const [statusChanging, setStatusChanging] = useState<string>();
     const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
@@ -61,13 +65,30 @@ export function ProductManager({
             return matchesStatus && matchesQuery;
         });
     }, [products, query, status]);
+    const [page, setPage] = useState(() => {
+        if (!focusId) return 1;
+        const index = visibleProducts.findIndex((product) => product.id === focusId);
+        return index < 0 ? 1 : Math.floor(index / 10) + 1;
+    });
     const pageCount = Math.max(1, Math.ceil(visibleProducts.length / pageSize));
     const currentPage = Math.min(page, pageCount);
     const pagedProducts = visibleProducts.slice(
         (currentPage - 1) * pageSize,
         currentPage * pageSize,
     );
+    const focusedIndex = focusId
+        ? visibleProducts.findIndex((product) => product.id === focusId)
+        : -1;
     const selectedImageFile = files.find((file) => file.id === selectedImageFileId);
+
+    useEffect(() => {
+        if (!focusId || focusedIndex < 0) return;
+        window.requestAnimationFrame(() =>
+            document
+                .getElementById(`product-${focusId}`)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+        );
+    }, [focusId, focusedIndex, page]);
 
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -360,6 +381,7 @@ export function ProductManager({
                 ) : (
                     <ProductTable
                         products={pagedProducts}
+                        focusId={focusId}
                         prices={prices}
                         hasFilters={Boolean(query) || status !== 'all'}
                         onClear={() => {
@@ -588,6 +610,7 @@ export function ProductManager({
 function ProductTable({
     products,
     prices,
+    focusId,
     hasFilters,
     onClear,
     onEdit,
@@ -603,6 +626,7 @@ function ProductTable({
 }: {
     products: Product[];
     prices: Record<string, Price[]>;
+    focusId?: string;
     hasFilters: boolean;
     onClear: () => void;
     onEdit: (product: Product) => void;
@@ -674,8 +698,9 @@ function ProductTable({
                                     productPrices[0];
                                 return (
                                     <tr
+                                        id={`product-${product.id}`}
                                         key={product.id}
-                                        className="group text-[13px] transition hover:bg-white/34"
+                                        className={`group text-[13px] transition hover:bg-white/34 ${focusId === product.id ? 'bg-brand-soft/70 ring-1 ring-inset ring-brand/30' : ''}`}
                                     >
                                         <td className="px-6 py-4">
                                             <div className="flex min-w-0 items-center gap-3">

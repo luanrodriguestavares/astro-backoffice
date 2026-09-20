@@ -8,6 +8,7 @@ import { Brand } from '@/components/brand';
 import { ProfileMenu } from '@/components/layout/profile-menu';
 import { Button } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { ThemeSwitch } from '@/components/ui/theme-switch';
 import type { CurrentUser } from '@/lib/api/types';
 
 type AdminNavItem = {
@@ -46,12 +47,16 @@ function clientTheme(): 'light' | 'dark' {
 export function AdminShell({ user, children }: { user: CurrentUser; children: React.ReactNode }) {
     const pathname = usePathname();
     const [mobileOpen, setMobileOpen] = useState(false);
-    const theme = useSyncExternalStore(subscribe, clientTheme, () => 'dark');
+    const theme = useSyncExternalStore(subscribe, clientTheme, () => 'light');
     const dark = theme === 'dark';
 
     useEffect(() => {
         document.documentElement.classList.toggle('astro-dark-portals', dark);
-        return () => document.documentElement.classList.remove('astro-dark-portals');
+        document.documentElement.classList.toggle('dashboard-dark', dark);
+        return () => {
+            document.documentElement.classList.remove('astro-dark-portals');
+            document.documentElement.classList.remove('dashboard-dark');
+        };
     }, [dark]);
 
     function toggleTheme() {
@@ -64,6 +69,7 @@ export function AdminShell({ user, children }: { user: CurrentUser; children: Re
         <div
             className={`admin-shell astro-shell min-h-screen lg:grid lg:grid-cols-[244px_1fr] ${dark ? 'dashboard-dark' : ''}`}
         >
+            <AmbientBackground />
             {mobileOpen && (
                 <Button
                     aria-label="Fechar menu"
@@ -157,19 +163,7 @@ export function AdminShell({ user, children }: { user: CurrentUser; children: Re
                         </p>
                     </div>
                     <div className="ml-auto flex items-center gap-2">
-                        <Button
-                            role="switch"
-                            aria-checked={dark}
-                            aria-label={`Usar tema ${dark ? 'claro' : 'escuro'}`}
-                            className="dashboard-theme-switch"
-                            onClick={toggleTheme}
-                        >
-                            <Icon name="sun" className="size-3.5" />
-                            <span className="dashboard-theme-switch-track" aria-hidden="true">
-                                <span className="dashboard-theme-switch-thumb" />
-                            </span>
-                            <Icon name="moon" className="size-3.5" />
-                        </Button>
+                        <ThemeSwitch dark={dark} onToggle={toggleTheme} />
                         <ProfileMenu
                             user={user}
                             contextLabel="Super admin"
@@ -181,6 +175,15 @@ export function AdminShell({ user, children }: { user: CurrentUser; children: Re
                     {children}
                 </main>
             </div>
+        </div>
+    );
+}
+
+function AmbientBackground() {
+    return (
+        <div className="astro-ambient pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+            <div className="absolute -right-48 -top-56 size-[620px] rounded-full bg-brand opacity-[0.055] blur-[90px]" />
+            <div className="absolute -bottom-52 left-[24%] size-[520px] rounded-full bg-brand opacity-[0.035] blur-[100px]" />
         </div>
     );
 }

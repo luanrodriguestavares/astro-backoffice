@@ -35,7 +35,7 @@ const themeOptions = [
 
 export function AppearancePreferences({ organization }: { organization: Organization }) {
     const router = useRouter();
-    const theme = useSyncExternalStore<DashboardTheme>(subscribeTheme, currentTheme, () => 'dark');
+    const theme = useSyncExternalStore<DashboardTheme>(subscribeTheme, currentTheme, () => 'light');
     const accent = useAccentTheme();
     const selectedAccent = accentThemes.find((item) => item.value === accent) ?? accentThemes[0];
 

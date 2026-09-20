@@ -6,6 +6,7 @@ import {
     type GatewayDatum,
 } from '@/components/dashboard/dashboard-charts';
 import { DashboardGreeting } from '@/components/dashboard/dashboard-greeting';
+import { AnimatedOrbitTitle } from '@/components/dashboard/animated-orbit-title';
 import { ButtonLink } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { PageHeader } from '@/components/ui/page-header';
@@ -91,12 +92,7 @@ export default async function DashboardPage() {
                         initialHour={currentHour('America/Fortaleza')}
                     />
                 }
-                title={
-                    <>
-                        Suas vendas em{' '}
-                        <span className="font-serif font-normal italic text-brand">órbita.</span>
-                    </>
-                }
+                title={<AnimatedOrbitTitle />}
                 description="Sua operação, sempre ao seu alcance."
                 actions={canWriteProducts ? (
                     <ButtonLink href="/checkouts" className="gap-3">

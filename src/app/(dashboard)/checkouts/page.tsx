@@ -8,7 +8,12 @@ import { apiFetch } from '@/lib/api/server';
 import { currentPermissions } from '@/lib/auth/permissions';
 import type { Checkout, Price, Product } from '@/lib/api/types';
 
-export default async function CheckoutsPage() {
+export default async function CheckoutsPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ q?: string; focus?: string }>;
+}) {
+    const { q = '', focus } = await searchParams;
     const permissions = await currentPermissions();
     const [checkouts, products] = await Promise.all([
         apiFetch<Checkout[]>('/api/v1/checkouts'),
@@ -66,9 +71,12 @@ export default async function CheckoutsPage() {
             </section>
             <div data-tour="page-primary">
                 <CheckoutManager
+                    key={`${q}:${focus ?? ''}`}
                     checkouts={checkouts}
                     catalog={catalog}
                     canWrite={permissions.has('products.write')}
+                    initialQuery={q}
+                    focusId={focus}
                 />
             </div>
         </div>

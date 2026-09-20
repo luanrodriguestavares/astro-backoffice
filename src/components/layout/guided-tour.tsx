@@ -532,26 +532,6 @@ const developerSteps: DriveStep[] = [
         },
     },
     {
-        element: '[data-tour="developer-auth"]',
-        popover: {
-            title: 'Como autenticar',
-            description:
-                'Envie a chave pelo header x-api-key. O segredo completo aparece somente uma vez e deve ficar no servidor ou em um cofre de segredos, nunca no frontend.',
-            side: 'bottom',
-            align: 'center',
-        },
-    },
-    {
-        element: '[data-tour="developer-endpoints"]',
-        popover: {
-            title: 'Endpoints e escopos',
-            description:
-                'Consulte quais operações aceitam API key e qual escopo cada uma exige. Separe chaves por integração e conceda apenas as permissões necessárias.',
-            side: 'top',
-            align: 'center',
-        },
-    },
-    {
         element: '[data-tour="developer-create"]',
         popover: {
             title: 'Criar uma chave',

@@ -21,7 +21,10 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="pt-BR" className="h-full antialiased">
+        <html lang="pt-BR" className="h-full antialiased" suppressHydrationWarning>
+            <head>
+                <script dangerouslySetInnerHTML={{ __html: themeInitializer }} />
+            </head>
             <body suppressHydrationWarning className="min-h-full">
                 {children}
                 <GuidedTour />
@@ -31,3 +34,5 @@ export default function RootLayout({
         </html>
     );
 }
+
+const themeInitializer = `(function(){try{var root=document.documentElement;var dark=localStorage.getItem('astro-dashboard-theme')!=='light';var accent=localStorage.getItem('astro-accent-theme');var accents=['astro','blue','violet','yellow','orange','green','rose'];root.classList.toggle('dashboard-dark',dark);root.classList.toggle('astro-dark-portals',dark);root.dataset.astroAccent=accents.indexOf(accent)>-1?accent:'astro';root.dataset.astroThemeReady='true'}catch(_){}})()`;

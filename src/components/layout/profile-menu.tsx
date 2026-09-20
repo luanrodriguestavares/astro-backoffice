@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -20,6 +21,7 @@ export function ProfileMenu({
 }) {
     const [open, setOpen] = useState(false);
     const root = useRef<HTMLDivElement>(null);
+    const reduceMotion = useReducedMotion();
 
     useEffect(() => {
         function outside(event: PointerEvent) {
@@ -67,11 +69,29 @@ export function ProfileMenu({
                 />
             </Button>
 
-            {open && (
-                <div
-                    role="menu"
-                    className="glass-popover absolute right-0 top-[calc(100%+10px)] z-[120] w-[260px] overflow-hidden rounded-[20px] p-2"
-                >
+            <AnimatePresence>
+                {open && (
+                    <motion.div
+                        role="menu"
+                        initial={
+                            reduceMotion
+                                ? false
+                                : { opacity: 0, y: -8, scale: 0.97, filter: 'blur(5px)' }
+                        }
+                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                        exit={
+                            reduceMotion
+                                ? { opacity: 0 }
+                                : { opacity: 0, y: -5, scale: 0.98, filter: 'blur(3px)' }
+                        }
+                        transition={
+                            reduceMotion
+                                ? { duration: 0 }
+                                : { type: 'spring', stiffness: 430, damping: 32, mass: 0.72 }
+                        }
+                        style={{ transformOrigin: 'top right' }}
+                        className="glass-popover absolute right-0 top-[calc(100%+10px)] z-[120] w-[260px] overflow-hidden rounded-[20px] p-2"
+                    >
                     <div className="border-b border-border px-3 py-3">
                         <p className="truncate text-[12px] font-semibold">{user.name}</p>
                         <p className="mt-1 truncate text-[10px] text-muted">{user.email}</p>
@@ -99,8 +119,9 @@ export function ProfileMenu({
                             </Button>
                         </form>
                     </div>
-                </div>
-            )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

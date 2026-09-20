@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -25,6 +26,7 @@ export function NotificationCenter({ storageScope }: { storageScope: string }) {
     const [loading, setLoading] = useState(false);
     const [items, setItems] = useState<NotificationItem[]>([]);
     const [unseenCount, setUnseenCount] = useState(0);
+    const reduceMotion = useReducedMotion();
 
     const loadNotifications = useCallback(async () => {
         if (!loadedRef.current) setLoading(true);
@@ -133,12 +135,30 @@ export function NotificationCenter({ storageScope }: { storageScope: string }) {
                 )}
             </Button>
 
-            {open && (
-                <section
-                    role="dialog"
-                    aria-label="Notificações recentes"
-                    className="notification-popover glass-popover absolute right-0 top-[calc(100%+10px)] z-[90] w-[min(380px,calc(100vw-32px))] overflow-hidden rounded-[22px]"
-                >
+            <AnimatePresence>
+                {open && (
+                    <motion.section
+                        role="dialog"
+                        aria-label="Notificações recentes"
+                        initial={
+                            reduceMotion
+                                ? false
+                                : { opacity: 0, y: -8, scale: 0.97, filter: 'blur(5px)' }
+                        }
+                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                        exit={
+                            reduceMotion
+                                ? { opacity: 0 }
+                                : { opacity: 0, y: -5, scale: 0.98, filter: 'blur(3px)' }
+                        }
+                        transition={
+                            reduceMotion
+                                ? { duration: 0 }
+                                : { type: 'spring', stiffness: 430, damping: 32, mass: 0.72 }
+                        }
+                        style={{ transformOrigin: 'top right' }}
+                        className="notification-popover glass-popover absolute right-0 top-[calc(100%+10px)] z-[90] w-[min(380px,calc(100vw-32px))] overflow-hidden rounded-[22px]"
+                    >
                     <header className="flex items-center justify-between gap-4 border-b border-white/70 px-4 py-4">
                         <div>
                             <h2 className="text-[13px] font-semibold">Notificações recentes</h2>
@@ -207,8 +227,9 @@ export function NotificationCenter({ storageScope }: { storageScope: string }) {
                             </div>
                         )}
                     </div>
-                </section>
-            )}
+                    </motion.section>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

@@ -4,7 +4,12 @@ import { apiFetch } from '@/lib/api/server';
 import { currentPermissions } from '@/lib/auth/permissions';
 import type { MediaFile, Price, Product } from '@/lib/api/types';
 
-export default async function ProductsPage() {
+export default async function ProductsPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ q?: string; focus?: string }>;
+}) {
+    const { q = '', focus } = await searchParams;
     const permissions = await currentPermissions();
     const products = (await apiFetch<Product[]>('/api/v1/products?limit=100')).toSorted(
         (left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt),
@@ -27,10 +32,13 @@ export default async function ProductsPage() {
                 description="Organize seu catálogo, preços e modelos de cobrança em um só lugar."
             />
             <ProductManager
+                key={`${q}:${focus ?? ''}`}
                 products={products}
                 prices={Object.fromEntries(entries)}
                 files={files}
                 canWrite={permissions.has('products.write')}
+                initialQuery={q}
+                focusId={focus}
             />
         </div>
     );

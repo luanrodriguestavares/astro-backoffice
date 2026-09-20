@@ -10,9 +10,10 @@ const successfulStatuses = ['approved', 'paid', 'captured', 'succeeded'];
 export default async function PaymentsPage({
     searchParams,
 }: {
-    searchParams: Promise<{ payment?: string }>;
+    searchParams: Promise<{ payment?: string; q?: string; focus?: string }>;
 }) {
-    const { payment: highlightedPaymentId } = await searchParams;
+    const { payment, q = '', focus } = await searchParams;
+    const highlightedPaymentId = focus ?? payment;
     const permissions = await currentPermissions();
     const [payments, customers, gateways] = await Promise.all([
         apiFetch<Payment[]>('/api/v1/payments'),
@@ -71,10 +72,12 @@ export default async function PaymentsPage({
                 />
             </section>
             <PaymentsTable
+                key={`${q}:${highlightedPaymentId ?? ''}`}
                 payments={payments}
                 customers={customers}
                 gateways={gateways}
                 highlightedPaymentId={highlightedPaymentId}
+                initialQuery={q}
             />
         </>
     );

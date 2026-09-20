@@ -6,7 +6,12 @@ import { currentPermissions } from '@/lib/auth/permissions';
 import type { Customer, GatewayConnection, Price, Product, Subscription } from '@/lib/api/types';
 const activeStatuses = ['active', 'trialing'];
 
-export default async function SubscriptionsPage() {
+export default async function SubscriptionsPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ q?: string; focus?: string }>;
+}) {
+    const { q = '', focus } = await searchParams;
     const permissions = await currentPermissions();
     const canReadProducts = permissions.has('products.read');
     const canManageGateways = permissions.has('gateway_connections.manage');
@@ -86,6 +91,8 @@ export default async function SubscriptionsPage() {
                 title="Assinaturas e planos"
                 description="Ciclos recorrentes processados pelos gateways"
                 rows={subscriptions}
+                initialQuery={q}
+                focusId={focus}
                 empty="Nenhuma assinatura criada."
                 columns={[
                     {

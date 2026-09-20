@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { motion, useReducedMotion } from 'motion/react';
 
 import { MetricChart } from '@/components/dashboard/dashboard-charts';
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -42,54 +45,76 @@ export function StatCard({
     tone?: Tone;
 }) {
     const palette = tones[tone];
+    const reduceMotion = useReducedMotion();
 
     return (
-        <Link
-            href={href}
-            className="dashboard-stat-card glass-panel group relative min-h-[142px] rounded-[22px] p-5 transition duration-300 hover:-translate-y-0.5"
+        <motion.div
+            initial="rest"
+            animate="rest"
+            whileHover={reduceMotion ? undefined : 'hover'}
+            className="min-h-[142px]"
         >
-            <div className="relative flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                    <p className="dashboard-stat-label text-[11px] font-medium text-muted">
-                        {label}
-                    </p>
-                    <p className="dashboard-stat-value mt-2.5 truncate text-[25px] font-semibold tracking-[-0.05em] text-foreground">
-                        {value}
-                    </p>
-                </div>
-                <span
-                    className={`dashboard-stat-icon grid size-9 shrink-0 place-items-center rounded-full border border-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,.9)] ${palette.icon}`}
-                >
-                    <Icon name={icon} className="size-[17px]" />
-                </span>
-            </div>
-
-            <div className="relative mt-3.5 flex items-end justify-between gap-3">
-                <div className="min-w-0">
-                    {change !== undefined && change !== null && (
-                        <p
-                            className={`text-[10px] font-semibold ${change >= 0 ? 'text-success' : 'text-danger'}`}
-                        >
-                            {change >= 0 ? '↗' : '↘'} {Math.abs(change).toFixed(1)}%
-                            <span className="ml-1 font-normal text-muted">
-                                vs. período anterior
-                            </span>
+            <Link
+                href={href}
+                className="dashboard-stat-card glass-panel group relative block min-h-[142px] rounded-[22px] p-5 transition duration-300 hover:-translate-y-0.5"
+            >
+                <div className="relative flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                        <p className="dashboard-stat-label text-[11px] font-medium text-muted">
+                            {label}
                         </p>
-                    )}
-                    <p
-                        className={`${change !== undefined && change !== null ? 'mt-1' : ''} truncate text-[10px] text-muted`}
+                        <p className="dashboard-stat-value mt-2.5 truncate text-[25px] font-semibold tracking-[-0.05em] text-foreground">
+                            {value}
+                        </p>
+                    </div>
+                    <motion.span
+                        className={`dashboard-stat-icon grid size-9 shrink-0 place-items-center rounded-full border border-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,.9)] ${palette.icon}`}
+                        variants={{
+                            rest: {
+                                y: 0,
+                                rotate: 0,
+                                scale: 1,
+                                transition: { type: 'spring', stiffness: 360, damping: 24 },
+                            },
+                            hover: {
+                                y: -3,
+                                rotate: -8,
+                                scale: 1.1,
+                                transition: { type: 'spring', stiffness: 420, damping: 20 },
+                            },
+                        }}
                     >
-                        {detail}
-                    </p>
+                        <Icon name={icon} className="size-[17px]" />
+                    </motion.span>
                 </div>
-                {sparkline && sparkline.length > 1 ? (
-                    <MetricChart values={sparkline} color={palette.line} type={chartType} />
-                ) : (
-                    <span className="dashboard-stat-arrow grid size-7 shrink-0 place-items-center rounded-full bg-white/60 text-muted transition group-hover:text-brand">
-                        <Icon name="arrow-right" className="size-3.5" />
-                    </span>
-                )}
-            </div>
-        </Link>
+
+                <div className="relative mt-3.5 flex items-end justify-between gap-3">
+                    <div className="min-w-0">
+                        {change !== undefined && change !== null && (
+                            <p
+                                className={`text-[10px] font-semibold ${change >= 0 ? 'text-success' : 'text-danger'}`}
+                            >
+                                {change >= 0 ? '↗' : '↘'} {Math.abs(change).toFixed(1)}%
+                                <span className="ml-1 font-normal text-muted">
+                                    vs. período anterior
+                                </span>
+                            </p>
+                        )}
+                        <p
+                            className={`${change !== undefined && change !== null ? 'mt-1' : ''} truncate text-[10px] text-muted`}
+                        >
+                            {detail}
+                        </p>
+                    </div>
+                    {sparkline && sparkline.length > 1 ? (
+                        <MetricChart values={sparkline} color={palette.line} type={chartType} />
+                    ) : (
+                        <span className="dashboard-stat-arrow grid size-7 shrink-0 place-items-center rounded-full bg-white/60 text-muted transition group-hover:text-brand">
+                            <Icon name="arrow-right" className="size-3.5" />
+                        </span>
+                    )}
+                </div>
+            </Link>
+        </motion.div>
     );
 }

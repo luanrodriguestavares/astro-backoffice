@@ -5,19 +5,25 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 import { Icon, type IconName } from '@/components/ui/icon';
 
-const destinations: {
+type SearchResult = {
+    id?: string;
     label: string;
     group: string;
     href: string;
     icon: IconName;
-    keywords?: string;
+    description?: string;
     badge?: string;
+};
+
+const destinations: (SearchResult & {
+    keywords?: string;
     permission?: string;
     feature?: string;
-}[] = [
+})[] = [
     {
         label: 'Visão geral',
         group: 'Principal',
@@ -221,13 +227,19 @@ export function HeaderSearch({
     const [query, setQuery] = useState('');
     const [open, setOpen] = useState(false);
     const [activeIndex, setActiveIndex] = useState(0);
+    const [globalSearch, setGlobalSearch] = useState<{
+        query: string;
+        results: SearchResult[];
+        loading: boolean;
+    }>({ query: '', results: [], loading: false });
+    const reduceMotion = useReducedMotion();
     const [position, setPosition] = useState<{
         left: number;
         top: number;
         width: number;
     } | null>(null);
 
-    const results = useMemo(() => {
+    const navigationResults = useMemo(() => {
         const granted = new Set(permissions);
         const planFeatures = new Set(billingAccess.features);
         const available = destinations.filter(
@@ -242,6 +254,45 @@ export function HeaderSearch({
             normalize(`${item.label} ${item.group} ${item.keywords ?? ''}`).includes(normalized),
         );
     }, [billingAccess, permissions, query]);
+
+    const results = useMemo(() => {
+        if (!query.trim()) return navigationResults;
+        const unique = new Map<string, SearchResult>();
+        const globalResults = globalSearch.query === query.trim() ? globalSearch.results : [];
+        for (const result of [...globalResults, ...navigationResults])
+            if (!unique.has(result.href)) unique.set(result.href, result);
+        return [...unique.values()].slice(0, 21);
+    }, [globalSearch, navigationResults, query]);
+    const searching =
+        query.trim().length >= 2 &&
+        (globalSearch.query !== query.trim() || globalSearch.loading);
+
+    useEffect(() => {
+        const term = query.trim();
+        if (term.length < 2) return;
+
+        const controller = new AbortController();
+        const timeout = window.setTimeout(async () => {
+            setGlobalSearch({ query: term, results: [], loading: true });
+            try {
+                const response = await fetch(`/api/global-search?q=${encodeURIComponent(term)}`, {
+                    cache: 'no-store',
+                    signal: controller.signal,
+                });
+                const payload = (await response.json()) as { data?: SearchResult[] };
+                if (response.ok)
+                    setGlobalSearch({ query: term, results: payload.data ?? [], loading: false });
+            } catch (error) {
+                if (!(error instanceof DOMException && error.name === 'AbortError'))
+                    setGlobalSearch({ query: term, results: [], loading: false });
+            }
+        }, 240);
+
+        return () => {
+            window.clearTimeout(timeout);
+            controller.abort();
+        };
+    }, [query]);
 
     useEffect(() => {
         function handleShortcut(event: KeyboardEvent) {
@@ -309,11 +360,25 @@ export function HeaderSearch({
     }
 
     return (
-        <div ref={rootRef} className="relative hidden w-full max-w-[400px] md:block">
+        <div ref={rootRef} className="relative hidden w-full max-w-[460px] md:block">
             <div
                 className={`global-search shell-header-control flex h-11 items-center gap-2.5 rounded-2xl px-4 transition ${open ? 'border-brand/70 shadow-[0_0_0_3px_rgba(109,93,244,.16)]' : ''}`}
             >
-                <Icon name="search" className="size-4 shrink-0 text-[#77758d]" />
+                <motion.span
+                    className="grid shrink-0 place-items-center text-[#77758d]"
+                    animate={
+                        reduceMotion || !open
+                            ? { y: 0, rotate: 0, scale: 1 }
+                            : { y: -2.5, rotate: -8, scale: 1.09 }
+                    }
+                    transition={
+                        reduceMotion
+                            ? { duration: 0 }
+                            : { type: 'spring', stiffness: 420, damping: 20 }
+                    }
+                >
+                    <Icon name="search" className="size-4" />
+                </motion.span>
                 <input
                     ref={inputRef}
                     value={query}
@@ -325,6 +390,10 @@ export function HeaderSearch({
                     onFocus={() => setOpen(true)}
                     onKeyDown={handleKeyDown}
                     placeholder="Buscar no Astro..."
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     aria-label="Buscar páginas no Astro"
                     role="combobox"
                     aria-autocomplete="list"
@@ -352,65 +421,141 @@ export function HeaderSearch({
                 )}
             </div>
 
-            {open &&
-                position &&
+            {position &&
                 createPortal(
                     <>
-                        <Button
-                            type="button"
-                            aria-label="Fechar busca"
-                            style={{ top: position.top - 8 }}
-                            className="fixed inset-x-0 bottom-0 z-[90] cursor-default bg-transparent"
-                            onClick={() => setOpen(false)}
-                        />
-                        <div
-                            ref={resultsRef}
-                            id="astro-search-results"
-                            role="listbox"
-                            style={position}
-                            className={`glass-popover fixed z-[100] flex max-h-[min(520px,calc(100vh-96px))] flex-col overflow-hidden rounded-[20px] p-2 ${dark ? 'dashboard-search-popover' : ''}`}
-                        >
+                        {open && (
+                            <Button
+                                type="button"
+                                aria-label="Fechar busca"
+                                style={{ top: position.top - 8 }}
+                                className="fixed inset-x-0 bottom-0 z-[90] cursor-default bg-transparent"
+                                onClick={() => setOpen(false)}
+                            />
+                        )}
+                        <AnimatePresence>
+                            {open && (
+                                <motion.div
+                                    ref={resultsRef}
+                                    id="astro-search-results"
+                                    role="listbox"
+                                    initial={
+                                        reduceMotion
+                                            ? false
+                                            : {
+                                                  opacity: 0,
+                                                  y: -8,
+                                                  scale: 0.97,
+                                                  filter: 'blur(5px)',
+                                              }
+                                    }
+                                    animate={{
+                                        opacity: 1,
+                                        y: 0,
+                                        scale: 1,
+                                        filter: 'blur(0px)',
+                                    }}
+                                    exit={
+                                        reduceMotion
+                                            ? { opacity: 0 }
+                                            : {
+                                                  opacity: 0,
+                                                  y: -5,
+                                                  scale: 0.98,
+                                                  filter: 'blur(3px)',
+                                              }
+                                    }
+                                    transition={
+                                        reduceMotion
+                                            ? { duration: 0 }
+                                            : {
+                                                  type: 'spring',
+                                                  stiffness: 430,
+                                                  damping: 32,
+                                                  mass: 0.72,
+                                              }
+                                    }
+                                    style={{ ...position, transformOrigin: 'top left' }}
+                                    className={`glass-popover fixed z-[100] flex max-h-[min(520px,calc(100vh-96px))] flex-col overflow-hidden rounded-[20px] p-2 ${dark ? 'dashboard-search-popover' : ''}`}
+                                >
                             <div className="min-h-0 flex-1 overflow-y-auto">
                                 <p className="px-3 pb-2 pt-1 text-[9px] font-semibold uppercase tracking-[0.15em] text-muted">
                                     {query
-                                        ? `${results.length} resultado${results.length === 1 ? '' : 's'}`
+                                        ? searching
+                                            ? 'Buscando em toda a operação…'
+                                            : `${results.length} resultado${results.length === 1 ? '' : 's'}`
                                         : 'Acesso rápido'}
                                 </p>
                                 {results.length ? (
                                     <div className="space-y-0.5">
                                         {results.map((item, index) => (
-                                            <Button
+                                            <motion.div
                                                 key={`${item.href}-${item.label}`}
-                                                type="button"
-                                                role="option"
-                                                aria-selected={index === activeIndex}
-                                                onMouseEnter={() => setActiveIndex(index)}
-                                                onClick={() => navigate(item.href)}
-                                                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${index === activeIndex ? 'bg-[#efecff] text-brand-strong' : 'text-foreground hover:bg-white/55'}`}
+                                                initial="rest"
+                                                animate="rest"
+                                                whileHover={
+                                                    reduceMotion ? undefined : 'hover'
+                                                }
                                             >
-                                                <span
-                                                    className={`grid size-8 place-items-center rounded-xl ${index === activeIndex ? 'bg-white/70 text-brand' : 'bg-white/45 text-muted'}`}
+                                                <Button
+                                                    type="button"
+                                                    role="option"
+                                                    aria-selected={index === activeIndex}
+                                                    onMouseEnter={() => setActiveIndex(index)}
+                                                    onClick={() => navigate(item.href)}
+                                                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${index === activeIndex ? 'bg-[#efecff] text-brand-strong' : 'text-foreground hover:bg-white/55'}`}
                                                 >
-                                                    <Icon name={item.icon} className="size-3.5" />
-                                                </span>
-                                                <span className="min-w-0 flex-1">
-                                                    <span className="block truncate text-[11px] font-semibold">
-                                                        {item.label}
+                                                    <motion.span
+                                                        className={`grid size-8 place-items-center rounded-xl ${index === activeIndex ? 'bg-white/70 text-brand' : 'bg-white/45 text-muted'}`}
+                                                        variants={{
+                                                            rest: {
+                                                                y: 0,
+                                                                rotate: 0,
+                                                                scale: 1,
+                                                                transition: {
+                                                                    type: 'spring',
+                                                                    stiffness: 360,
+                                                                    damping: 24,
+                                                                },
+                                                            },
+                                                            hover: {
+                                                                y: -2.5,
+                                                                rotate: -8,
+                                                                scale: 1.09,
+                                                                transition: {
+                                                                    type: 'spring',
+                                                                    stiffness: 420,
+                                                                    damping: 20,
+                                                                },
+                                                            },
+                                                        }}
+                                                    >
+                                                        <Icon
+                                                            name={item.icon}
+                                                            className="size-3.5"
+                                                        />
+                                                    </motion.span>
+                                                    <span className="min-w-0 flex-1">
+                                                        <span className="block truncate text-[11px] font-semibold">
+                                                            {item.label}
+                                                        </span>
+                                                        <span className="mt-0.5 block truncate text-[9px] text-muted">
+                                                            {item.description
+                                                                ? `${item.group} · ${item.description}`
+                                                                : item.group}
+                                                        </span>
                                                     </span>
-                                                    <span className="mt-0.5 block text-[9px] text-muted">
-                                                        {item.group}
-                                                    </span>
-                                                </span>
-                                                {item.badge && (
-                                                    <span className="coming-soon-badge rounded-full px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.06em]">
-                                                        {item.badge}
-                                                    </span>
-                                                )}
-                                                <Icon
-                                                    name="arrow-right"
-                                                    className="size-3.5 text-muted"
-                                                />
-                                            </Button>
+                                                    {item.badge && (
+                                                        <span className="coming-soon-badge rounded-full px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.06em]">
+                                                            {item.badge}
+                                                        </span>
+                                                    )}
+                                                    <Icon
+                                                        name="arrow-right"
+                                                        className="size-3.5 text-muted"
+                                                    />
+                                                </Button>
+                                            </motion.div>
                                         ))}
                                     </div>
                                 ) : (
@@ -419,10 +564,14 @@ export function HeaderSearch({
                                             <Icon name="search" className="size-4" />
                                         </span>
                                         <p className="mt-3 text-xs font-semibold">
-                                            Nenhuma página encontrada
+                                            {searching
+                                                ? 'Buscando itens…'
+                                                : 'Nenhum item encontrado'}
                                         </p>
                                         <p className="mt-1 text-[10px] text-muted">
-                                            Tente buscar por outro termo.
+                                            {searching
+                                                ? 'Consultando clientes, vendas e catálogo.'
+                                                : 'Tente buscar por outro nome, código, e-mail ou identificador.'}
                                         </p>
                                     </div>
                                 )}
@@ -432,7 +581,9 @@ export function HeaderSearch({
                                 <span>↵ abrir</span>
                                 <span>esc fechar</span>
                             </div>
-                        </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </>,
                     document.body,
                 )}

@@ -17,11 +17,13 @@ export function PaymentsTable({
     customers,
     gateways,
     highlightedPaymentId,
+    initialQuery = '',
 }: {
     payments: Payment[];
     customers: Customer[];
     gateways: GatewayConnection[];
     highlightedPaymentId?: string;
+    initialQuery?: string;
 }) {
     const customerById = useMemo(
         () => new Map(customers.map((item) => [item.id, item])),
@@ -29,38 +31,39 @@ export function PaymentsTable({
     );
     const gatewayById = useMemo(() => new Map(gateways.map((item) => [item.id, item])), [gateways]);
     const [selected, setSelected] = useState<Payment>();
-    const [query, setQuery] = useState('');
+    const [query, setQuery] = useState(initialQuery);
     const [status, setStatus] = useState('all');
     const [pageSize, setPageSize] = useState(10);
-    const [page, setPage] = useState(() => {
-        const index = highlightedPaymentId
-            ? payments.findIndex((payment) => payment.id === highlightedPaymentId)
-            : -1;
-        return index < 0 ? 1 : Math.floor(index / 10) + 1;
-    });
     const filtered = payments.filter((payment) => {
         const customer = customerById.get(payment.customerId);
-        const haystack =
-            `${payment.id} ${payment.orderId ?? ''} ${customer?.name ?? ''} ${customer?.email ?? ''} ${gatewayById.get(payment.gatewayConnectionId)?.name ?? ''} ${payment.paymentMethod} ${paymentStatusLabel(payment.status)}`.toLocaleLowerCase(
-                'pt-BR',
-            );
+        const haystack = normalize(
+            `${payment.id} ${payment.orderId ?? ''} ${customer?.name ?? ''} ${customer?.email ?? ''} ${gatewayById.get(payment.gatewayConnectionId)?.name ?? ''} ${payment.paymentMethod} ${paymentStatusLabel(payment.status)}`,
+        );
         return (
             (status === 'all' || payment.status === status) &&
-            haystack.includes(query.toLocaleLowerCase('pt-BR'))
+            haystack.includes(normalize(query))
         );
+    });
+    const [page, setPage] = useState(() => {
+        if (!highlightedPaymentId) return 1;
+        const index = filtered.findIndex((payment) => payment.id === highlightedPaymentId);
+        return index < 0 ? 1 : Math.floor(index / 10) + 1;
     });
     const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
     const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
+    const highlightedIndex = highlightedPaymentId
+        ? filtered.findIndex((payment) => payment.id === highlightedPaymentId)
+        : -1;
     const selectedCustomer = selected ? customerById.get(selected.customerId) : undefined;
 
     useEffect(() => {
-        if (!highlightedPaymentId) return;
+        if (!highlightedPaymentId || highlightedIndex < 0) return;
         requestAnimationFrame(() =>
             document
                 .getElementById(`payment-${highlightedPaymentId}`)
                 ?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
         );
-    }, [highlightedPaymentId, page]);
+    }, [highlightedIndex, highlightedPaymentId, page]);
 
     return (
         <>
@@ -278,6 +281,13 @@ export function PaymentsTable({
             </Modal>
         </>
     );
+}
+
+function normalize(value: string) {
+    return value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase('pt-BR');
 }
 
 function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {

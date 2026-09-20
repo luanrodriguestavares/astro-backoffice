@@ -135,11 +135,12 @@ assinatura está ativa, o entitlement `domains.custom` está habilitado e o usu�
 
 ## API e desenvolvedores
 
-`/developer` apresenta a saúde das credenciais, instruções de autenticação e os endpoints disponíveis
-por escopo. A criação permite configurar validade, limite por minuto e permissões agrupadas; a lista
+`/developer` apresenta a saúde e a gestão das credenciais. A criação permite configurar validade,
+limite por minuto e permissões agrupadas; a lista
 traduz estados e escopos, mostra último uso e expiração e oferece rotação e revogação. O segredo é
-exibido apenas na criação ou rotação. O tutorial específico explica autenticação, escopos e o impacto
-das ações de segurança.
+exibido apenas na criação ou rotação. O tutorial específico explica a criação e o ciclo de vida das
+credenciais. Os escopos de leitura cobrem analytics, catálogo, pedidos, clientes, assinaturas e
+faturas. A referência de autenticação e endpoints pertence à documentação separada.
 
 ## Pixels e conversões
 

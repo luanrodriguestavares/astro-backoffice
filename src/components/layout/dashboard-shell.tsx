@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useSyncExternalStore } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 
 import { Brand } from '@/components/brand';
 import { AppearanceOnboarding } from '@/components/dashboard/appearance-onboarding';
@@ -14,6 +15,7 @@ import { NotificationCenter } from '@/components/layout/notification-center';
 import { ProfileMenu } from '@/components/layout/profile-menu';
 import { WorkspaceSwitcher } from '@/components/layout/workspace-switcher';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { ThemeSwitch } from '@/components/ui/theme-switch';
 import type { CurrentUser, Organization } from '@/lib/api/types';
 import { canAccessNavigationItem } from '@/lib/navigation/access';
 
@@ -44,8 +46,8 @@ function getDashboardTheme(): 'light' | 'dark' {
     return savedTheme === 'light' ? 'light' : 'dark';
 }
 
-function getServerDashboardTheme(): 'dark' {
-    return 'dark';
+function getServerDashboardTheme(): 'light' {
+    return 'light';
 }
 
 const overview: NavigationItem[] = [
@@ -282,8 +284,10 @@ export function DashboardShell({
 
     useEffect(() => {
         document.documentElement.classList.toggle('astro-dark-portals', dashboardDark);
+        document.documentElement.classList.toggle('dashboard-dark', dashboardDark);
         return () => {
             document.documentElement.classList.remove('astro-dark-portals');
+            document.documentElement.classList.remove('dashboard-dark');
         };
     }, [dashboardDark]);
 
@@ -446,7 +450,7 @@ export function DashboardShell({
                         <Icon name="menu" />
                     </Button>
 
-                    <div data-tour="global-search">
+                    <div data-tour="global-search" className="min-w-0 flex-1">
                         <HeaderSearch
                             dark={dashboardDark}
                             permissions={organization.permissions ?? []}
@@ -455,21 +459,7 @@ export function DashboardShell({
                     </div>
 
                     <div className="ml-auto flex items-center gap-2.5">
-                        <Button
-                            type="button"
-                            role="switch"
-                            aria-checked={dashboardDark}
-                            aria-label={`Usar tema ${dashboardDark ? 'claro' : 'escuro'}`}
-                            title={`Mudar para tema ${dashboardDark ? 'claro' : 'escuro'}`}
-                            className="dashboard-theme-switch"
-                            onClick={toggleDashboardTheme}
-                        >
-                            <Icon name="sun" className="size-3.5" />
-                            <span className="dashboard-theme-switch-track" aria-hidden="true">
-                                <span className="dashboard-theme-switch-thumb" />
-                            </span>
-                            <Icon name="moon" className="size-3.5" />
-                        </Button>
+                        <ThemeSwitch dark={dashboardDark} onToggle={toggleDashboardTheme} />
                         <NotificationCenter storageScope={`${user.id}:${organization.id}`} />
                         <div data-tour="account-menu">
                             <ProfileMenu
@@ -507,31 +497,53 @@ function NavItem({
     badge?: string;
     onClick: () => void;
 }) {
+    const reduceMotion = useReducedMotion();
+
     return (
-        <Link
-            href={href}
-            onClick={onClick}
-            title={collapsed ? `${label}${badge ? ` · ${badge}` : ''}` : undefined}
-            aria-label={collapsed ? label : undefined}
-            data-active={active}
-            className={`astro-nav-item group relative flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-medium text-muted transition-all duration-200 hover:bg-surface/55 hover:text-foreground ${collapsed ? 'lg:justify-center lg:gap-0 lg:px-2' : ''}`}
-        >
-            <Icon
-                name={icon}
-                className={`size-[16px] shrink-0 transition-transform duration-200 group-hover:scale-105 ${active ? 'text-brand' : 'text-muted'}`}
-            />
-            <span className={collapsed ? 'lg:hidden' : ''}>{label}</span>
-            {badge && (
-                <span
-                    className={`coming-soon-badge ml-auto rounded-full px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.06em] ${collapsed ? 'lg:hidden' : ''}`}
+        <motion.div whileHover={reduceMotion ? undefined : 'hover'} initial="rest" animate="rest">
+            <Link
+                href={href}
+                onClick={onClick}
+                title={collapsed ? `${label}${badge ? ` · ${badge}` : ''}` : undefined}
+                aria-label={collapsed ? label : undefined}
+                data-active={active}
+                className={`astro-nav-item group relative flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-medium text-muted transition-all duration-200 hover:bg-surface/55 hover:text-foreground ${collapsed ? 'lg:justify-center lg:gap-0 lg:px-2' : ''}`}
+            >
+                <motion.span
+                    className="grid shrink-0 place-items-center"
+                    variants={{
+                        rest: {
+                            y: 0,
+                            rotate: 0,
+                            scale: 1,
+                            transition: { type: 'spring', stiffness: 360, damping: 24 },
+                        },
+                        hover: {
+                            y: -2.5,
+                            rotate: -8,
+                            scale: 1.09,
+                            transition: { type: 'spring', stiffness: 420, damping: 20 },
+                        },
+                    }}
                 >
-                    {badge}
-                </span>
-            )}
-            {active && !collapsed && !badge && (
-                <span className="astro-nav-active-dot ml-auto size-1 rounded-full bg-brand" />
-            )}
-        </Link>
+                    <Icon
+                        name={icon}
+                        className={`size-[16px] ${active ? 'text-brand' : 'text-muted'}`}
+                    />
+                </motion.span>
+                <span className={collapsed ? 'lg:hidden' : ''}>{label}</span>
+                {badge && (
+                    <span
+                        className={`coming-soon-badge ml-auto rounded-full px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.06em] ${collapsed ? 'lg:hidden' : ''}`}
+                    >
+                        {badge}
+                    </span>
+                )}
+                {active && !collapsed && !badge && (
+                    <span className="astro-nav-active-dot ml-auto size-1 rounded-full bg-brand" />
+                )}
+            </Link>
+        </motion.div>
     );
 }
 

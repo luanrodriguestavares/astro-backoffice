@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Button, ButtonLink } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
@@ -30,10 +30,14 @@ export function OrdersTable({
     orders,
     customers,
     payments,
+    initialQuery = '',
+    highlightedOrderId,
 }: {
     orders: OrderRow[];
     customers: Customer[];
     payments: Payment[];
+    initialQuery?: string;
+    highlightedOrderId?: string;
 }) {
     const customerById = useMemo(
         () => new Map(customers.map((item) => [item.id, item])),
@@ -44,19 +48,35 @@ export function OrdersTable({
         [payments],
     );
     const [selected, setSelected] = useState<OrderRow>();
-    const [query, setQuery] = useState('');
+    const [query, setQuery] = useState(initialQuery);
     const [pageSize, setPageSize] = useState(10);
-    const [page, setPage] = useState(1);
     const customer = selected ? customerById.get(selected.customerId) : undefined;
     const payment = selected ? paymentByOrderId.get(selected.id) : undefined;
     const filtered = orders.filter((order) => {
         const itemCustomer = customerById.get(order.customerId);
-        return `${order.id} ${itemCustomer?.name ?? ''} ${itemCustomer?.email ?? ''} ${order.status}`
-            .toLocaleLowerCase('pt-BR')
-            .includes(query.toLocaleLowerCase('pt-BR'));
+        return normalize(
+            `${order.id} ${itemCustomer?.name ?? ''} ${itemCustomer?.email ?? ''} ${order.status}`,
+        ).includes(normalize(query));
+    });
+    const [page, setPage] = useState(() => {
+        if (!highlightedOrderId) return 1;
+        const index = filtered.findIndex((order) => order.id === highlightedOrderId);
+        return index < 0 ? 1 : Math.floor(index / 10) + 1;
     });
     const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
     const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
+    const highlightedIndex = highlightedOrderId
+        ? filtered.findIndex((order) => order.id === highlightedOrderId)
+        : -1;
+
+    useEffect(() => {
+        if (highlightedIndex < 0 || !highlightedOrderId) return;
+        window.requestAnimationFrame(() =>
+            document
+                .getElementById(`order-${highlightedOrderId}`)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+        );
+    }, [highlightedIndex, highlightedOrderId, page]);
 
     return (
         <>
@@ -114,8 +134,9 @@ export function OrdersTable({
                                 const itemCustomer = customerById.get(order.customerId);
                                 return (
                                     <tr
+                                        id={`order-${order.id}`}
                                         key={order.id}
-                                        className="text-[13px] transition hover:bg-white/34"
+                                        className={`text-[13px] transition hover:bg-white/34 ${highlightedOrderId === order.id ? 'bg-brand-soft/70 ring-1 ring-inset ring-brand/30' : ''}`}
                                     >
                                         <td className="px-6 py-4 font-mono text-xs">
                                             {shortId(order.id)}
@@ -273,6 +294,13 @@ export function OrdersTable({
             </Modal>
         </>
     );
+}
+
+function normalize(value: string) {
+    return value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase('pt-BR');
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

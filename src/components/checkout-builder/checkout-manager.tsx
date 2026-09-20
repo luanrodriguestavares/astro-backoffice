@@ -3,7 +3,7 @@
 import { Button, ButtonLink } from '@/components/ui/button';
 
 import Link from 'next/link';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 
@@ -67,10 +67,14 @@ export function CheckoutManager({
     checkouts,
     catalog,
     canWrite,
+    initialQuery = '',
+    focusId,
 }: {
     checkouts: Checkout[];
     catalog: CheckoutCatalogOption[];
     canWrite: boolean;
+    initialQuery?: string;
+    focusId?: string;
 }) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
@@ -80,6 +84,23 @@ export function CheckoutManager({
     const [deleteTarget, setDeleteTarget] = useState<Checkout>();
     const [deleting, setDeleting] = useState(false);
     const [missingProductAlert, setMissingProductAlert] = useState(false);
+    const [query, setQuery] = useState(initialQuery);
+    const filteredCheckouts = useMemo(() => {
+        const term = normalize(query.trim());
+        if (!term) return checkouts;
+        return checkouts.filter((checkout) =>
+            normalize(`${checkout.name} ${checkout.slug} ${checkout.status}`).includes(term),
+        );
+    }, [checkouts, query]);
+
+    useEffect(() => {
+        if (!focusId) return;
+        window.requestAnimationFrame(() =>
+            document
+                .getElementById(`checkout-${focusId}`)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+        );
+    }, [focusId]);
 
     function openCreate() {
         if (catalog.length === 0) {
@@ -170,7 +191,7 @@ export function CheckoutManager({
 
     return (
         <>
-            <div className="glass-panel mb-4 flex items-center justify-between gap-4 rounded-[22px] px-5 py-4 sm:px-6">
+            <div className="glass-panel mb-4 flex flex-col gap-4 rounded-[22px] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                 <div>
                     <h2 className="text-sm font-semibold tracking-[-0.02em]">
                         Experiências de checkout
@@ -179,31 +200,49 @@ export function CheckoutManager({
                         Crie e edite suas páginas de conversão
                     </p>
                 </div>
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                    {checkouts.length > 0 && (
+                        <label className="filter-control flex h-10 min-w-0 items-center gap-2 rounded-xl border border-border bg-white/70 px-3 transition focus-within:border-brand/70 sm:w-[260px]">
+                            <Icon name="search" className="size-3.5 shrink-0 text-muted" />
+                            <input
+                                value={query}
+                                onChange={(event) => setQuery(event.target.value)}
+                                placeholder="Buscar checkout"
+                                className="min-w-0 flex-1 bg-transparent text-[12px] outline-none placeholder:text-muted"
+                            />
+                        </label>
+                    )}
                 {canWrite && (
                     <Button type="button" variant="primary" onClick={openCreate} className="h-10 px-4">
                         <Icon name="plus" className="size-3.5" /> Criar checkout
                     </Button>
                 )}
+                </div>
             </div>
 
-            {checkouts.length === 0 ? (
+            {filteredCheckouts.length === 0 ? (
                 <section className="glass-panel rounded-[28px] px-5 py-14 text-center">
                     <span className="mx-auto grid size-11 place-items-center rounded-full bg-brand-soft/75 text-brand">
                         <Icon name="layout" className="size-4" />
                     </span>
-                    <h2 className="mt-3 text-sm font-semibold">Nenhum checkout criado</h2>
+                    <h2 className="mt-3 text-sm font-semibold">
+                        {checkouts.length ? 'Nenhum checkout encontrado' : 'Nenhum checkout criado'}
+                    </h2>
                     <p className="mt-1 text-[13px] text-muted">
-                        Escolha como começar e monte sua primeira experiência.
+                        {checkouts.length
+                            ? 'Tente buscar por outro nome ou endereço.'
+                            : 'Escolha como começar e monte sua primeira experiência.'}
                     </p>
                 </section>
             ) : (
                 <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                    {checkouts.map((checkout) => (
+                    {filteredCheckouts.map((checkout) => (
                         <CheckoutCard
                             key={checkout.id}
                             checkout={checkout}
                             onDelete={() => setDeleteTarget(checkout)}
                             canWrite={canWrite}
+                            focused={focusId === checkout.id}
                         />
                     ))}
                 </section>
@@ -446,15 +485,20 @@ function CheckoutCard({
     checkout,
     onDelete,
     canWrite,
+    focused = false,
 }: {
     checkout: Checkout;
     onDelete: () => void;
     canWrite: boolean;
+    focused?: boolean;
 }) {
     const previewUrl = `/checkouts/${checkout.id}/preview?embed=1&saved=${encodeURIComponent(checkout.updatedAt)}`;
     const publicUrl = checkoutPublicUrl(checkout.slug);
     return (
-        <article className="checkout-list-card glass-panel group overflow-hidden rounded-[20px] p-3.5 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_48px_rgba(66,57,128,.08)]">
+        <article
+            id={`checkout-${checkout.id}`}
+            className={`checkout-list-card glass-panel group overflow-hidden rounded-[20px] p-3.5 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_48px_rgba(66,57,128,.08)] ${focused ? 'ring-2 ring-brand/35 shadow-[0_18px_48px_color-mix(in_srgb,var(--brand)_14%,transparent)]' : ''}`}
+        >
             <Link
                 href={canWrite ? `/checkouts/${checkout.id}/builder` : `/checkouts/${checkout.id}/preview`}
                 className="relative block h-32 overflow-hidden rounded-[14px] border border-[#dfddea]/70 bg-gradient-to-br from-[#f5f3ff] to-[#edf4ff]"
@@ -559,6 +603,13 @@ function slugify(value: string) {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '');
+}
+
+function normalize(value: string) {
+    return value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase('pt-BR');
 }
 
 function money(value: number, currency: string) {

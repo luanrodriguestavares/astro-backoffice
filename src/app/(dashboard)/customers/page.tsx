@@ -5,7 +5,12 @@ import { apiFetch } from '@/lib/api/server';
 import { currentPermissions } from '@/lib/auth/permissions';
 import type { Customer } from '@/lib/api/types';
 
-export default async function CustomersPage() {
+export default async function CustomersPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ q?: string; focus?: string }>;
+}) {
+    const { q = '', focus } = await searchParams;
     const permissions = await currentPermissions();
     const [customers, orders] = await Promise.all([
         apiFetch<Customer[]>('/api/v1/customers'),
@@ -72,6 +77,8 @@ export default async function CustomersPage() {
                 title="Base de clientes"
                 description="Contatos e histórico de relacionamento"
                 rows={enrichedCustomers}
+                initialQuery={q}
+                focusId={focus}
                 empty="Nenhum cliente cadastrado."
                 columns={[
                     { label: 'Cliente', value: (row) => row.name },

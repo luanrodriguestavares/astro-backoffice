@@ -19,7 +19,12 @@ type Coupon = {
     scope: { type: 'checkout' | 'product'; id: string; name: string } | null;
 };
 
-export default async function CouponsPage() {
+export default async function CouponsPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ q?: string; focus?: string }>;
+}) {
+    const { q = '', focus } = await searchParams;
     const permissions = await currentPermissions();
     const canWrite = permissions.has('products.write');
     const [coupons, checkouts, products] = await Promise.all([
@@ -64,6 +69,8 @@ export default async function CouponsPage() {
                     title="Cupons e promoções"
                     description="Regras de desconto configuradas para sua operação"
                     rows={coupons}
+                    initialQuery={q}
+                    focusId={focus}
                     empty="Nenhum cupom cadastrado."
                     columns={[
                     { label: 'Cupom', value: (row) => row.name },
