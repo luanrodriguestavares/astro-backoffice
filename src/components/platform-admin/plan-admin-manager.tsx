@@ -265,7 +265,7 @@ function PlanEditor({
     const [reason, setReason] = useState('');
 
     return (
-        <div className="fixed inset-0 z-[150] grid place-items-center overflow-hidden bg-[#11111d]/45 p-3 backdrop-blur-sm sm:p-4">
+        <div className="fixed inset-0 z-[150] grid place-items-center overflow-hidden bg-[#111111]/45 p-3 backdrop-blur-sm sm:p-4">
             <div
                 role="dialog"
                 aria-modal="true"

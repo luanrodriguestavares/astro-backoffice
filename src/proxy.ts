@@ -3,9 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { astroApiUrl } from '@/lib/api/config';
 import type { ApiEnvelope, SessionData } from '@/lib/api/types';
 import { applySessionCookies } from '@/lib/auth/session';
+import { isHiddenInV1 } from '@/lib/features/release';
 
 export async function proxy(request: NextRequest) {
     if (request.nextUrl.pathname.startsWith('/api/')) return protectBffRequest(request);
+    if (isHiddenInV1(request.nextUrl.pathname))
+        return NextResponse.redirect(new URL('/dashboard', request.url));
 
     const accessToken = request.cookies.get('astro_access')?.value;
     if (accessToken !== undefined && !isExpiring(accessToken)) return NextResponse.next();
@@ -79,6 +82,7 @@ export const config = {
         '/subscriptions/:path*',
         '/customers/:path*',
         '/gateways/:path*',
+        '/orchestration/:path*',
         '/team/:path*',
         '/settings/:path*',
         '/webhooks/:path*',

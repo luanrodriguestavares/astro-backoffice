@@ -85,7 +85,7 @@ export function CouponScopeEdit({
                         onMouseDown={(event) => {
                             if (event.target === event.currentTarget) close();
                         }}
-                        className="fixed inset-0 z-[100] grid place-items-center bg-[#17172c]/20 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] grid place-items-center bg-[#111111]/20 p-4 backdrop-blur-sm"
                     >
                         <section className="modal-surface glass-panel w-full max-w-lg rounded-[28px] p-5 sm:p-7">
                             <div className="flex items-start justify-between gap-4">

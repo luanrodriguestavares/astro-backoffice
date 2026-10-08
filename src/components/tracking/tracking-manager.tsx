@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
@@ -79,19 +79,25 @@ export function TrackingManager({ initialDestinations, deliveries, checkouts, ca
 
     return (
         <div className="space-y-5">
-            <section data-tour="tracking-summary" className="glass-panel rounded-[28px] p-6 sm:p-7">
-                <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
+            <section
+                data-tour="tracking-summary"
+                className="glass-panel overflow-hidden rounded-[26px]"
+            >
+                <div className="flex flex-col justify-between gap-6 px-5 py-6 sm:px-7 lg:flex-row lg:items-center">
                     <div className="flex items-start gap-3">
-                        <span className="grid size-11 shrink-0 place-items-center rounded-2xl border border-border bg-brand-soft text-brand-strong">
+                        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-foreground text-surface">
                             <Icon name="chart" className="size-[19px]" />
                         </span>
                         <div>
-                            <h2 className="text-[17px] font-semibold tracking-[-0.02em]">
-                                Mensuração própria, sem scripts personalizados
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                                Central de mensuração
+                            </p>
+                            <h2 className="mt-1 text-[19px] font-semibold tracking-[-0.035em]">
+                                Conversões sob controle
                             </h2>
                             <p className="mt-1 max-w-2xl text-[13px] leading-6 text-muted">
-                                Conecte Meta, Google ou TikTok. O navegador respeita o consentimento
-                                e as compras também podem ser confirmadas pelo servidor.
+                                Meta, Google e TikTok com eventos de navegador e servidor no mesmo
+                                fluxo, sem scripts soltos pelo checkout.
                             </p>
                         </div>
                     </div>
@@ -105,7 +111,7 @@ export function TrackingManager({ initialDestinations, deliveries, checkouts, ca
                         </Button>
                     )}
                 </div>
-                <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <div className="grid border-t border-border sm:grid-cols-3 sm:divide-x sm:divide-border">
                     <Summary
                         label="Destinos ativos"
                         value={destinations.filter((item) => item.status === 'active').length}
@@ -124,7 +130,7 @@ export function TrackingManager({ initialDestinations, deliveries, checkouts, ca
 
             <div
                 data-tour="tracking-tabs"
-                className="flex w-fit rounded-xl border border-border bg-[var(--control-bg)] p-1"
+                className="ui-tabs w-fit max-w-full"
             >
                 <Tab active={tab === 'destinations'} onClick={() => setTab('destinations')}>
                     Destinos
@@ -438,32 +444,37 @@ function DestinationCard({
     onRemove(): void;
 }) {
     return (
-        <article className="glass-panel rounded-[24px] p-5 sm:p-6">
+        <article className="glass-panel rounded-[22px] p-5 transition hover:border-[color-mix(in_srgb,var(--foreground)_14%,var(--border))] sm:p-6">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-[16px] font-semibold">{destination.name}</h3>
-                        <Badge tone={destination.status === 'active' ? 'success' : 'neutral'}>
-                            {destination.status === 'active' ? 'Ativo' : 'Desativado'}
-                        </Badge>
-                        <Badge tone="neutral">{providerLabel(destination.provider)}</Badge>
-                    </div>
-                    <p className="mt-1 text-[12px] text-muted">
-                        {destination.externalId} · {destination.browserEnabled ? 'Navegador' : ''}
-                        {destination.browserEnabled && destination.serverEnabled ? ' + ' : ''}
-                        {destination.serverEnabled ? 'Servidor' : ''}
-                    </p>
-                    <p className="mt-2 text-[12px] text-muted">
-                        {destination.checkoutScope === 'all_checkouts'
-                            ? 'Todos os checkouts'
-                            : `${destination.checkoutIds.length} checkout(s)`}{' '}
-                        · {destination.enabledEvents.length} evento(s)
-                    </p>
-                    {destination.lastFailureReason && (
-                        <p className="mt-2 line-clamp-2 text-[12px] text-danger">
-                            Última falha: {destination.lastFailureReason}
+                <div className="flex min-w-0 items-start gap-3.5">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-surface-muted text-[11px] font-bold uppercase text-foreground">
+                        {providerLabel(destination.provider).slice(0, 1)}
+                    </span>
+                    <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-[15px] font-semibold">{destination.name}</h3>
+                            <Badge tone={destination.status === 'active' ? 'success' : 'neutral'}>
+                                {destination.status === 'active' ? 'Ativo' : 'Desativado'}
+                            </Badge>
+                            <Badge tone="neutral">{providerLabel(destination.provider)}</Badge>
+                        </div>
+                        <p className="mt-1 text-[12px] text-muted">
+                            {destination.externalId} · {destination.browserEnabled ? 'Navegador' : ''}
+                            {destination.browserEnabled && destination.serverEnabled ? ' + ' : ''}
+                            {destination.serverEnabled ? 'Servidor' : ''}
                         </p>
-                    )}
+                        <p className="mt-2 text-[12px] text-muted">
+                            {destination.checkoutScope === 'all_checkouts'
+                                ? 'Todos os checkouts'
+                                : `${destination.checkoutIds.length} checkout(s)`}{' '}
+                            · {destination.enabledEvents.length} evento(s)
+                        </p>
+                        {destination.lastFailureReason && (
+                            <p className="mt-2 line-clamp-2 text-[12px] text-danger">
+                                Última falha: {destination.lastFailureReason}
+                            </p>
+                        )}
+                    </div>
                 </div>
                 {canManage && (
                     <div className="flex gap-2">
@@ -563,12 +574,12 @@ function DeliveryHistory({ deliveries }: { deliveries: TrackingDelivery[] }) {
 
 function Summary({ label, value, tone }: { label: string; value: number; tone?: 'danger' }) {
     return (
-        <div className="rounded-2xl border border-border bg-surface-muted/30 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[.1em] text-muted">
+        <div className="px-5 py-4 sm:px-6">
+            <p className="text-[10px] font-semibold uppercase tracking-[.12em] text-muted">
                 {label}
             </p>
             <p
-                className={`mt-1 text-[22px] font-semibold ${tone === 'danger' && value ? 'text-danger' : ''}`}
+                className={`mt-1 text-[25px] font-semibold tracking-[-0.04em] ${tone === 'danger' && value ? 'text-danger' : ''}`}
             >
                 {value}
             </p>
@@ -587,7 +598,9 @@ function Tab({
     return (
         <Button
             onClick={onClick}
-            className={`rounded-lg px-4 py-2 text-[12px] font-semibold ${active ? 'bg-brand-soft text-brand-strong' : 'text-muted hover:text-foreground'}`}
+            data-active={active}
+            aria-pressed={active}
+            className="ui-tab px-4 py-2 text-[12px] font-semibold"
         >
             {children}
         </Button>

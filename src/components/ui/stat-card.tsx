@@ -11,7 +11,7 @@ type Tone = 'brand' | 'success' | 'warning';
 const tones: Record<Tone, { icon: string; line: string }> = {
     brand: {
         icon: 'bg-brand-soft/80 text-brand-strong',
-        line: 'var(--brand)',
+        line: 'var(--chart-primary)',
     },
     success: {
         icon: 'bg-[#eaf8f3]/80 text-success',
@@ -56,7 +56,7 @@ export function StatCard({
         >
             <Link
                 href={href}
-                className="dashboard-stat-card glass-panel group relative block min-h-[142px] rounded-[22px] p-5 transition duration-300 hover:-translate-y-0.5"
+                className="dashboard-stat-card glass-panel group relative block min-h-[142px] transform-gpu rounded-[22px] p-5 transition duration-200 ease-out hover:-translate-y-px"
             >
                 <div className="relative flex items-start justify-between gap-4">
                     <div className="min-w-0">
@@ -74,13 +74,13 @@ export function StatCard({
                                 y: 0,
                                 rotate: 0,
                                 scale: 1,
-                                transition: { type: 'spring', stiffness: 360, damping: 24 },
+                                transition: { type: 'spring', stiffness: 440, damping: 32 },
                             },
                             hover: {
-                                y: -3,
-                                rotate: -8,
-                                scale: 1.1,
-                                transition: { type: 'spring', stiffness: 420, damping: 20 },
+                                y: -1,
+                                rotate: -3,
+                                scale: 1.04,
+                                transition: { type: 'spring', stiffness: 480, damping: 34 },
                             },
                         }}
                     >

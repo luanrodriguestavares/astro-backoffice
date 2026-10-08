@@ -12,9 +12,7 @@ export function ThemeSwitch({ dark, onToggle }: { dark: boolean; onToggle: () =>
         : { type: 'spring' as const, stiffness: 500, damping: 30, mass: 0.65 };
 
     function toggle() {
-        const nextDark = !dark;
-        document.documentElement.classList.toggle('dashboard-dark', nextDark);
-        document.documentElement.classList.toggle('astro-dark-portals', nextDark);
+        applyDashboardThemeClasses(!dark);
         onToggle();
     }
 
@@ -57,4 +55,9 @@ export function ThemeSwitch({ dark, onToggle }: { dark: boolean; onToggle: () =>
             </Button>
         </motion.div>
     );
+}
+
+export function applyDashboardThemeClasses(dark: boolean) {
+    document.documentElement.classList.toggle('dashboard-dark', dark);
+    document.documentElement.classList.toggle('astro-dark-portals', dark);
 }

@@ -40,7 +40,7 @@ const gateways: GatewayDefinition[] = [
         name: 'Ambiente de testes',
         description: 'Simule pagamentos antes de entrar em produção.',
         initials: 'M',
-        color: 'bg-[#55576b]',
+        color: 'bg-[#565656]',
         logo: '/gateways/astro-mock.png',
         logoFill: true,
         methods: ['Sandbox', 'Testes'],
@@ -52,9 +52,7 @@ export default async function GatewaysPage() {
     const canReadPayments = permissions.has('payments.read');
     const [connections, payments] = await Promise.all([
         apiFetch<GatewayConnection[]>('/api/v1/gateway-connections'),
-        canReadPayments
-            ? apiFetch<Payment[]>('/api/v1/payments')
-            : Promise.resolve([]),
+        canReadPayments ? apiFetch<Payment[]>('/api/v1/payments') : Promise.resolve([]),
     ]);
 
     const active = connections.filter((connection) => connection.status === 'active');
@@ -75,30 +73,36 @@ export default async function GatewaysPage() {
                 aria-label="Indicadores dos gateways"
                 className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
             >
-                {canReadPayments && <StatCard
-                    label="Gateways conectados"
-                    value={String(active.length)}
-                    detail={`${connections.length} configurações no total`}
-                    icon="plug"
-                    href="#gateways-conectados"
-                />}
-                {canReadPayments && <StatCard
-                    label="Transações (30 dias)"
-                    value={formatNumber(current.total)}
-                    detail="Tentativas processadas"
-                    icon="chart"
-                    href="/payments"
-                    change={variation(current.total, previous.total)}
-                />}
-                {canReadPayments && <StatCard
-                    label="Volume processado"
-                    value={money(current.volume, currency)}
-                    detail="Pagamentos aprovados"
-                    icon="card"
-                    href="/payments"
-                    tone="success"
-                    change={variation(current.volume, previous.volume)}
-                />}
+                {canReadPayments && (
+                    <StatCard
+                        label="Gateways conectados"
+                        value={String(active.length)}
+                        detail={`${connections.length} configurações no total`}
+                        icon="plug"
+                        href="#gateways-conectados"
+                    />
+                )}
+                {canReadPayments && (
+                    <StatCard
+                        label="Transações (30 dias)"
+                        value={formatNumber(current.total)}
+                        detail="Tentativas processadas"
+                        icon="chart"
+                        href="/payments"
+                        change={variation(current.total, previous.total)}
+                    />
+                )}
+                {canReadPayments && (
+                    <StatCard
+                        label="Volume processado"
+                        value={money(current.volume, currency)}
+                        detail="Pagamentos aprovados"
+                        icon="card"
+                        href="/payments"
+                        tone="success"
+                        change={variation(current.volume, previous.volume)}
+                    />
+                )}
                 <StatCard
                     label="Taxa de aprovação"
                     value={percentage(current.rate)}

@@ -9,6 +9,7 @@ import { useRef, useState } from 'react';
 
 import {
     CheckoutBuilderMediaContext,
+    CheckoutBuilderProductsContext,
     checkoutBuilderConfig,
     type BuilderData,
 } from '@/components/checkout-builder/config';
@@ -22,7 +23,9 @@ import { documentToPuck, puckToDocument } from '@/lib/checkout/puck-data';
 import {
     checkoutReadinessIssues,
     enabledPaymentMethods,
+    normalizeBindings,
     presentRequiredComponents,
+    type GatewayCascades,
     type RequiredCheckoutComponent,
 } from '@/lib/checkout/gateway-bindings';
 import { checkoutPublicUrl } from '@/lib/checkout/public-url';
@@ -68,6 +71,7 @@ const componentIcons: Record<string, IconName> = {
     floating_cta: 'bolt',
     spacer_divider: 'layout',
     product_summary: 'cart',
+    order_bump: 'tag',
     checkout_form: 'user',
     order_summary: 'cart',
     coupon_field: 'tag',
@@ -140,8 +144,8 @@ export function CheckoutEditor({
     const [environment, setEnvironment] = useState<CheckoutEnvironment>(
         draft.document.settings.environment ?? 'sandbox',
     );
-    const [bindings, setBindings] = useState<Partial<Record<CheckoutPaymentMethod, string>>>(
-        draft.document.settings.paymentGatewayBindings ?? {},
+    const [bindings, setBindings] = useState<GatewayCascades>(() =>
+        normalizeBindings(draft.document.settings.paymentGatewayBindings),
     );
     const [enabledMethods, setEnabledMethods] = useState<CheckoutPaymentMethod[]>(() =>
         enabledPaymentMethods(editorData.content),
@@ -204,11 +208,11 @@ export function CheckoutEditor({
         setState('changed');
     }
 
-    function changeBinding(method: CheckoutPaymentMethod, connectionId: string | undefined) {
+    function changeBinding(method: CheckoutPaymentMethod, connectionIds: string[]) {
         setBindings((currentBindings) => {
             const next = { ...currentBindings };
-            if (connectionId === undefined) delete next[method];
-            else next[method] = connectionId;
+            if (connectionIds.length === 0) delete next[method];
+            else next[method] = connectionIds;
             return next;
         });
         setState('changed');
@@ -217,7 +221,9 @@ export function CheckoutEditor({
     function restoreVersion(restoredDraft: CheckoutDraft, version: CheckoutVersion) {
         const restoredData = documentToPuck(restoredDraft.document);
         const restoredEnvironment = restoredDraft.document.settings.environment ?? 'sandbox';
-        const restoredBindings = restoredDraft.document.settings.paymentGatewayBindings ?? {};
+        const restoredBindings = normalizeBindings(
+            restoredDraft.document.settings.paymentGatewayBindings,
+        );
         current.current = restoredData;
         revision.current = restoredDraft.revision;
         document.current = restoredDraft.document;
@@ -311,178 +317,186 @@ export function CheckoutEditor({
             <CheckoutBuilderMediaContext.Provider
                 value={{ files: mediaFiles, apiUrl: mediaApiUrl }}
             >
-                <Puck
-                    key={editorGeneration}
-                    config={checkoutBuilderConfig}
-                    data={editorData}
-                    height="100dvh"
-                    overrides={{
-                        fieldTypes: { select: CheckoutSelectField },
-                        drawerItem: CheckoutDrawerItem,
-                    }}
-                    plugins={checkoutEditorPlugins}
-                    ui={{ plugin: { current: 'legacy-side-bar' } }}
-                    viewports={[
-                        { width: 390, height: 'auto', label: 'Celular', icon: 'Smartphone' },
-                        { width: 768, height: 'auto', label: 'Tablet', icon: 'Tablet' },
-                        { width: 1440, height: 'auto', label: 'Desktop', icon: 'Monitor' },
-                    ]}
-                    iframe={{ enabled: true, syncHostStyles: false }}
-                    onChange={(data) => {
-                        current.current = data as BuilderData;
-                        setBuilderContent(data.content);
-                        setEnabledMethods(enabledPaymentMethods(data.content));
-                        setPresentComponents(presentRequiredComponents(data.content));
-                        setState('changed');
-                    }}
-                    onPublish={publish}
-                    renderHeader={({ children }) => (
-                        <header className="checkout-editor-header" data-tour="builder-header">
-                            <div className="checkout-editor-identity">
-                                <ButtonLink
-                                    href="/checkouts"
-                                    variant="icon"
-                                    aria-label="Voltar para checkouts"
-                                    className="size-9 shrink-0 rounded-xl"
-                                >
-                                    <Icon name="arrow-right" className="size-3.5 rotate-180" />
-                                </ButtonLink>
-                                <div className="min-w-0">
-                                    <p className="truncate text-[13px] font-semibold tracking-[-0.015em] text-foreground">
-                                        {checkout.name}
-                                    </p>
-                                    <div className="mt-0.5 flex items-center gap-2">
-                                        <p className="truncate text-[10px] text-muted">
-                                            /{checkout.slug}
+                <CheckoutBuilderProductsContext.Provider value={checkout.products ?? []}>
+                    <Puck
+                        key={editorGeneration}
+                        config={checkoutBuilderConfig}
+                        data={editorData}
+                        height="100dvh"
+                        overrides={{
+                            fieldTypes: { select: CheckoutSelectField },
+                            drawerItem: CheckoutDrawerItem,
+                        }}
+                        plugins={checkoutEditorPlugins}
+                        ui={{ plugin: { current: 'legacy-side-bar' } }}
+                        viewports={[
+                            { width: 390, height: 'auto', label: 'Celular', icon: 'Smartphone' },
+                            { width: 768, height: 'auto', label: 'Tablet', icon: 'Tablet' },
+                            { width: 1440, height: 'auto', label: 'Desktop', icon: 'Monitor' },
+                        ]}
+                        iframe={{ enabled: true, syncHostStyles: false }}
+                        onChange={(data) => {
+                            current.current = data as BuilderData;
+                            setBuilderContent(data.content);
+                            setEnabledMethods(enabledPaymentMethods(data.content));
+                            setPresentComponents(presentRequiredComponents(data.content));
+                            setState('changed');
+                        }}
+                        onPublish={publish}
+                        renderHeader={({ children }) => (
+                            <header className="checkout-editor-header" data-tour="builder-header">
+                                <div className="checkout-editor-identity">
+                                    <ButtonLink
+                                        href="/checkouts"
+                                        variant="icon"
+                                        aria-label="Voltar para checkouts"
+                                        className="size-9 shrink-0 rounded-xl"
+                                    >
+                                        <Icon name="arrow-right" className="size-3.5 rotate-180" />
+                                    </ButtonLink>
+                                    <div className="min-w-0">
+                                        <p className="truncate text-[13px] font-semibold tracking-[-0.015em] text-foreground">
+                                            {checkout.name}
                                         </p>
-                                        <span
-                                            className={`checkout-editor-status checkout-editor-status--${state}`}
-                                        >
-                                            {statusLabel(state)}
-                                        </span>
+                                        <div className="mt-0.5 flex items-center gap-2">
+                                            <p className="truncate text-[10px] text-muted">
+                                                /{checkout.slug}
+                                            </p>
+                                            <span
+                                                className={`checkout-editor-status checkout-editor-status--${state}`}
+                                            >
+                                                {statusLabel(state)}
+                                            </span>
+                                        </div>
                                     </div>
+                                    <GuidedTourTrigger />
                                 </div>
-                                <GuidedTourTrigger />
-                            </div>
-                            <div className="checkout-editor-toolbar">{children}</div>
-                        </header>
-                    )}
-                    renderHeaderActions={() => (
-                        <div className="checkout-editor-actions">
-                            <div className="checkout-editor-action-group">
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    title="Histórico de versões"
-                                    aria-label="Abrir histórico de versões"
-                                    data-tour="builder-history"
-                                    className="h-9 rounded-xl px-3 text-[11px]"
-                                    disabled={state === 'saving'}
-                                    onClick={() => setVersionHistoryOpen(true)}
-                                >
-                                    <Icon name="clock" className="size-3.5" />
-                                    Histórico
-                                </Button>
-                                {(checkout.status === 'published' || state === 'published') && (
-                                    <>
-                                        <Button
-                                            type="button"
-                                            variant="secondary"
-                                            title="Copiar link público"
-                                            aria-label="Copiar link público"
-                                            data-tour="builder-public-link"
-                                            className="hidden h-9 rounded-xl px-3 text-[11px] md:inline-flex"
-                                            onClick={() => {
-                                                void navigator.clipboard.writeText(publicUrl);
-                                                showToast({
-                                                    tone: 'success',
-                                                    title: 'Link copiado',
-                                                    description:
-                                                        'O link público do checkout foi copiado.',
-                                                });
-                                            }}
-                                        >
-                                            <Icon name="link" className="size-3.5" />
-                                            Copiar link
-                                        </Button>
-                                        <a
-                                            href={publicUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                        title="Abrir checkout publicado"
-                                        aria-label="Abrir checkout publicado"
-                                        data-tour="builder-open-checkout"
-                                            className={buttonClassName(
-                                                'secondary',
-                                                'h-9 rounded-xl px-3 text-[11px]',
-                                            )}
-                                        >
-                                            <Icon
-                                                name="arrow-right"
-                                                className="size-3.5 -rotate-45"
-                                            />
-                                            Abrir
-                                        </a>
-                                    </>
-                                )}
-                            </div>
-                            <span className="checkout-editor-action-divider" aria-hidden="true" />
-                            <div className="checkout-editor-action-group">
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    data-tour="builder-readiness"
-                                    className="h-9 rounded-xl px-3 text-[11px]"
-                                    onClick={() => setPaymentSettingsOpen(true)}
-                                >
-                                    <Icon
-                                        name={readinessIssues.length === 0 ? 'check' : 'bolt'}
-                                        className="size-3.5"
-                                    />
-                                    Prontidão
-                                    {readinessIssues.length > 0 && (
-                                        <span className="grid min-w-5 place-items-center rounded-full bg-warning/15 px-1.5 py-0.5 text-[9px] font-semibold text-warning">
-                                            {readinessIssues.length}
-                                        </span>
+                                <div className="checkout-editor-toolbar">{children}</div>
+                            </header>
+                        )}
+                        renderHeaderActions={() => (
+                            <div className="checkout-editor-actions">
+                                <div className="checkout-editor-action-group">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        title="Histórico de versões"
+                                        aria-label="Abrir histórico de versões"
+                                        data-tour="builder-history"
+                                        className="h-9 rounded-xl px-3 text-[11px]"
+                                        disabled={state === 'saving'}
+                                        onClick={() => setVersionHistoryOpen(true)}
+                                    >
+                                        <Icon name="clock" className="size-3.5" />
+                                        Histórico
+                                    </Button>
+                                    {(checkout.status === 'published' || state === 'published') && (
+                                        <>
+                                            <Button
+                                                type="button"
+                                                variant="secondary"
+                                                title="Copiar link público"
+                                                aria-label="Copiar link público"
+                                                data-tour="builder-public-link"
+                                                className="hidden h-9 rounded-xl px-3 text-[11px] md:inline-flex"
+                                                onClick={() => {
+                                                    void navigator.clipboard.writeText(publicUrl);
+                                                    showToast({
+                                                        tone: 'success',
+                                                        title: 'Link copiado',
+                                                        description:
+                                                            'O link público do checkout foi copiado.',
+                                                    });
+                                                }}
+                                            >
+                                                <Icon name="link" className="size-3.5" />
+                                                Copiar link
+                                            </Button>
+                                            <a
+                                                href={publicUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                title="Abrir checkout publicado"
+                                                aria-label="Abrir checkout publicado"
+                                                data-tour="builder-open-checkout"
+                                                className={buttonClassName(
+                                                    'secondary',
+                                                    'h-9 rounded-xl px-3 text-[11px]',
+                                                )}
+                                            >
+                                                <Icon
+                                                    name="arrow-right"
+                                                    className="size-3.5 -rotate-45"
+                                                />
+                                                Abrir
+                                            </a>
+                                        </>
                                     )}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    data-tour="builder-preview"
-                                    className="h-9 rounded-xl px-3 text-[11px]"
-                                    disabled={state === 'saving'}
-                                    onClick={() => void openPreview()}
-                                >
-                                    <Icon name="layout" className="size-3.5" /> Preview
-                                </Button>
+                                </div>
+                                <span
+                                    className="checkout-editor-action-divider"
+                                    aria-hidden="true"
+                                />
+                                <div className="checkout-editor-action-group">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        data-tour="builder-readiness"
+                                        className="h-9 rounded-xl px-3 text-[11px]"
+                                        onClick={() => setPaymentSettingsOpen(true)}
+                                    >
+                                        <Icon
+                                            name={readinessIssues.length === 0 ? 'check' : 'bolt'}
+                                            className="size-3.5"
+                                        />
+                                        Prontidão
+                                        {readinessIssues.length > 0 && (
+                                            <span className="grid min-w-5 place-items-center rounded-full bg-warning/15 px-1.5 py-0.5 text-[9px] font-semibold text-warning">
+                                                {readinessIssues.length}
+                                            </span>
+                                        )}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        data-tour="builder-preview"
+                                        className="h-9 rounded-xl px-3 text-[11px]"
+                                        disabled={state === 'saving'}
+                                        onClick={() => void openPreview()}
+                                    >
+                                        <Icon name="layout" className="size-3.5" /> Preview
+                                    </Button>
+                                </div>
+                                <span
+                                    className="checkout-editor-action-divider"
+                                    aria-hidden="true"
+                                />
+                                <div className="checkout-editor-action-group">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        data-tour="builder-save"
+                                        className="hidden h-9 rounded-xl px-3 text-[11px] sm:inline-flex"
+                                        disabled={state === 'saving'}
+                                        onClick={() => void save()}
+                                    >
+                                        Salvar
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="primary"
+                                        data-tour="builder-publish"
+                                        className="h-9 rounded-xl px-3.5 text-[11px]"
+                                        disabled={state === 'saving'}
+                                        onClick={() => void publish(current.current)}
+                                    >
+                                        Publicar
+                                    </Button>
+                                </div>
                             </div>
-                            <span className="checkout-editor-action-divider" aria-hidden="true" />
-                            <div className="checkout-editor-action-group">
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    data-tour="builder-save"
-                                    className="hidden h-9 rounded-xl px-3 text-[11px] sm:inline-flex"
-                                    disabled={state === 'saving'}
-                                    onClick={() => void save()}
-                                >
-                                    Salvar
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="primary"
-                                    data-tour="builder-publish"
-                                    className="h-9 rounded-xl px-3.5 text-[11px]"
-                                    disabled={state === 'saving'}
-                                    onClick={() => void publish(current.current)}
-                                >
-                                    Publicar
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-                />
+                        )}
+                    />
+                </CheckoutBuilderProductsContext.Provider>
             </CheckoutBuilderMediaContext.Provider>
             <PaymentGatewaySettings
                 open={paymentSettingsOpen}

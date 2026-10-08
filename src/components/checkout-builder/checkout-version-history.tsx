@@ -118,7 +118,7 @@ export function CheckoutVersionHistory({
                                     onClick={() => setSelected(version)}
                                     className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition ${active ? 'border-brand/45 bg-brand-soft/70 shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_8%,transparent)]' : 'border-border bg-[var(--control-bg)] hover:border-brand/25 hover:bg-surface-muted/55'}`}
                                 >
-                                    <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${active ? 'bg-brand text-white' : 'bg-brand-soft text-brand'}`}>
+                                    <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${active ? 'bg-brand text-brand-contrast' : 'bg-brand-soft text-brand'}`}>
                                         {active ? (
                                             <Icon name="check" className="size-4" />
                                         ) : (

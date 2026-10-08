@@ -40,7 +40,10 @@ export type IconName =
     | 'play'
     | 'sun'
     | 'moon'
-    | 'heart';
+    | 'heart'
+    | 'route'
+    | 'coins'
+    | 'pulse';
 
 const paths: Record<IconName, React.ReactNode> = {
     home: (
@@ -198,6 +201,21 @@ const paths: Record<IconName, React.ReactNode> = {
             <path d="M12 8v4l3 2" />
         </>
     ),
+    route: (
+        <>
+            <circle cx="6" cy="19" r="2.5" />
+            <circle cx="18" cy="5" r="2.5" />
+            <path d="M8.5 19H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.5" />
+        </>
+    ),
+    coins: (
+        <>
+            <ellipse cx="9" cy="7" rx="6" ry="3" />
+            <path d="M3 7v5c0 1.66 2.69 3 6 3s6-1.34 6-3V7" />
+            <path d="M9 15v2c0 1.66 2.69 3 6 3s6-1.34 6-3v-5c0-1.66-2.69-3-6-3" />
+        </>
+    ),
+    pulse: <path d="M3 12h4l3-8 4 16 3-8h4" />,
     webhook: (
         <>
             <circle cx="6" cy="12" r="3" />

@@ -94,7 +94,7 @@ export function GatewayCenter({
     return (
         <div className="space-y-5">
             <section className="glass-panel rounded-[22px] p-2.5 sm:flex sm:items-center sm:justify-between">
-                <div className="flex gap-1 overflow-x-auto">
+                <div className="ui-tabs">
                     {(
                         [
                             { value: 'all', label: 'Todos' },
@@ -106,13 +106,15 @@ export function GatewayCenter({
                             key={item.value}
                             type="button"
                             onClick={() => setFilter(item.value)}
-                            className={`h-9 whitespace-nowrap rounded-xl px-5 text-[12px] font-semibold transition ${filter === item.value ? 'bg-brand-soft text-brand-strong shadow-[inset_0_0_0_1px_rgba(109,93,244,.08)]' : 'text-muted hover:bg-white/60 hover:text-foreground'}`}
+                            data-active={filter === item.value}
+                            aria-pressed={filter === item.value}
+                            className="ui-tab whitespace-nowrap px-5 py-1.5 text-[12px] font-semibold"
                         >
                             {item.label}
                         </Button>
                     ))}
                 </div>
-                <label className="gateway-search filter-control mt-2 flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-[var(--control-bg)] px-3.5 transition hover:border-brand/30 focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)] sm:mt-0 sm:max-w-[310px]">
+                <label className="gateway-search filter-control ui-control-frame mt-2 flex h-11 min-w-0 flex-1 items-center gap-2 px-3.5 sm:mt-0 sm:max-w-[310px]">
                     <Icon name="search" className="size-3.5 shrink-0 text-brand/70" />
                     <input
                         value={query}

@@ -21,11 +21,11 @@ export default async function RegisterPage({
         redirect(`/invitation?token=${encodeURIComponent(invite)}`);
     const inviteQuery = invite ? `?invite=${encodeURIComponent(invite)}` : '';
     return (
-        <div className="relative min-h-screen overflow-x-hidden bg-[#f7f7fb] px-4 py-5 lg:grid lg:h-screen lg:place-items-center lg:overflow-hidden lg:py-4">
+        <div className="relative min-h-screen overflow-x-hidden bg-background px-4 py-5 lg:grid lg:h-screen lg:place-items-center lg:overflow-hidden lg:py-4">
             <AuthToast message={error} />
             <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_5%,rgba(109,93,244,.12),transparent_28rem),radial-gradient(circle_at_90%_92%,rgba(150,136,240,.1),transparent_30rem)]"
+                className="pointer-events-none absolute inset-0"
             />
             <section className="relative mx-auto w-full max-w-[720px]">
                 <div className="mb-3 flex items-center justify-between px-1 lg:mb-4">
@@ -40,7 +40,7 @@ export default async function RegisterPage({
                         </Link>
                     </p>
                 </div>
-                <div className="rounded-[28px] border border-white/80 bg-white/86 p-5 shadow-[0_30px_90px_rgba(56,49,105,.11)] backdrop-blur-3xl sm:p-6 lg:p-7">
+                <div className="rounded-[28px] border border-border bg-surface p-5 shadow-[0_24px_72px_rgb(16_18_20_/_8%)] sm:p-6 lg:p-7">
                     <header className="flex items-center gap-3">
                         <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-brand-soft text-brand-strong">
                             <Icon name="bolt" className="size-[18px]" />
@@ -50,7 +50,7 @@ export default async function RegisterPage({
                                 Comece no Astro
                             </p>
                             <div className="flex flex-wrap items-baseline gap-x-3">
-                                <h1 className="text-[23px] font-semibold tracking-[-.045em] text-[#17182f]">
+                                <h1 className="text-[23px] font-semibold tracking-[-.045em] text-[#111111]">
                                     {invitation ? `Entre em ${invitation.organizationName}` : 'Crie sua conta'}
                                 </h1>
                                 <p className="text-[11px] text-muted">

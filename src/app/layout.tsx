@@ -35,4 +35,4 @@ export default function RootLayout({
     );
 }
 
-const themeInitializer = `(function(){try{var root=document.documentElement;var dark=localStorage.getItem('astro-dashboard-theme')!=='light';var accent=localStorage.getItem('astro-accent-theme');var accents=['astro','blue','violet','yellow','orange','green','rose'];root.classList.toggle('dashboard-dark',dark);root.classList.toggle('astro-dark-portals',dark);root.dataset.astroAccent=accents.indexOf(accent)>-1?accent:'astro';root.dataset.astroThemeReady='true'}catch(_){}})()`;
+const themeInitializer = `(function(){try{var root=document.documentElement;var dark=localStorage.getItem('astro-dashboard-theme')!=='light';var accent=localStorage.getItem('astro-accent-theme');var accents=['astro','blue','violet','orange','green','rose'];root.classList.toggle('dashboard-dark',dark);root.classList.toggle('astro-dark-portals',dark);root.dataset.astroAccent=accents.indexOf(accent)>-1?accent:'astro';root.dataset.astroThemeReady='true'}catch(_){}})()`;

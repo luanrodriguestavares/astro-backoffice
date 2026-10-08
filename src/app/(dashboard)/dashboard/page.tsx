@@ -3,8 +3,13 @@ import Link from 'next/link';
 import {
     GatewayDonut,
     RevenueAreaChart,
+    RevenuePeriodTotal,
     type GatewayDatum,
 } from '@/components/dashboard/dashboard-charts';
+import {
+    DashboardPeriodProvider,
+    DashboardPeriodSelect,
+} from '@/components/dashboard/dashboard-period';
 import { DashboardGreeting } from '@/components/dashboard/dashboard-greeting';
 import { AnimatedOrbitTitle } from '@/components/dashboard/animated-orbit-title';
 import { ButtonLink } from '@/components/ui/button';
@@ -83,6 +88,7 @@ export default async function DashboardPage() {
     );
 
     return (
+        <DashboardPeriodProvider>
         <div className="dashboard-home" data-tour="dashboard-home">
             <PageHeader
                 prominentTitle
@@ -94,6 +100,7 @@ export default async function DashboardPage() {
                 }
                 title={<AnimatedOrbitTitle />}
                 description="Sua operação, sempre ao seu alcance."
+                filters={canReadPayments ? <DashboardPeriodSelect /> : undefined}
                 actions={canWriteProducts ? (
                     <ButtonLink href="/checkouts" className="gap-3">
                         <Icon name="plus" className="size-4" />
@@ -182,14 +189,11 @@ export default async function DashboardPage() {
                                 Valores aprovados e capturados
                             </p>
                         </div>
-                        <p className="hidden text-right sm:block">
-                            <span className="block text-[12px] uppercase tracking-[0.1em] text-muted">
-                                Últimos 30 dias
-                            </span>
-                            <span className="mt-1 block text-sm font-semibold">
-                                {money(currentPeriod.revenue, currency)}
-                            </span>
-                        </p>
+                        <RevenuePeriodTotal
+                            points={timeline}
+                            hourlyPoints={hourlyTimeline}
+                            currency={currency}
+                        />
                     </div>
                     <RevenueAreaChart
                         points={timeline}
@@ -244,12 +248,13 @@ export default async function DashboardPage() {
 
             <section
                 data-tour="dashboard-recent"
-                className={`mt-4 grid gap-4 ${canReadProducts ? 'xl:grid-cols-2' : ''}`}
+                className={`mt-4 grid gap-4 ${canReadProducts ? 'xl:grid-cols-2 xl:items-start' : ''}`}
             >
                 {canReadProducts && <RecentCheckouts checkouts={recentCheckouts.slice(0, 4)} />}
                 <RecentActivities activities={activities.slice(0, 5)} />
             </section>
         </div>
+        </DashboardPeriodProvider>
     );
 }
 
@@ -307,9 +312,9 @@ function OnboardingCard({
                 <p className="mt-2 text-[13px] leading-5 text-muted">
                     Conclua os passos essenciais para começar a receber pagamentos.
                 </p>
-                <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-brand/10">
+                <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-foreground/8">
                     <div
-                        className="h-full rounded-full bg-gradient-to-r from-brand to-brand-strong transition-all duration-700"
+                        className="h-full rounded-full bg-highlight transition-[width] duration-300 ease-out"
                         style={{ width: `${(setupDone / 3) * 100}%` }}
                     />
                 </div>
@@ -339,7 +344,7 @@ function SetupStep({ done, label, href }: { done: boolean; label: string; href?:
     const content = (
         <>
             <span
-                className={`grid size-7 place-items-center rounded-full border ${done ? 'border-brand bg-brand text-white' : 'border-brand/20 bg-white/40 text-brand/45'}`}
+                className={`grid size-7 place-items-center rounded-full border ${done ? 'border-highlight bg-highlight text-highlight-contrast' : 'border-border bg-surface text-muted'}`}
             >
                 {done ? (
                     <Icon name="check" className="size-3.5" />

@@ -36,6 +36,8 @@ export default async function CheckoutsPage({
                 amountMinor: price.amountMinor,
                 currency: price.currency,
                 pricingType: price.pricingType,
+                recurringInterval: price.recurringInterval,
+                recurringIntervalCount: price.recurringIntervalCount,
                 active: true,
             })),
     );

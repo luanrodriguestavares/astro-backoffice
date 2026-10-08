@@ -3,11 +3,12 @@
 import { Button } from '@/components/ui/button';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 import { Icon, type IconName } from '@/components/ui/icon';
+import { isHiddenInV1 } from '@/lib/features/release';
 
 type SearchResult = {
     id?: string;
@@ -122,6 +123,33 @@ const destinations: (SearchResult & {
         feature: 'commerce.orders',
     },
     {
+        label: 'Resumo da orquestração',
+        group: 'Orquestração',
+        href: '/orchestration',
+        icon: 'pulse',
+        permission: 'payments.read',
+        feature: 'gateways.connected',
+        keywords: 'aprovação recusas gateway reserva',
+    },
+    {
+        label: 'Regras de recebimento',
+        group: 'Orquestração',
+        href: '/orchestration/rules',
+        icon: 'route',
+        permission: 'gateway_connections.manage',
+        feature: 'gateways.connected',
+        keywords: 'roteamento gateway reserva contingência',
+    },
+    {
+        label: 'Taxas dos gateways',
+        group: 'Orquestração',
+        href: '/orchestration/costs',
+        icon: 'coins',
+        permission: 'gateway_connections.manage',
+        feature: 'gateways.connected',
+        keywords: 'custos tarifa percentual',
+    },
+    {
         label: 'Gateways',
         group: 'Integrações',
         href: '/gateways',
@@ -220,6 +248,11 @@ export function HeaderSearch({
     permissions?: string[];
     billingAccess: { active: boolean; features: string[] };
 }) {
+    const shortcutLabel = useSyncExternalStore(
+        subscribeNothing,
+        () => (/mac|iphone|ipad/i.test(navigator.platform) ? '⌘ K' : 'Ctrl K'),
+        () => 'Ctrl K',
+    );
     const router = useRouter();
     const rootRef = useRef<HTMLDivElement>(null);
     const resultsRef = useRef<HTMLDivElement>(null);
@@ -233,17 +266,18 @@ export function HeaderSearch({
         loading: boolean;
     }>({ query: '', results: [], loading: false });
     const reduceMotion = useReducedMotion();
-    const [position, setPosition] = useState<{
-        left: number;
-        top: number;
-        width: number;
-    } | null>(null);
+    const mounted = useSyncExternalStore(
+        subscribeNothing,
+        () => true,
+        () => false,
+    );
 
     const navigationResults = useMemo(() => {
         const granted = new Set(permissions);
         const planFeatures = new Set(billingAccess.features);
         const available = destinations.filter(
             (item) =>
+                !isHiddenInV1(item.href) &&
                 (item.permission === undefined || granted.has(item.permission)) &&
                 (item.feature === undefined ||
                     (billingAccess.active && planFeatures.has(item.feature))),
@@ -264,8 +298,7 @@ export function HeaderSearch({
         return [...unique.values()].slice(0, 21);
     }, [globalSearch, navigationResults, query]);
     const searching =
-        query.trim().length >= 2 &&
-        (globalSearch.query !== query.trim() || globalSearch.loading);
+        query.trim().length >= 2 && (globalSearch.query !== query.trim() || globalSearch.loading);
 
     useEffect(() => {
         const term = query.trim();
@@ -323,19 +356,12 @@ export function HeaderSearch({
 
     useEffect(() => {
         if (!open) return;
-
-        function updatePosition() {
-            const rect = rootRef.current?.getBoundingClientRect();
-            if (!rect) return;
-            setPosition({ left: rect.left, top: rect.bottom + 8, width: rect.width });
-        }
-
-        updatePosition();
-        window.addEventListener('resize', updatePosition);
-        window.addEventListener('scroll', updatePosition, true);
+        const frame = window.requestAnimationFrame(() => inputRef.current?.focus());
+        const { overflow } = document.body.style;
+        document.body.style.overflow = 'hidden';
         return () => {
-            window.removeEventListener('resize', updatePosition);
-            window.removeEventListener('scroll', updatePosition, true);
+            window.cancelAnimationFrame(frame);
+            document.body.style.overflow = overflow;
         };
     }, [open]);
 
@@ -360,235 +386,220 @@ export function HeaderSearch({
     }
 
     return (
-        <div ref={rootRef} className="relative hidden w-full max-w-[460px] md:block">
-            <div
-                className={`global-search shell-header-control flex h-11 items-center gap-2.5 rounded-2xl px-4 transition ${open ? 'border-brand/70 shadow-[0_0_0_3px_rgba(109,93,244,.16)]' : ''}`}
+        <div ref={rootRef}>
+            <Button
+                type="button"
+                aria-label="Buscar no Astro"
+                title={`Buscar (${shortcutLabel})`}
+                aria-keyshortcuts="Control+K Meta+K"
+                aria-haspopup="dialog"
+                aria-expanded={open}
+                onClick={() => setOpen(true)}
+                className="shell-search-trigger shell-header-control flex h-11 items-center gap-2.5 rounded-2xl px-3.5 text-[#737373] transition hover:text-foreground"
             >
-                <motion.span
-                    className="grid shrink-0 place-items-center text-[#77758d]"
-                    animate={
-                        reduceMotion || !open
-                            ? { y: 0, rotate: 0, scale: 1 }
-                            : { y: -2.5, rotate: -8, scale: 1.09 }
-                    }
-                    transition={
-                        reduceMotion
-                            ? { duration: 0 }
-                            : { type: 'spring', stiffness: 420, damping: 20 }
-                    }
-                >
-                    <Icon name="search" className="size-4" />
-                </motion.span>
-                <input
-                    ref={inputRef}
-                    value={query}
-                    onChange={(event) => {
-                        setQuery(event.target.value);
-                        setOpen(true);
-                        setActiveIndex(0);
-                    }}
-                    onFocus={() => setOpen(true)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Buscar no Astro..."
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    aria-label="Buscar páginas no Astro"
-                    role="combobox"
-                    aria-autocomplete="list"
-                    aria-expanded={open}
-                    aria-controls="astro-search-results"
-                    className="min-w-0 flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted"
-                />
-                {query ? (
-                    <Button
-                        type="button"
-                        aria-label="Limpar busca"
-                        onClick={() => {
-                            setQuery('');
-                            inputRef.current?.focus();
-                        }}
-                        className="rounded-lg p-1 text-muted transition hover:bg-white/70 hover:text-foreground"
-                    >
-                        <Icon name="close" className="size-3" />
-                    </Button>
-                ) : (
-                    <kbd className="flex h-6 items-center gap-1 rounded-lg border border-white/90 bg-white/65 px-2 font-sans text-[9px] font-semibold leading-none text-[#77758d] shadow-sm">
-                        <span className="text-[11px]">⌘</span>
-                        <span>K</span>
-                    </kbd>
-                )}
-            </div>
+                <Icon name="search" className="size-[17px]" />
+                <kbd className="hidden rounded-md border border-border px-1.5 py-1 font-sans text-[9px] font-semibold leading-none text-muted sm:block">
+                    {shortcutLabel}
+                </kbd>
+            </Button>
 
-            {position &&
+            {mounted &&
                 createPortal(
-                    <>
+                    <AnimatePresence>
                         {open && (
-                            <Button
-                                type="button"
-                                aria-label="Fechar busca"
-                                style={{ top: position.top - 8 }}
-                                className="fixed inset-x-0 bottom-0 z-[90] cursor-default bg-transparent"
-                                onClick={() => setOpen(false)}
-                            />
-                        )}
-                        <AnimatePresence>
-                            {open && (
+                            <motion.div
+                                key="search"
+                                className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-[12vh]"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: reduceMotion ? 0 : 0.12 }}
+                            >
+                                <Button
+                                    type="button"
+                                    aria-label="Fechar busca"
+                                    tabIndex={-1}
+                                    className="absolute inset-0 cursor-default bg-[#0b0c10]/30"
+                                    onClick={() => setOpen(false)}
+                                />
                                 <motion.div
                                     ref={resultsRef}
                                     id="astro-search-results"
-                                    role="listbox"
-                                    initial={
-                                        reduceMotion
-                                            ? false
-                                            : {
-                                                  opacity: 0,
-                                                  y: -8,
-                                                  scale: 0.97,
-                                                  filter: 'blur(5px)',
-                                              }
-                                    }
-                                    animate={{
-                                        opacity: 1,
-                                        y: 0,
-                                        scale: 1,
-                                        filter: 'blur(0px)',
-                                    }}
-                                    exit={
-                                        reduceMotion
-                                            ? { opacity: 0 }
-                                            : {
-                                                  opacity: 0,
-                                                  y: -5,
-                                                  scale: 0.98,
-                                                  filter: 'blur(3px)',
-                                              }
-                                    }
+                                    role="dialog"
+                                    aria-label="Busca"
+                                    initial={reduceMotion ? false : { y: -6, scale: 0.98 }}
+                                    animate={{ y: 0, scale: 1 }}
+                                    exit={reduceMotion ? undefined : { y: -4, scale: 0.99 }}
                                     transition={
                                         reduceMotion
                                             ? { duration: 0 }
-                                            : {
-                                                  type: 'spring',
-                                                  stiffness: 430,
-                                                  damping: 32,
-                                                  mass: 0.72,
-                                              }
+                                            : { duration: 0.14, ease: [0.2, 0.8, 0.2, 1] }
                                     }
-                                    style={{ ...position, transformOrigin: 'top left' }}
-                                    className={`glass-popover fixed z-[100] flex max-h-[min(520px,calc(100vh-96px))] flex-col overflow-hidden rounded-[20px] p-2 ${dark ? 'dashboard-search-popover' : ''}`}
+                                    className={`glass-popover relative flex max-h-[min(560px,calc(100vh-24vh))] w-full max-w-[580px] flex-col overflow-hidden rounded-[20px] ${dark ? 'dashboard-search-popover' : ''}`}
                                 >
-                            <div className="min-h-0 flex-1 overflow-y-auto">
-                                <p className="px-3 pb-2 pt-1 text-[9px] font-semibold uppercase tracking-[0.15em] text-muted">
-                                    {query
-                                        ? searching
-                                            ? 'Buscando em toda a operação…'
-                                            : `${results.length} resultado${results.length === 1 ? '' : 's'}`
-                                        : 'Acesso rápido'}
-                                </p>
-                                {results.length ? (
-                                    <div className="space-y-0.5">
-                                        {results.map((item, index) => (
-                                            <motion.div
-                                                key={`${item.href}-${item.label}`}
-                                                initial="rest"
-                                                animate="rest"
-                                                whileHover={
-                                                    reduceMotion ? undefined : 'hover'
-                                                }
+                                    <div className="global-search ui-control-frame m-3 flex h-11 items-center gap-3 px-3.5">
+                                        <Icon
+                                            name="search"
+                                            className="size-4 shrink-0 text-muted"
+                                        />
+                                        <input
+                                            ref={inputRef}
+                                            value={query}
+                                            onChange={(event) => {
+                                                setQuery(event.target.value);
+                                                setActiveIndex(0);
+                                            }}
+                                            onKeyDown={handleKeyDown}
+                                            placeholder="Buscar páginas, clientes, pedidos..."
+                                            autoComplete="off"
+                                            autoCorrect="off"
+                                            autoCapitalize="none"
+                                            spellCheck={false}
+                                            aria-label="Buscar no Astro"
+                                            role="combobox"
+                                            aria-autocomplete="list"
+                                            aria-expanded={open}
+                                            aria-controls="astro-search-results"
+                                            className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted"
+                                        />
+                                        {query && (
+                                            <Button
+                                                type="button"
+                                                aria-label="Limpar busca"
+                                                onClick={() => {
+                                                    setQuery('');
+                                                    inputRef.current?.focus();
+                                                }}
+                                                className="rounded-lg p-1 text-muted transition hover:bg-surface-muted hover:text-foreground"
                                             >
-                                                <Button
-                                                    type="button"
-                                                    role="option"
-                                                    aria-selected={index === activeIndex}
-                                                    onMouseEnter={() => setActiveIndex(index)}
-                                                    onClick={() => navigate(item.href)}
-                                                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${index === activeIndex ? 'bg-[#efecff] text-brand-strong' : 'text-foreground hover:bg-white/55'}`}
-                                                >
-                                                    <motion.span
-                                                        className={`grid size-8 place-items-center rounded-xl ${index === activeIndex ? 'bg-white/70 text-brand' : 'bg-white/45 text-muted'}`}
-                                                        variants={{
-                                                            rest: {
-                                                                y: 0,
-                                                                rotate: 0,
-                                                                scale: 1,
-                                                                transition: {
-                                                                    type: 'spring',
-                                                                    stiffness: 360,
-                                                                    damping: 24,
-                                                                },
-                                                            },
-                                                            hover: {
-                                                                y: -2.5,
-                                                                rotate: -8,
-                                                                scale: 1.09,
-                                                                transition: {
-                                                                    type: 'spring',
-                                                                    stiffness: 420,
-                                                                    damping: 20,
-                                                                },
-                                                            },
-                                                        }}
-                                                    >
-                                                        <Icon
-                                                            name={item.icon}
-                                                            className="size-3.5"
-                                                        />
-                                                    </motion.span>
-                                                    <span className="min-w-0 flex-1">
-                                                        <span className="block truncate text-[11px] font-semibold">
-                                                            {item.label}
-                                                        </span>
-                                                        <span className="mt-0.5 block truncate text-[9px] text-muted">
-                                                            {item.description
-                                                                ? `${item.group} · ${item.description}`
-                                                                : item.group}
-                                                        </span>
+                                                <Icon name="close" className="size-3" />
+                                            </Button>
+                                        )}
+                                        <kbd className="rounded-md border border-border px-1.5 py-0.5 font-sans text-[9px] font-semibold text-muted">
+                                            esc
+                                        </kbd>
+                                    </div>
+                                    <div className="flex min-h-0 flex-1 flex-col p-2">
+                                        <div className="min-h-0 flex-1 overflow-y-auto">
+                                            <p className="px-3 pb-2 pt-1 text-[9px] font-semibold uppercase tracking-[0.15em] text-muted">
+                                                {query
+                                                    ? searching
+                                                        ? 'Buscando em toda a operação…'
+                                                        : `${results.length} resultado${results.length === 1 ? '' : 's'}`
+                                                    : 'Acesso rápido'}
+                                            </p>
+                                            {results.length ? (
+                                                <div className="space-y-0.5">
+                                                    {results.map((item, index) => (
+                                                        <motion.div
+                                                            key={`${item.href}-${item.label}`}
+                                                            initial="rest"
+                                                            animate="rest"
+                                                            whileHover={
+                                                                reduceMotion ? undefined : 'hover'
+                                                            }
+                                                        >
+                                                            <Button
+                                                                type="button"
+                                                                role="option"
+                                                                aria-selected={
+                                                                    index === activeIndex
+                                                                }
+                                                                onMouseEnter={() =>
+                                                                    setActiveIndex(index)
+                                                                }
+                                                                onClick={() => navigate(item.href)}
+                                                                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${index === activeIndex ? 'bg-surface-muted text-foreground' : 'text-foreground hover:bg-surface-muted'}`}
+                                                            >
+                                                                <motion.span
+                                                                    className={`grid size-8 place-items-center rounded-xl ${index === activeIndex ? 'border border-border bg-surface text-foreground' : 'bg-surface-muted text-muted'}`}
+                                                                    variants={{
+                                                                        rest: {
+                                                                            y: 0,
+                                                                            rotate: 0,
+                                                                            scale: 1,
+                                                                            transition: {
+                                                                                type: 'spring',
+                                                                                stiffness: 360,
+                                                                                damping: 24,
+                                                                            },
+                                                                        },
+                                                                        hover: {
+                                                                            y: -1,
+                                                                            rotate: -3,
+                                                                            scale: 1.04,
+                                                                            transition: {
+                                                                                type: 'spring',
+                                                                                stiffness: 480,
+                                                                                damping: 34,
+                                                                            },
+                                                                        },
+                                                                    }}
+                                                                >
+                                                                    <Icon
+                                                                        name={item.icon}
+                                                                        className="size-3.5"
+                                                                    />
+                                                                </motion.span>
+                                                                <span className="min-w-0 flex-1">
+                                                                    <span className="block truncate text-[11px] font-semibold">
+                                                                        {item.label}
+                                                                    </span>
+                                                                    <span className="mt-0.5 block truncate text-[9px] text-muted">
+                                                                        {item.description
+                                                                            ? `${item.group} · ${item.description}`
+                                                                            : item.group}
+                                                                    </span>
+                                                                </span>
+                                                                {item.badge && (
+                                                                    <span className="coming-soon-badge rounded-full px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.06em]">
+                                                                        {item.badge}
+                                                                    </span>
+                                                                )}
+                                                                <Icon
+                                                                    name="arrow-right"
+                                                                    className="size-3.5 text-muted"
+                                                                />
+                                                            </Button>
+                                                        </motion.div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="px-4 py-7 text-center">
+                                                    <span className="mx-auto grid size-9 place-items-center rounded-full bg-brand-soft text-brand">
+                                                        <Icon name="search" className="size-4" />
                                                     </span>
-                                                    {item.badge && (
-                                                        <span className="coming-soon-badge rounded-full px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.06em]">
-                                                            {item.badge}
-                                                        </span>
-                                                    )}
-                                                    <Icon
-                                                        name="arrow-right"
-                                                        className="size-3.5 text-muted"
-                                                    />
-                                                </Button>
-                                            </motion.div>
-                                        ))}
+                                                    <p className="mt-3 text-xs font-semibold">
+                                                        {searching
+                                                            ? 'Buscando itens…'
+                                                            : 'Nenhum item encontrado'}
+                                                    </p>
+                                                    <p className="mt-1 text-[10px] text-muted">
+                                                        {searching
+                                                            ? 'Consultando clientes, vendas e catálogo.'
+                                                            : 'Tente buscar por outro nome, código, e-mail ou identificador.'}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="mt-2 flex items-center gap-3 border-t border-white/70 px-3 pt-2 text-[9px] text-muted">
+                                            <span>↑↓ navegar</span>
+                                            <span>↵ abrir</span>
+                                            <span>esc fechar</span>
+                                        </div>
                                     </div>
-                                ) : (
-                                    <div className="px-4 py-7 text-center">
-                                        <span className="mx-auto grid size-9 place-items-center rounded-full bg-brand-soft text-brand">
-                                            <Icon name="search" className="size-4" />
-                                        </span>
-                                        <p className="mt-3 text-xs font-semibold">
-                                            {searching
-                                                ? 'Buscando itens…'
-                                                : 'Nenhum item encontrado'}
-                                        </p>
-                                        <p className="mt-1 text-[10px] text-muted">
-                                            {searching
-                                                ? 'Consultando clientes, vendas e catálogo.'
-                                                : 'Tente buscar por outro nome, código, e-mail ou identificador.'}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="mt-2 flex items-center gap-3 border-t border-white/70 px-3 pt-2 text-[9px] text-muted">
-                                <span>↑↓ navegar</span>
-                                <span>↵ abrir</span>
-                                <span>esc fechar</span>
-                            </div>
                                 </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </>,
+                            </motion.div>
+                        )}
+                    </AnimatePresence>,
                     document.body,
                 )}
         </div>
     );
+}
+
+function subscribeNothing() {
+    return () => {};
 }
 
 function normalize(value: string) {

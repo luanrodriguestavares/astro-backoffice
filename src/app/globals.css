@@ -33,7 +33,7 @@ html.astro-tour-active *::-webkit-scrollbar {
     background: color-mix(in srgb, var(--surface) 96%, transparent);
     color: var(--foreground);
     padding: 18px;
-    box-shadow: 0 24px 70px rgb(28 25 55 / 24%);
+    box-shadow: 0 24px 70px rgb(17 17 17 / 24%);
     backdrop-filter: blur(24px) saturate(140%);
 }
 
@@ -93,8 +93,8 @@ html.astro-dark-portals .astro-tour-popover.driver-popover {
 
 .astro-tour-popover .driver-popover-next-btn {
     border-color: transparent;
-    background: linear-gradient(to right, var(--brand), var(--brand-strong));
-    color: white;
+    background: var(--brand);
+    color: var(--brand-contrast);
 }
 
 .astro-tour-popover .driver-popover-navigation-btns button + button {
@@ -129,25 +129,39 @@ html.astro-dark-portals .astro-tour-popover.driver-popover {
     border-left-color: transparent;
 }
 
-:root {
-    --background: #f8f8fc;
-    --foreground: #16172b;
+:root,
+.astro-light-scope {
+    /* Astro: base neutra e fria; lima apenas como sinal preciso. */
+    --background: #f5f6f7;
+    --foreground: #101214;
     --surface: #ffffff;
-    --surface-muted: #f1f1f7;
-    --border: #e8e8f1;
-    --muted: #74758a;
-    --brand: #6d5df4;
-    --brand-strong: #5544d7;
-    --brand-soft: #f0edff;
-    --success: #14855f;
+    --surface-muted: #f1f3f5;
+    --border: #e1e4e8;
+    --muted: #686b70;
+    --brand: #101214;
+    --brand-strong: #101214;
+    --brand-soft: #f0f2f4;
+    --brand-contrast: #ffffff;
+    --highlight: #c6f448;
+    --highlight-contrast: #101214;
+    --chart-primary: #c6f448;
+    --focus-ring: #60656d;
+    --button-glow: rgb(16 18 20 / 22%);
+    --success: #318a50;
     --warning: #b66a13;
     --danger: #c33b53;
     --glass-radius-lg: 28px;
     --glass-radius-sm: 22px;
     --glass-blur: 38px;
-    --glass-border: rgb(255 255 255 / 78%);
-    --glass-shadow: 0 24px 70px color-mix(in srgb, var(--brand) 7%, transparent);
-    --control-bg: rgb(255 255 255 / 70%);
+    --glass-border: #e2e5e9;
+    --glass-shadow: 0 1px 1px rgb(16 18 20 / 2%), 0 12px 34px rgb(16 18 20 / 4%);
+    --control-bg: #ffffff;
+}
+
+/* Telas de autenticação são sempre claras, mesmo com o painel no modo escuro. */
+.astro-light-scope {
+    color-scheme: light;
+    color: var(--foreground);
 }
 
 @theme inline {
@@ -160,12 +174,14 @@ html.astro-dark-portals .astro-tour-popover.driver-popover {
     --color-brand: var(--brand);
     --color-brand-strong: var(--brand-strong);
     --color-brand-soft: var(--brand-soft);
+    --color-brand-contrast: var(--brand-contrast);
+    --color-highlight: var(--highlight);
+    --color-highlight-contrast: var(--highlight-contrast);
     --color-success: var(--success);
     --color-warning: var(--warning);
     --color-danger: var(--danger);
     --font-sans: 'Geist', 'Inter', 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif;
-    --shadow-panel:
-        0 1px 1px rgb(31 31 38 / 2%), 0 18px 60px color-mix(in srgb, var(--brand) 6%, transparent);
+    --shadow-panel: 0 1px 1px rgb(16 18 20 / 2%), 0 18px 54px rgb(16 18 20 / 5%);
 }
 
 * {
@@ -186,26 +202,11 @@ body {
 .astro-shell {
     isolation: isolate;
     position: relative;
-    background:
-        radial-gradient(
-            circle at 72% -8%,
-            color-mix(in srgb, var(--brand) 11%, transparent),
-            transparent 30rem
-        ),
-        radial-gradient(
-            circle at 100% 42%,
-            color-mix(in srgb, var(--brand) 7%, transparent),
-            transparent 28rem
-        ),
-        radial-gradient(
-            circle at 30% 110%,
-            color-mix(in srgb, var(--brand) 6%, transparent),
-            transparent 32rem
-        ),
-        linear-gradient(135deg, #fbfbfe 0%, #f7f7fc 48%, #fafaff 100%);
+    background: var(--background);
 }
 
 .astro-ambient {
+    display: none;
     position: fixed;
     inset: 0;
     pointer-events: none;
@@ -215,40 +216,25 @@ body {
 
 .glass-panel {
     border: 1px solid var(--glass-border);
-    background: linear-gradient(145deg, rgb(255 255 255 / 96%), rgb(252 251 255 / 90%));
-    box-shadow:
-        inset 0 1px 0 rgb(255 255 255 / 88%),
-        var(--glass-shadow);
-    backdrop-filter: blur(var(--glass-blur)) saturate(135%) brightness(1.015);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(135%) brightness(1.015);
-    animation: glass-enter 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    background: var(--surface);
+    box-shadow: var(--glass-shadow);
+    animation: glass-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .glass-panel-soft {
-    border: 1px solid rgb(255 255 255 / 66%);
-    background: linear-gradient(145deg, rgb(255 255 255 / 58%), rgb(248 247 255 / 34%));
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 84%);
-    backdrop-filter: blur(30px) saturate(155%) brightness(1.02);
-    -webkit-backdrop-filter: blur(30px) saturate(155%) brightness(1.02);
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 82%, var(--surface-muted));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 70%);
 }
 
 .organization-card {
-    border: 1px solid color-mix(in srgb, var(--brand) 9%, transparent);
-    background: linear-gradient(145deg, rgb(255 255 255 / 66%), rgb(250 249 255 / 42%));
-    box-shadow:
-        inset 0 1px 0 rgb(255 255 255 / 92%),
-        0 12px 34px color-mix(in srgb, var(--brand) 9%, transparent),
-        0 2px 8px rgb(32 32 38 / 3%);
-    backdrop-filter: blur(24px) saturate(145%);
-    -webkit-backdrop-filter: blur(24px) saturate(145%);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: 0 1px 2px rgb(17 17 17 / 4%);
 }
 
 .organization-card:hover {
-    border-color: color-mix(in srgb, var(--brand) 14%, transparent);
-    box-shadow:
-        inset 0 1px 0 rgb(255 255 255 / 96%),
-        0 16px 42px color-mix(in srgb, var(--brand) 12%, transparent),
-        0 3px 10px rgb(32 32 38 / 4%);
+    border-color: color-mix(in srgb, var(--foreground) 16%, transparent);
 }
 
 .coming-soon-badge {
@@ -258,45 +244,28 @@ body {
 }
 
 .pro-glass-card {
-    border: 1px solid rgb(255 255 255 / 82%);
-    background: rgb(255 255 255 / 38%);
+    border: 1px solid var(--border);
+    background: var(--surface);
     box-shadow:
-        inset 0 1px 0 rgb(255 255 255 / 94%),
-        inset 0 -1px 0 color-mix(in srgb, var(--brand) 5%, transparent),
-        0 18px 48px color-mix(in srgb, var(--brand) 8%, transparent);
-    backdrop-filter: blur(26px) saturate(155%);
-    -webkit-backdrop-filter: blur(26px) saturate(155%);
+        inset 0 1px 0 rgb(255 255 255 / 82%),
+        0 12px 34px rgb(16 18 20 / 4%);
     transition:
-        border-color 420ms ease,
-        box-shadow 520ms ease,
-        transform 420ms cubic-bezier(0.22, 0.75, 0.25, 1);
+        border-color 200ms ease,
+        box-shadow 240ms ease,
+        transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .pro-glass-card::before {
     position: absolute;
-    inset: 8% -34% -28%;
+    inset: 0 0 auto;
+    height: 2px;
     pointer-events: none;
     content: '';
-    border-radius: 50%;
-    background:
-        radial-gradient(
-            ellipse at 50% 100%,
-            color-mix(in srgb, var(--brand) 32%, transparent) 0%,
-            color-mix(in srgb, var(--brand) 21%, transparent) 28%,
-            color-mix(in srgb, var(--brand) 11%, transparent) 51%,
-            transparent 72%
-        ),
-        radial-gradient(
-            ellipse at 20% 92%,
-            color-mix(in srgb, var(--brand) 9%, transparent) 0%,
-            transparent 56%
-        );
-    filter: blur(13px);
-    opacity: 0.95;
-    transform: translate3d(0, -1%, 0) scale(1.03);
-    transition:
-        opacity 520ms ease,
-        transform 720ms cubic-bezier(0.22, 0.75, 0.25, 1);
+    border-radius: inherit;
+    background: linear-gradient(90deg, transparent, var(--highlight), transparent);
+    opacity: 0;
+    transform: scaleX(0.72);
+    transition: opacity 180ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .pro-glass-card::after {
@@ -311,17 +280,16 @@ body {
 }
 
 .pro-glass-card:hover {
-    border-color: color-mix(in srgb, var(--brand) 16%, transparent);
+    border-color: color-mix(in srgb, var(--foreground) 18%, var(--border));
     box-shadow:
-        inset 0 1px 0 rgb(255 255 255 / 96%),
-        inset 0 -1px 0 color-mix(in srgb, var(--brand) 7%, transparent),
-        0 22px 58px color-mix(in srgb, var(--brand) 12%, transparent);
+        inset 0 1px 0 rgb(255 255 255 / 88%),
+        0 16px 42px rgb(16 18 20 / 6%);
     transform: translateY(-1px);
 }
 
 .pro-glass-card:hover::before {
     opacity: 1;
-    transform: translate3d(7%, -7%, 0) scale(1.14);
+    transform: scaleX(1);
 }
 
 .pro-glass-card:hover::after {
@@ -329,11 +297,11 @@ body {
 }
 
 .glass-popover {
-    border: 1px solid rgb(232 230 245);
-    background: #ffffff;
+    border: 1px solid var(--border);
+    background: var(--surface);
     box-shadow:
-        inset 0 1px 0 rgb(255 255 255),
-        0 28px 80px rgb(42 36 88 / 18%);
+        inset 0 1px 0 rgb(255 255 255 / 80%),
+        0 20px 54px rgb(16 18 20 / 12%);
 }
 
 .glass-interactive {
@@ -364,6 +332,71 @@ body {
     transform: translateX(35%);
 }
 
+/* Contrato único para campos e buscas do backoffice. */
+.ui-control,
+.ui-control-frame {
+    min-height: 2.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--control-bg);
+    color: var(--foreground);
+    font-size: 13px;
+    outline: none;
+    transition:
+        border-color 160ms ease,
+        background-color 160ms ease,
+        box-shadow 160ms ease;
+}
+
+.ui-control:hover,
+.ui-control-frame:hover {
+    border-color: color-mix(in srgb, var(--foreground) 18%, var(--border));
+}
+
+.ui-control:focus,
+.ui-control:focus-visible,
+.ui-control-frame:focus-within {
+    border-color: color-mix(in srgb, var(--focus-ring) 42%, var(--border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 14%, transparent);
+}
+
+.ui-control::placeholder,
+.ui-control-frame input::placeholder,
+.ui-control-frame textarea::placeholder {
+    color: color-mix(in srgb, var(--muted) 72%, transparent);
+}
+
+.ui-control-frame > input,
+.ui-control-frame > textarea {
+    min-width: 0;
+    flex: 1;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none;
+}
+
+textarea.ui-control {
+    height: auto;
+}
+
+:where(.astro-shell main, .modal-surface, .theme-modal, .astro-light-scope)
+    input:not([type='hidden']):not([type='file']):not([type='checkbox']):not([type='radio']):not(
+        [type='range']
+    ),
+:where(.astro-shell main, .modal-surface, .theme-modal, .astro-light-scope) select,
+:where(.astro-shell main, .modal-surface, .theme-modal, .astro-light-scope)
+    button.custom-select-trigger {
+    height: 2.75rem;
+    border-radius: 0.75rem;
+    font-size: 13px;
+}
+
+:where(.astro-shell main, .modal-surface, .theme-modal, .astro-light-scope) textarea {
+    border-radius: 0.75rem;
+    font-size: 13px;
+}
+
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
     margin: 0;
@@ -391,26 +424,32 @@ select option {
 input:not([type='hidden']):focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-    border-color: color-mix(in srgb, var(--brand) 72%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 16%, transparent);
+    border-color: color-mix(in srgb, var(--focus-ring) 42%, var(--border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 14%, transparent);
     outline: none;
 }
 
 button[aria-haspopup='listbox']:focus {
-    border-color: color-mix(in srgb, var(--brand) 72%, transparent);
-    background-color: #fff;
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 16%, transparent);
+    border-color: color-mix(in srgb, var(--focus-ring) 42%, var(--border));
+    background-color: var(--control-bg);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 14%, transparent);
+}
+
+.custom-select-trigger[data-open='true'] {
+    border-color: color-mix(in srgb, var(--focus-ring) 42%, var(--border)) !important;
+    background: var(--control-bg) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 14%, transparent) !important;
 }
 
 .filter-control input:focus-visible {
-    border-color: transparent;
-    box-shadow: none;
+    border-color: transparent !important;
+    box-shadow: none !important;
 }
 
 .global-search input:focus,
 .global-search input:focus-visible {
-    border-color: transparent;
-    box-shadow: none;
+    border-color: transparent !important;
+    box-shadow: none !important;
     outline: none;
 }
 
@@ -422,10 +461,10 @@ form.modal-surface > div:last-child > button:not([type='button']):not(.ui-button
     border-radius: 0.75rem;
     background: var(--brand);
     padding-inline: 1.5rem;
-    color: #fff;
+    color: var(--brand-contrast);
     font-size: 13px;
     font-weight: 600;
-    box-shadow: 0 12px 28px color-mix(in srgb, var(--brand) 22%, transparent);
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--button-glow) 38%, transparent);
     transition:
         background-color 180ms ease,
         transform 180ms ease,
@@ -434,7 +473,7 @@ form.modal-surface > div:last-child > button:not([type='button']):not(.ui-button
 
 form.modal-surface > div:last-child > button:not([type='button']):not(.ui-button):hover,
 .modal-surface form > div:last-child > button:not([type='button']):not(.ui-button):hover {
-    background: var(--brand-strong);
+    background: color-mix(in srgb, var(--brand) 86%, var(--brand-contrast));
     transform: translateY(-1px);
 }
 
@@ -463,7 +502,9 @@ form.modal-surface > div:last-child > button[type='button']:not([aria-label]):no
 }
 
 .modal-surface {
-    background: linear-gradient(145deg, rgb(255 255 255 / 99%), rgb(252 251 255 / 97%));
+    border-color: var(--border);
+    background: var(--surface);
+    box-shadow: 0 24px 72px rgb(16 18 20 / 13%) !important;
 }
 
 /* Legacy form dialogs use the same fixed-header/body/fixed-footer contract as Modal. */
@@ -480,7 +521,7 @@ form.modal-surface > div:last-child > button[type='button']:not([aria-label]):no
     position: sticky;
     z-index: 2;
     flex-shrink: 0;
-    background: linear-gradient(145deg, rgb(255 255 255 / 99%), rgb(252 251 255 / 97%));
+    background: linear-gradient(145deg, rgb(255 255 255 / 99%), rgb(252 252 252 / 97%));
 }
 
 .modal-form-layout > :first-child {
@@ -503,7 +544,7 @@ input[type='number'] {
 }
 
 .modal-surface {
-    background: linear-gradient(145deg, rgb(255 255 255 / 99%), rgb(252 251 255 / 97%));
+    background: var(--surface);
 }
 
 .astro-checkout-editor {
@@ -522,7 +563,7 @@ input[type='number'] {
     --puck-color-interactive-soft: var(--brand-soft);
     --puck-color-interactive-soft-hover: color-mix(in srgb, var(--brand-soft) 76%, var(--surface));
     --puck-color-interactive-neutral-hover: var(--surface-muted);
-    --puck-color-focus-ring: color-mix(in srgb, var(--brand) 58%, transparent);
+    --puck-color-focus-ring: color-mix(in srgb, var(--focus-ring) 58%, transparent);
     --puck-radius-m: 10px;
     --puck-radius-l: 14px;
     --puck-space-chrome-gutter: 14px;
@@ -980,7 +1021,8 @@ table tbody [class*='font-bold'] {
     --surface-muted: #202125;
     --border: #2b2c30;
     --muted: #99989d;
-    --brand-soft: #292733;
+    --brand-soft: #242529;
+    --focus-ring: #a3a7ad;
     --success: #57d3a6;
     --warning: #f1b96a;
     --danger: #ff7f96;
@@ -1004,7 +1046,8 @@ html.astro-dark-portals {
     --surface-muted: #202125;
     --border: #2b2c30;
     --muted: #99989d;
-    --brand-soft: #292733;
+    --brand-soft: #242529;
+    --focus-ring: #a3a7ad;
     --dark-control-bg: #1e1f22;
     --control-bg: var(--dark-control-bg);
     --success: #57d3a6;
@@ -1013,46 +1056,76 @@ html.astro-dark-portals {
     color-scheme: dark;
 }
 
+/* Tema Astro no modo escuro: o lima vira a cor de ação. */
+:is(html[data-astro-accent='astro'], html:not([data-astro-accent])):is(.dashboard-dark, .astro-dark-portals),
+:is(html[data-astro-accent='astro'], html:not([data-astro-accent])) .dashboard-dark {
+    --brand: #c6f448;
+    --brand-strong: #c6f448;
+    --brand-soft: #242529;
+    --brand-contrast: #101214;
+    --chart-primary: #c6f448;
+    --button-glow: rgb(198 244 72 / 18%);
+}
+
 html.astro-dark-portals body {
     background: #111214;
     color: var(--foreground);
 }
 
-/* User-selected accents. Each palette keeps separate values for emphasis and soft surfaces. */
+/* Temas alternativos (o tema Astro é o padrão em :root). Each palette keeps separate values for emphasis and soft surfaces. */
 html[data-astro-accent='blue'] {
     --brand: #286dcc;
     --brand-strong: #1f56a7;
     --brand-soft: #eaf2ff;
+    --brand-contrast: #ffffff;
+    --highlight: var(--brand);
+    --highlight-contrast: #ffffff;
+    --chart-primary: var(--brand);
+    --button-glow: var(--brand);
 }
 
 html[data-astro-accent='violet'] {
     --brand: #7651d1;
     --brand-strong: #5d38b0;
     --brand-soft: #f2edff;
-}
-
-html[data-astro-accent='yellow'] {
-    --brand: #d6a300;
-    --brand-strong: #9a7200;
-    --brand-soft: #fff7cf;
+    --brand-contrast: #ffffff;
+    --highlight: var(--brand);
+    --highlight-contrast: #ffffff;
+    --chart-primary: var(--brand);
+    --button-glow: var(--brand);
 }
 
 html[data-astro-accent='orange'] {
     --brand: #c4551c;
     --brand-strong: #9c3e10;
     --brand-soft: #ffede3;
+    --brand-contrast: #ffffff;
+    --highlight: var(--brand);
+    --highlight-contrast: #ffffff;
+    --chart-primary: var(--brand);
+    --button-glow: var(--brand);
 }
 
 html[data-astro-accent='green'] {
     --brand: #16815f;
     --brand-strong: #0f6549;
     --brand-soft: #e6f6ef;
+    --brand-contrast: #ffffff;
+    --highlight: var(--brand);
+    --highlight-contrast: #ffffff;
+    --chart-primary: var(--brand);
+    --button-glow: var(--brand);
 }
 
 html[data-astro-accent='rose'] {
     --brand: #bd416b;
     --brand-strong: #993150;
     --brand-soft: #ffebf2;
+    --brand-contrast: #ffffff;
+    --highlight: var(--brand);
+    --highlight-contrast: #ffffff;
+    --chart-primary: var(--brand);
+    --button-glow: var(--brand);
 }
 
 html[data-astro-accent='blue'].astro-dark-portals,
@@ -1063,11 +1136,6 @@ html[data-astro-accent='blue'] .dashboard-dark {
 html[data-astro-accent='violet'].astro-dark-portals,
 html[data-astro-accent='violet'] .dashboard-dark {
     --brand-soft: #2b2635;
-}
-
-html[data-astro-accent='yellow'].astro-dark-portals,
-html[data-astro-accent='yellow'] .dashboard-dark {
-    --brand-soft: #332e1b;
 }
 
 html[data-astro-accent='orange'].astro-dark-portals,
@@ -1090,13 +1158,12 @@ html[data-astro-accent='rose'] .dashboard-dark {
     height: 2.75rem;
     align-items: center;
     gap: 0.45rem;
-    border: 1px solid color-mix(in srgb, var(--brand) 10%, transparent);
+    border: 1px solid var(--border);
     border-radius: 1rem;
-    background: rgb(255 255 255 / 55%);
+    background: var(--surface);
     padding-inline: 0.65rem;
-    color: #77758d;
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 75%);
-    backdrop-filter: blur(24px);
+    color: var(--muted);
+    box-shadow: 0 1px 2px rgb(16 18 20 / 3%);
     transition:
         border-color 180ms ease,
         background-color 180ms ease,
@@ -1104,21 +1171,19 @@ html[data-astro-accent='rose'] .dashboard-dark {
 }
 
 .dashboard-theme-switch:hover {
-    border-color: color-mix(in srgb, var(--brand) 24%, transparent);
-    color: var(--brand-strong);
+    border-color: color-mix(in srgb, var(--foreground) 22%, var(--border));
+    color: var(--foreground);
 }
 
 .shell-header-control {
-    border: 1px solid color-mix(in srgb, var(--brand) 10%, transparent);
-    background: rgb(255 255 255 / 55%);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 75%);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: 0 1px 2px rgb(16 18 20 / 3%);
 }
 
 .shell-header-control:hover {
-    border-color: color-mix(in srgb, var(--brand) 24%, transparent);
-    background: rgb(255 255 255 / 68%);
+    border-color: color-mix(in srgb, var(--foreground) 22%, var(--border));
+    background: #ffffff;
 }
 
 .dashboard-theme-switch-track {
@@ -1127,8 +1192,8 @@ html[data-astro-accent='rose'] .dashboard-dark {
     width: 2.15rem;
     height: 1.2rem;
     border-radius: 999px;
-    background: #d9d7e7;
-    box-shadow: inset 0 1px 3px rgb(46 39 85 / 14%);
+    background: #d9d9d3;
+    box-shadow: inset 0 1px 2px rgb(16 18 20 / 10%);
     transition: background-color 180ms ease;
 }
 
@@ -1140,8 +1205,8 @@ html[data-astro-accent='rose'] .dashboard-dark {
     height: 0.85rem;
     border-radius: 999px;
     background: #ffffff;
-    box-shadow: 0 2px 6px rgb(34 31 62 / 24%);
-    transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: 0 1px 4px rgb(16 18 20 / 18%);
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dashboard-theme-switch-sun,
@@ -1168,77 +1233,111 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 }
 
 .astro-nav-item[data-active='true'] {
-    background: linear-gradient(
-        to right,
-        var(--brand-soft),
-        color-mix(in srgb, var(--brand-soft) 55%, var(--surface))
-    );
-    color: var(--brand-strong);
+    background: var(--surface);
+    color: var(--foreground);
+    font-weight: 600;
     box-shadow:
-        inset 0 0 0 1px color-mix(in srgb, var(--brand) 8%, transparent),
-        0 8px 24px color-mix(in srgb, var(--brand) 6%, transparent);
+        inset 0 0 0 1px var(--border),
+        0 3px 12px rgb(16 18 20 / 4%);
 }
 
 .astro-nav-item[data-active='true'] > svg {
-    color: var(--brand);
+    color: var(--foreground);
 }
 
 .astro-nav-active-dot {
-    box-shadow: 0 0 8px color-mix(in srgb, var(--brand) 65%, transparent);
+    background: var(--highlight) !important;
+    box-shadow: none;
 }
 
 .pro-card-icon {
-    box-shadow:
-        inset 0 1px 0 white,
-        0 8px 20px color-mix(in srgb, var(--brand) 12%, transparent);
+    box-shadow: inset 0 0 0 1px var(--border);
 }
 
 .pro-glass-card:hover .pro-card-icon {
-    box-shadow:
-        inset 0 1px 0 white,
-        0 10px 26px color-mix(in srgb, var(--brand) 20%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--foreground) 18%, var(--border));
 }
 
 .dashboard-primary-action {
-    box-shadow: 0 14px 30px color-mix(in srgb, var(--brand) 22%, transparent);
+    box-shadow: 0 5px 14px color-mix(in srgb, var(--button-glow) 42%, transparent);
 }
 
 .dashboard-primary-action:hover {
-    box-shadow: 0 18px 38px color-mix(in srgb, var(--brand) 30%, transparent);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--button-glow) 52%, transparent);
 }
 
 .ui-button[data-variant='primary'] {
     border-color: transparent !important;
-    background: linear-gradient(to right, var(--brand), var(--brand-strong)) !important;
-    color: #fff !important;
+    background: var(--brand) !important;
+    color: var(--brand-contrast) !important;
 }
 
 .ui-button[data-variant='primary']:hover {
-    background: linear-gradient(
-        to right,
-        var(--brand-strong),
-        color-mix(in srgb, var(--brand-strong) 86%, var(--brand))
-    ) !important;
+    background: color-mix(in srgb, var(--brand) 86%, var(--brand-contrast)) !important;
+    transform: translate3d(0, -1px, 0);
+}
+
+.ui-button[data-variant='primary']:active {
+    transform: translate3d(0, 0, 0) scale(0.99);
+    transition-duration: 100ms;
 }
 
 .dashboard-stat-card:hover {
+    border-color: color-mix(in srgb, var(--foreground) 14%, var(--border));
     box-shadow:
-        inset 0 1px 0 rgb(255 255 255 / 90%),
-        0 24px 70px color-mix(in srgb, var(--brand) 10%, transparent);
+        inset 0 1px 0 rgb(255 255 255 / 78%),
+        0 16px 42px rgb(16 18 20 / 6%);
+    transform: translate3d(0, -1px, 0) !important;
 }
 
 .dashboard-period-option[aria-pressed='true'] {
-    background: var(--brand-soft);
-    color: var(--brand-strong);
-    box-shadow: 0 5px 16px color-mix(in srgb, var(--brand) 12%, transparent);
+    background: var(--surface);
+    color: var(--foreground);
+    box-shadow: inset 0 -2px 0 var(--highlight), 0 2px 8px rgb(16 18 20 / 4%);
 }
 
+.ui-tabs {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    border: 1px solid rgb(255 255 255 / 75%);
+    border-radius: 0.75rem;
+    background: rgb(255 255 255 / 32%);
+    padding: 0.25rem;
+    scrollbar-width: none;
+}
+
+.ui-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.ui-tab {
+    flex-shrink: 0;
+    border-radius: 0.5rem;
+    color: var(--muted);
+    transition:
+        color 160ms ease,
+        background-color 160ms ease,
+        box-shadow 160ms ease;
+}
+
+.ui-tab:hover {
+    color: var(--foreground);
+}
+
+.ui-tab:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--focus-ring) 54%, transparent);
+    outline-offset: -1px;
+}
+
+.ui-tab[data-active='true'],
 .product-filter-tabs button[data-active='true'] {
-    background: var(--brand-soft);
-    color: var(--brand-strong);
+    background: var(--surface);
+    color: var(--foreground);
     box-shadow:
-        inset 0 0 0 1px color-mix(in srgb, var(--brand) 8%, transparent),
-        0 4px 12px color-mix(in srgb, var(--brand) 8%, transparent);
+        inset 0 -2px 0 var(--highlight),
+        inset 0 0 0 1px var(--border),
+        0 3px 10px rgb(16 18 20 / 4%);
 }
 
 .product-modal {
@@ -1381,6 +1480,35 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
     color: #77767c !important;
 }
 
+@media (min-width: 1024px) {
+    .astro-nav-group[data-collapsed='true'] + .astro-nav-group[data-collapsed='true'] {
+        margin-top: 0.5rem;
+        border-top: 1px solid var(--border);
+        padding-top: 0.5rem;
+    }
+}
+
+.dashboard-dark .shell-nav-group {
+    color: #9a999e;
+}
+
+.dashboard-dark .shell-nav-group:hover {
+    background: rgb(255 255 255 / 4.5%);
+    color: #e6e5ef;
+}
+
+.dashboard-dark .shell-nav-group-icon {
+    color: #77767c;
+}
+
+.dashboard-dark .shell-nav-group:hover .shell-nav-group-icon {
+    color: #e6e5ef;
+}
+
+.dashboard-dark .shell-nav-group-items {
+    border-color: rgb(255 255 255 / 7%);
+}
+
 .dashboard-dark .astro-nav-item {
     color: #9a999e !important;
 }
@@ -1395,11 +1523,11 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 }
 
 .dashboard-dark .astro-nav-item[data-active='true'] {
-    background: color-mix(in srgb, var(--brand) 11%, transparent) !important;
-    color: var(--brand-strong) !important;
+    background: var(--surface) !important;
+    color: var(--foreground) !important;
     box-shadow:
-        inset 0 0 0 1px color-mix(in srgb, var(--brand) 15%, transparent),
-        0 7px 18px color-mix(in srgb, var(--brand) 6%, transparent) !important;
+        inset 0 0 0 1px rgb(255 255 255 / 8%),
+        0 7px 18px rgb(0 0 0 / 12%) !important;
 }
 
 .dashboard-dark .astro-nav-item[data-active='true'] > svg {
@@ -1429,10 +1557,11 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%) !important;
 }
 
-.dashboard-dark .shell-avatar {
-    border-color: rgb(255 255 255 / 10%) !important;
-    background: linear-gradient(145deg, #302f35, #1c1d20) !important;
-    color: #c6c1df !important;
+.astro-title-highlight {
+    border-radius: 0.12em;
+    background: var(--highlight);
+    padding-inline: 0.08em;
+    color: var(--highlight-contrast);
 }
 
 .dashboard-dark .shell-profile:hover,
@@ -1491,9 +1620,9 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
     color: #f2f1ee;
 }
 
-.dashboard-dark main h1,
-.dashboard-dark main h2,
-.dashboard-dark main h3 {
+.dashboard-dark main:not(.astro-light-scope) h1,
+.dashboard-dark main:not(.astro-light-scope) h2,
+.dashboard-dark main:not(.astro-light-scope) h3 {
     color: #f2f1ee;
 }
 
@@ -1528,11 +1657,13 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
     background: rgb(255 255 255 / 5%) !important;
 }
 
+.dashboard-dark .ui-tabs,
 .dashboard-dark .product-filter-tabs {
     border-color: rgb(255 255 255 / 7%) !important;
     background: rgb(0 0 0 / 12%) !important;
 }
 
+.dashboard-dark .ui-tab[data-active='true'],
 .dashboard-dark .product-filter-tabs button[data-active='true'] {
     background: color-mix(in srgb, var(--brand) 12%, transparent) !important;
     color: var(--brand-strong) !important;
@@ -1688,59 +1819,59 @@ html.astro-dark-portals .checkout-hero-layout-option[data-selected='true'] {
     color: var(--foreground);
 }
 
-.dashboard-dark main input:not([type='hidden']):not([type='file']),
-.dashboard-dark main textarea,
-.dashboard-dark main select,
-.dashboard-dark main .custom-select-trigger {
+.dashboard-dark main:not(.astro-light-scope) input:not([type='hidden']):not([type='file']),
+.dashboard-dark main:not(.astro-light-scope) textarea,
+.dashboard-dark main:not(.astro-light-scope) select,
+.dashboard-dark main:not(.astro-light-scope) .custom-select-trigger {
     border-color: rgb(255 255 255 / 9%) !important;
     background-color: var(--dark-control-bg) !important;
     color: var(--foreground);
 }
 
-.dashboard-dark main input:not([type='hidden']):not([type='file']):focus,
-.dashboard-dark main textarea:focus,
-.dashboard-dark main select:focus,
-.dashboard-dark main .custom-select-trigger[aria-expanded='true'] {
+.dashboard-dark main:not(.astro-light-scope) input:not([type='hidden']):not([type='file']):focus,
+.dashboard-dark main:not(.astro-light-scope) textarea:focus,
+.dashboard-dark main:not(.astro-light-scope) select:focus,
+.dashboard-dark main:not(.astro-light-scope) .custom-select-trigger[aria-expanded='true'] {
     border-color: color-mix(in srgb, var(--brand) 44%, transparent) !important;
     background-color: #222326 !important;
 }
 
-.dashboard-dark main input::placeholder,
-.dashboard-dark main textarea::placeholder {
+.dashboard-dark main:not(.astro-light-scope) input::placeholder,
+.dashboard-dark main:not(.astro-light-scope) textarea::placeholder {
     color: #747379 !important;
 }
 
-.dashboard-dark main .glass-panel [class*='border-white/'],
-.dashboard-dark main > [class*='border-white/'] {
+.dashboard-dark main:not(.astro-light-scope) .glass-panel [class*='border-white/'],
+.dashboard-dark main:not(.astro-light-scope) > [class*='border-white/'] {
     border-color: rgb(255 255 255 / 7%) !important;
 }
 
-.dashboard-dark main .glass-panel [class*='bg-white/']:not([class*='hover:bg-white/']) {
+.dashboard-dark main:not(.astro-light-scope) .glass-panel [class*='bg-white/']:not([class*='hover:bg-white/']) {
     background-color: rgb(255 255 255 / 4%) !important;
 }
 
-.dashboard-dark main table thead {
+.dashboard-dark main:not(.astro-light-scope) table thead {
     background: transparent !important;
 }
 
-.dashboard-dark main table tbody {
+.dashboard-dark main:not(.astro-light-scope) table tbody {
     border-color: transparent !important;
 }
 
-.dashboard-dark main table tbody tr {
+.dashboard-dark main:not(.astro-light-scope) table tbody tr {
     border-color: transparent;
 }
 
-.dashboard-dark main table tbody tr:hover {
+.dashboard-dark main:not(.astro-light-scope) table tbody tr:hover {
     background: transparent !important;
 }
 
-.dashboard-dark main table {
+.dashboard-dark main:not(.astro-light-scope) table {
     border-collapse: separate;
     border-spacing: 0 5px;
 }
 
-.dashboard-dark main table tbody td {
+.dashboard-dark main:not(.astro-light-scope) table tbody td {
     border-block: 1px solid rgb(255 255 255 / 4%);
     background: rgb(255 255 255 / 2.2%);
     transition:
@@ -1748,43 +1879,43 @@ html.astro-dark-portals .checkout-hero-layout-option[data-selected='true'] {
         background-color 180ms ease;
 }
 
-.dashboard-dark main table tbody td:first-child {
+.dashboard-dark main:not(.astro-light-scope) table tbody td:first-child {
     border-left: 1px solid rgb(255 255 255 / 4%);
     border-radius: 12px 0 0 12px;
 }
 
-.dashboard-dark main table tbody td:last-child {
+.dashboard-dark main:not(.astro-light-scope) table tbody td:last-child {
     border-right: 1px solid rgb(255 255 255 / 4%);
     border-radius: 0 12px 12px 0;
 }
 
-.dashboard-dark main table tbody tr:hover td {
+.dashboard-dark main:not(.astro-light-scope) table tbody tr:hover td {
     border-color: rgb(255 255 255 / 7%);
     background: rgb(255 255 255 / 4%);
 }
 
-.dashboard-dark main [class*='divide-white/'] > :not(:last-child) {
+.dashboard-dark main:not(.astro-light-scope) [class*='divide-white/'] > :not(:last-child) {
     border-color: rgb(255 255 255 / 6%) !important;
 }
 
-.dashboard-dark main [class*='text-success'][class*='bg-[#'] {
+.dashboard-dark main:not(.astro-light-scope) [class*='text-success'][class*='bg-[#'] {
     background: rgb(52 194 143 / 11%) !important;
 }
 
-.dashboard-dark main [class*='text-warning'][class*='bg-[#'] {
+.dashboard-dark main:not(.astro-light-scope) [class*='text-warning'][class*='bg-[#'] {
     background: rgb(220 154 62 / 11%) !important;
 }
 
-.dashboard-dark main [class*='text-danger'][class*='bg-[#'] {
+.dashboard-dark main:not(.astro-light-scope) [class*='text-danger'][class*='bg-[#'] {
     background: rgb(210 62 88 / 11%) !important;
 }
 
-.dashboard-dark main .gateway-hover-card {
+.dashboard-dark main:not(.astro-light-scope) .gateway-hover-card {
     border-color: rgb(255 255 255 / 7%) !important;
     background: rgb(255 255 255 / 3%) !important;
 }
 
-.dashboard-dark main .gateway-hover-card:hover {
+.dashboard-dark main:not(.astro-light-scope) .gateway-hover-card:hover {
     border-color: rgb(255 255 255 / 11%) !important;
     background: rgb(255 255 255 / 4%) !important;
     box-shadow: 0 14px 36px rgb(0 0 0 / 14%) !important;
@@ -1866,9 +1997,9 @@ html.astro-dark-portals .checkout-hero-layout-option[data-selected='true'] {
 }
 
 .dashboard-dark .dashboard-period-option[aria-pressed='true'] {
-    background: color-mix(in srgb, var(--brand) 12%, transparent) !important;
-    color: var(--brand-strong) !important;
-    box-shadow: 0 5px 14px color-mix(in srgb, var(--brand) 8%, transparent) !important;
+    background: var(--surface) !important;
+    color: var(--foreground) !important;
+    box-shadow: inset 0 -2px 0 var(--highlight), 0 4px 12px rgb(0 0 0 / 12%) !important;
 }
 
 .dashboard-dark .dashboard-chart-empty,
@@ -1876,6 +2007,14 @@ html.astro-dark-portals .checkout-hero-layout-option[data-selected='true'] {
     border-color: rgb(255 255 255 / 8%) !important;
     background: rgb(29 30 33 / 98%) !important;
     box-shadow: 0 18px 48px rgb(0 0 0 / 28%) !important;
+}
+
+.dashboard-chart-tooltip {
+    border-color: var(--border) !important;
+    background: var(--surface) !important;
+    box-shadow: 0 16px 42px rgb(16 18 20 / 11%) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 
 .dashboard-dark .dashboard-gateway-row:hover,
@@ -1927,8 +2066,8 @@ html.astro-dark-portals .checkout-hero-layout-option[data-selected='true'] {
 
 .dashboard-search-popover [role='option']:hover,
 .dashboard-search-popover [role='option'][aria-selected='true'] {
-    background: color-mix(in srgb, var(--brand) 10%, transparent) !important;
-    color: var(--brand-strong) !important;
+    background: rgb(255 255 255 / 6%) !important;
+    color: var(--foreground) !important;
 }
 
 .dashboard-search-popover [role='option'] > span:first-child {
@@ -2094,7 +2233,7 @@ html.astro-dark-portals .checkout-hero-layout-option[data-selected='true'] {
     .checkout-template-option[data-selected='true']
     > span:first-child {
     background: var(--brand) !important;
-    color: #ffffff !important;
+    color: var(--brand-contrast) !important;
 }
 
 .astro-dark-portals .theme-modal .checkout-template-option:not(:disabled):hover {
@@ -2137,7 +2276,34 @@ html.astro-dark-portals .checkout-hero-layout-option[data-selected='true'] {
 .theme-modal textarea,
 .theme-modal select,
 .theme-modal button.custom-select-trigger {
+    border-color: var(--border) !important;
     background-color: var(--control-bg) !important;
+    color: var(--foreground);
+    transition:
+        border-color 160ms ease,
+        background-color 160ms ease,
+        box-shadow 160ms ease;
+}
+
+.astro-shell main input:not([type='hidden']):not([type='file']):not([type='checkbox']):not(
+        [type='radio']
+    ):hover,
+.astro-shell main textarea:hover,
+.astro-shell main select:hover,
+.astro-shell main .custom-select-trigger:hover,
+.modal-surface input:not([type='hidden']):not([type='file']):not([type='checkbox']):not(
+        [type='radio']
+    ):hover,
+.modal-surface textarea:hover,
+.modal-surface select:hover,
+.modal-surface button.custom-select-trigger:hover,
+.theme-modal input:not([type='hidden']):not([type='file']):not([type='checkbox']):not(
+        [type='radio']
+    ):hover,
+.theme-modal textarea:hover,
+.theme-modal select:hover,
+.theme-modal button.custom-select-trigger:hover {
+    border-color: color-mix(in srgb, var(--foreground) 18%, var(--border)) !important;
 }
 
 .astro-shell
@@ -2156,7 +2322,9 @@ html.astro-dark-portals .checkout-hero-layout-option[data-selected='true'] {
 .theme-modal textarea:focus,
 .theme-modal select:focus,
 .theme-modal button.custom-select-trigger[aria-expanded='true'] {
+    border-color: color-mix(in srgb, var(--focus-ring) 42%, var(--border)) !important;
     background-color: var(--control-bg) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 14%, transparent) !important;
 }
 
 .product-image-field,
@@ -2177,12 +2345,22 @@ html.astro-dark-portals .checkout-hero-layout-option[data-selected='true'] {
     background-color: var(--control-bg) !important;
 }
 
+.astro-shell .filter-control input,
+.astro-shell .filter-control input:hover,
+.astro-shell .filter-control input:focus,
+.astro-shell .global-search input,
+.astro-shell .global-search input:hover,
+.astro-shell .global-search input:focus {
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
 .astro-shell .global-search.shell-header-control {
-    background-color: rgb(255 255 255 / 55%) !important;
+    background-color: var(--surface) !important;
 }
 
 .astro-shell .global-search.shell-header-control:hover {
-    background-color: rgb(255 255 255 / 68%) !important;
+    background-color: #ffffff !important;
 }
 
 .dashboard-dark .global-search.shell-header-control {
@@ -2202,10 +2380,46 @@ html.astro-dark-portals .checkout-hero-layout-option[data-selected='true'] {
     box-shadow: none !important;
 }
 
-.dashboard-dark ::selection,
-.dashboard-search-popover ::selection {
-    background: color-mix(in srgb, var(--brand) 52%, var(--surface));
-    color: #ffffff;
+/*
+ * O Chromium pinta o autofill numa camada interna azul. Estas regras ficam após
+ * os estados de foco para preservar simultaneamente o fundo do campo e o anel
+ * neutro, inclusive em modais renderizados por portal.
+ */
+input:autofill,
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:active {
+    background-color: var(--control-bg) !important;
+    background-image: none !important;
+    -webkit-text-fill-color: var(--foreground) !important;
+    caret-color: var(--foreground) !important;
+    box-shadow: 0 0 0 1000px var(--control-bg) inset !important;
+    -webkit-box-shadow: 0 0 0 1000px var(--control-bg) inset !important;
+    transition: background-color 9999s ease-out 0s;
+}
+
+:is(.astro-shell main, .modal-surface, .theme-modal, .astro-light-scope)
+    input:not([type='hidden']):not([type='file']):not([type='checkbox']):not(
+        [type='radio']
+    ):autofill:focus,
+:is(.astro-shell main, .modal-surface, .theme-modal, .astro-light-scope)
+    input:not([type='hidden']):not([type='file']):not([type='checkbox']):not(
+        [type='radio']
+    ):-webkit-autofill:focus,
+:is(.astro-shell main, .modal-surface, .theme-modal, .astro-light-scope)
+    input:not([type='hidden']):not([type='file']):not([type='checkbox']):not(
+        [type='radio']
+    ):-webkit-autofill:focus-visible {
+    background-color: var(--control-bg) !important;
+    background-image: none !important;
+    -webkit-text-fill-color: var(--foreground) !important;
+    caret-color: var(--foreground) !important;
+    box-shadow:
+        0 0 0 1000px var(--control-bg) inset,
+        0 0 0 3px color-mix(in srgb, var(--focus-ring) 14%, transparent) !important;
+    -webkit-box-shadow:
+        0 0 0 1000px var(--control-bg) inset,
+        0 0 0 3px color-mix(in srgb, var(--focus-ring) 14%, transparent) !important;
 }
 
 .checkout-thumbnail {
@@ -2386,7 +2600,7 @@ html.astro-dark-portals .checkout-hero-layout-option[data-selected='true'] {
 button,
 a,
 input {
-    outline-color: var(--brand);
+    outline-color: var(--focus-ring);
 }
 
 button,
@@ -2397,13 +2611,41 @@ a {
 
 .ui-button {
     transition-property: color, background-color, border-color, box-shadow, opacity, transform;
-    transition-duration: 180ms;
-    transition-timing-function: ease;
+    transition-duration: 220ms;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ui-button[data-variant='secondary'],
+.ui-button[data-variant='icon'] {
+    border-color: var(--border);
+    background: var(--control-bg);
+}
+
+.ui-button[data-variant='secondary']:hover,
+.ui-button[data-variant='icon']:hover {
+    border-color: color-mix(in srgb, var(--foreground) 20%, var(--border));
+    background: var(--surface-muted);
+    color: var(--foreground);
+}
+
+.ui-button[data-variant='ghost']:hover {
+    background: var(--surface-muted);
+    color: var(--foreground);
 }
 
 .ui-button:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--brand) 72%, transparent);
+    outline: 2px solid color-mix(in srgb, var(--focus-ring) 64%, transparent);
     outline-offset: 2px;
+}
+
+.media-file-card:focus-within {
+    border-color: color-mix(in srgb, var(--focus-ring) 42%, var(--border)) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 14%, transparent) !important;
+}
+
+.media-file-card-preview:focus,
+.media-file-card-preview:focus-visible {
+    outline: none;
 }
 
 .ui-button:disabled {
@@ -2412,12 +2654,18 @@ a {
 }
 
 ::selection {
-    background: color-mix(in srgb, var(--brand) 28%, var(--surface));
+    background: color-mix(in srgb, var(--focus-ring) 22%, transparent);
+    color: var(--foreground);
+}
+
+.dashboard-dark ::selection,
+html.astro-dark-portals ::selection {
+    background: rgb(255 255 255 / 16%);
     color: var(--foreground);
 }
 
 * {
-    scrollbar-color: rgb(155 155 170 / 55%) transparent;
+    scrollbar-color: rgb(130 131 126 / 45%) transparent;
     scrollbar-width: thin;
 }
 
@@ -2432,11 +2680,11 @@ a {
 
 *::-webkit-scrollbar-thumb {
     border-radius: 999px;
-    background-color: rgb(155 155 170 / 55%);
+    background-color: rgb(130 131 126 / 45%);
 }
 
 *::-webkit-scrollbar-thumb:hover {
-    background-color: rgb(112 112 128 / 72%);
+    background-color: rgb(95 96 92 / 62%);
 }
 
 *::-webkit-scrollbar-corner {
@@ -2445,7 +2693,15 @@ a {
 
 .gateway-hover-card {
     animation: none;
-    transition: box-shadow 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: border-color 200ms ease, background-color 200ms ease, box-shadow 240ms ease,
+        transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gateway-hover-card:hover,
+.checkout-list-card:hover {
+    border-color: color-mix(in srgb, var(--foreground) 15%, var(--border)) !important;
+    box-shadow: 0 14px 36px rgb(16 18 20 / 6%) !important;
+    transform: translate3d(0, -1px, 0);
 }
 
 .gateway-action-menu {
@@ -2472,5 +2728,36 @@ a {
         transition-duration: 0.01ms !important;
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
+    }
+}
+
+/* Desktop: o conteúdo é um painel arredondado apoiado sobre a sidebar. */
+@media (min-width: 1024px) {
+    .astro-shell {
+        background: #fbfbfb;
+    }
+
+    .astro-shell.dashboard-dark {
+        background: #151619;
+    }
+
+    .astro-shell .astro-sidebar {
+        background: transparent !important;
+        border-color: transparent !important;
+        box-shadow: none !important;
+    }
+
+    .astro-shell-panel .astro-ambient {
+        position: absolute;
+    }
+
+    .astro-shell-panel {
+        background: var(--background);
+        box-shadow: inset 1px 0 0 rgb(17 17 17 / 6%);
+    }
+
+    .dashboard-dark .astro-shell-panel {
+        background: linear-gradient(145deg, #111214 0%, #131416 52%, #111214 100%);
+        box-shadow: inset 1px 0 0 rgb(255 255 255 / 6%);
     }
 }

@@ -21,17 +21,17 @@ export default async function LoginPage({
         message ??
         (expired === '1' ? 'Sua sessão expirou. Entre novamente para continuar.' : undefined);
     return (
-        <div className="relative grid min-h-screen place-items-center overflow-hidden bg-[#f7f7fb] px-4 py-10">
+        <div className="relative grid min-h-screen place-items-center overflow-hidden bg-background px-4 py-10">
             <AuthToast message={feedback} tone={error ? 'error' : 'info'} />
             <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_5%,rgba(109,93,244,.12),transparent_28rem),radial-gradient(circle_at_90%_92%,rgba(150,136,240,.1),transparent_30rem)]"
+                className="pointer-events-none absolute inset-0"
             />
             <section className="relative w-full max-w-[430px]">
                 <div className="mb-6 flex justify-center">
                     <Brand href="/login" />
                 </div>
-                <div className="rounded-[30px] border border-white/80 bg-white/86 p-7 shadow-[0_30px_90px_rgba(56,49,105,.11)] backdrop-blur-3xl sm:p-9">
+                <div className="rounded-[30px] border border-border bg-surface p-7 shadow-[0_24px_72px_rgb(16_18_20_/_8%)] sm:p-9">
                     <div className="flex items-center gap-3">
                         <span className="grid size-10 place-items-center rounded-2xl bg-brand-soft text-brand-strong">
                             <Icon name="user" className="size-[18px]" />
@@ -45,7 +45,7 @@ export default async function LoginPage({
                             </p>
                         </div>
                     </div>
-                    <h1 className="mt-7 text-[28px] font-semibold tracking-[-.05em] text-[#17182f]">
+                    <h1 className="mt-7 text-[28px] font-semibold tracking-[-.05em] text-[#111111]">
                         Bem-vindo de volta
                     </h1>
                     <p className="text-[12px] leading-5 text-muted">
@@ -77,7 +77,7 @@ export default async function LoginPage({
                                 <input
                                     type="checkbox"
                                     name="remember"
-                                    className="size-4 rounded border-[#d9d7e8] accent-brand"
+                                    className="size-4 rounded border-[#e2e2e2] accent-brand"
                                 />
                                 Manter conectado
                             </label>
@@ -93,7 +93,7 @@ export default async function LoginPage({
                             <Icon name="arrow-right" className="size-4" />
                         </Button>
                     </form>
-                    <p className="mt-6 border-t border-[#ecebf3] pt-5 text-center text-[11px] text-muted">
+                    <p className="mt-6 border-t border-[#ebebeb] pt-5 text-center text-[11px] text-muted">
                         Ainda não usa o Astro?{' '}
                         <Link
                             href={`/register${inviteQuery}`}
@@ -109,11 +109,11 @@ export default async function LoginPage({
 }
 
 const inputClass =
-    'h-11 w-full rounded-xl border border-[#d9d7e8] bg-white/75 px-3.5 text-[13px] font-normal text-[#17182f] outline-none transition placeholder:text-[#aaaabd] focus:border-brand/70 focus:bg-white focus:shadow-[0_0_0_3px_rgba(109,93,244,.14)]';
+    'h-11 w-full rounded-xl border border-[#e2e2e2] bg-white/75 px-3.5 text-[13px] font-normal text-[#111111] outline-none transition placeholder:text-[#a9a9a9] focus:border-brand/70 focus:bg-white focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
-        <label className="block text-[12px] font-semibold text-[#24253c]">
+        <label className="block text-[12px] font-semibold text-[#1a1a1a]">
             {label}
             <span className="mt-2 block">{children}</span>
         </label>

@@ -1,8 +1,12 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-
 import { useMemo, useRef, useState } from 'react';
+
+import {
+    dashboardPeriodLabel,
+    useDashboardPeriod,
+    type DashboardPeriod,
+} from '@/components/dashboard/dashboard-period';
 import {
     Area,
     AreaChart,
@@ -21,9 +25,7 @@ import {
 
 type RevenuePoint = { date: string; label: string; value: number };
 
-type Period = '24H' | '7D' | '30D' | '90D' | '12M';
-
-const periods: Period[] = ['24H', '7D', '30D', '90D', '12M'];
+type Period = DashboardPeriod;
 
 export function RevenueAreaChart({
     points,
@@ -34,8 +36,13 @@ export function RevenueAreaChart({
     hourlyPoints: RevenuePoint[];
     currency: string;
 }) {
-    const [period, setPeriod] = useState<Period>('30D');
+    const { period } = useDashboardPeriod();
     const [selection, setSelection] = useState<{ start: number; end: number } | null>(null);
+    const [selectionPeriod, setSelectionPeriod] = useState(period);
+    if (selectionPeriod !== period) {
+        setSelectionPeriod(period);
+        setSelection(null);
+    }
     const selectionAnchor = useRef<number | null>(null);
     const dragging = useRef(false);
     const data = useMemo(
@@ -69,25 +76,6 @@ export function RevenueAreaChart({
 
     return (
         <div className="mt-5">
-            <div className="mb-4 flex justify-end">
-                <div className="dashboard-period-picker inline-flex rounded-xl border border-white/75 bg-white/38 p-1 shadow-[inset_0_1px_0_white] backdrop-blur-xl">
-                    {periods.map((option) => (
-                        <Button
-                            key={option}
-                            type="button"
-                            aria-pressed={period === option}
-                            onClick={() => {
-                                setPeriod(option);
-                                setSelection(null);
-                                finishSelection();
-                            }}
-                            className="dashboard-period-option rounded-lg px-3 py-1.5 text-[12px] font-semibold text-muted transition-all hover:text-foreground"
-                        >
-                            {option}
-                        </Button>
-                    ))}
-                </div>
-            </div>
             <div className="dashboard-chart relative h-[260px] w-full select-none sm:h-[290px]">
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
@@ -101,14 +89,14 @@ export function RevenueAreaChart({
                     >
                         <defs>
                             <linearGradient id="revenueArea" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.24} />
-                                <stop offset="72%" stopColor="var(--brand)" stopOpacity={0.06} />
+                                <stop offset="0%" stopColor="var(--chart-primary)" stopOpacity={0.24} />
+                                <stop offset="72%" stopColor="var(--chart-primary)" stopOpacity={0.06} />
                                 <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
                             </linearGradient>
                         </defs>
                         <CartesianGrid
                             vertical={false}
-                            stroke="var(--dashboard-chart-grid, #8f8aa8)"
+                            stroke="var(--dashboard-chart-grid, #8f8f8f)"
                             strokeOpacity={0.1}
                         />
                         <XAxis
@@ -116,19 +104,19 @@ export function RevenueAreaChart({
                             axisLine={false}
                             tickLine={false}
                             minTickGap={28}
-                            tick={{ fill: 'var(--dashboard-chart-muted, #89899b)', fontSize: 10 }}
+                            tick={{ fill: 'var(--dashboard-chart-muted, #8a8a8a)', fontSize: 10 }}
                             dy={10}
                         />
                         <YAxis
                             axisLine={false}
                             tickLine={false}
                             width={58}
-                            tick={{ fill: 'var(--dashboard-chart-muted, #89899b)', fontSize: 10 }}
+                            tick={{ fill: 'var(--dashboard-chart-muted, #8a8a8a)', fontSize: 10 }}
                             tickFormatter={(value: number) => compactMoney(value, currency)}
                         />
                         <Tooltip
                             cursor={{
-                                stroke: 'var(--brand)',
+                                stroke: 'var(--chart-primary)',
                                 strokeOpacity: 0.2,
                                 strokeDasharray: '3 4',
                             }}
@@ -145,9 +133,9 @@ export function RevenueAreaChart({
                             <ReferenceArea
                                 x1={data[selectedRange.start]?.label}
                                 x2={data[selectedRange.end]?.label}
-                                fill="var(--brand)"
+                                fill="var(--chart-primary)"
                                 fillOpacity={0.1}
-                                stroke="var(--brand)"
+                                stroke="var(--chart-primary)"
                                 strokeOpacity={0.28}
                                 ifOverflow="extendDomain"
                             />
@@ -155,13 +143,13 @@ export function RevenueAreaChart({
                         <Area
                             type="monotone"
                             dataKey="value"
-                            stroke="var(--brand)"
+                            stroke="var(--chart-primary)"
                             strokeWidth={2.2}
                             fill="url(#revenueArea)"
                             animationDuration={850}
                             activeDot={{
                                 r: 4.5,
-                                fill: 'var(--brand)',
+                                fill: 'var(--chart-primary)',
                                 stroke: 'var(--dashboard-chart-surface, #fff)',
                                 strokeWidth: 2,
                             }}
@@ -329,7 +317,7 @@ export type GatewayDatum = {
     value: number;
 };
 
-const gatewayColors = ['var(--brand)', 'var(--brand-strong)', '#67b9aa', '#9ba4b9', '#c8ccd7'];
+const gatewayColors = ['var(--chart-primary)', '#2bb5a0', '#b9b3f5', '#c9c9c9', '#e2e2e2'];
 
 export function GatewayDonut({ data, currency }: { data: GatewayDatum[]; currency: string }) {
     const total = data.reduce((sum, item) => sum + item.value, 0);
@@ -389,7 +377,7 @@ export function GatewayDonut({ data, currency }: { data: GatewayDatum[]; currenc
                             className="dashboard-gateway-row flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-white/40"
                         >
                             <span
-                                className="grid size-7 shrink-0 place-items-center rounded-lg text-[12px] font-bold text-white shadow-sm"
+                                className="grid size-7 shrink-0 place-items-center rounded-lg text-[12px] font-bold text-[#111111]"
                                 style={{
                                     background: gatewayColors[index % gatewayColors.length],
                                 }}
@@ -479,6 +467,31 @@ export function MetricChart({
                 )}
             </ResponsiveContainer>
         </div>
+    );
+}
+
+export function RevenuePeriodTotal({
+    points,
+    hourlyPoints,
+    currency,
+}: {
+    points: RevenuePoint[];
+    hourlyPoints: RevenuePoint[];
+    currency: string;
+}) {
+    const { period } = useDashboardPeriod();
+    const total = (period === '24H' ? hourlyPoints : periodData(points, period)).reduce(
+        (sum, point) => sum + point.value,
+        0,
+    );
+
+    return (
+        <p className="hidden text-right sm:block">
+            <span className="block text-[12px] uppercase tracking-[0.1em] text-muted">
+                {dashboardPeriodLabel(period)}
+            </span>
+            <span className="mt-1 block text-sm font-semibold">{money(total, currency)}</span>
+        </p>
     );
 }
 

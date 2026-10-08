@@ -83,7 +83,7 @@ export function WorkspaceSwitcher({
             >
                 <WorkspaceAvatar name={currentName} accentTheme={current.accentTheme} active />
                 <span className={`min-w-0 flex-1 ${collapsed ? 'lg:hidden' : ''}`}>
-                    <span className="shell-organization-name block truncate text-xs font-semibold text-[#24253c]">
+                    <span className="shell-organization-name block truncate text-xs font-semibold text-[#1a1a1a]">
                         {currentName}
                     </span>
                     <span className="mt-0.5 block truncate text-[10px] text-muted">
@@ -103,24 +103,24 @@ export function WorkspaceSwitcher({
                     <motion.div
                         role="menu"
                         aria-label="Trocar workspace"
-                        initial={
-                            reduceMotion
-                                ? false
-                                : { opacity: 0, y: -8, scale: 0.97, filter: 'blur(5px)' }
-                        }
-                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                        initial={reduceMotion ? false : { opacity: 0, y: -4, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={
                             reduceMotion
                                 ? { opacity: 0 }
-                                : { opacity: 0, y: -5, scale: 0.98, filter: 'blur(3px)' }
+                                : {
+                                      opacity: 0,
+                                      y: -2,
+                                      transition: { duration: 0.1, ease: 'easeIn' },
+                                  }
                         }
                         transition={
                             reduceMotion
                                 ? { duration: 0 }
-                                : { type: 'spring', stiffness: 430, damping: 32, mass: 0.72 }
+                                : { duration: 0.14, ease: [0.2, 0.8, 0.2, 1] }
                         }
                         style={{ transformOrigin: collapsed ? 'top left' : 'top center' }}
-                        className={`workspace-popover glass-popover absolute z-50 min-w-[248px] overflow-hidden rounded-[20px] border p-2 shadow-[0_24px_70px_rgba(42,35,88,.18)] ${
+                        className={`workspace-popover glass-popover absolute z-50 min-w-[248px] overflow-hidden rounded-[20px] border p-2 shadow-[0_24px_70px_rgba(17,17,17,.18)] ${
                             collapsed
                                 ? 'left-0 top-[calc(100%+8px)] lg:left-[calc(100%+10px)] lg:top-0'
                                 : 'left-0 right-0 top-[calc(100%+8px)]'
@@ -197,7 +197,11 @@ function WorkspaceAvatar({
         <span
             style={{
                 background: `linear-gradient(145deg, color-mix(in srgb, ${color} 78%, white), ${color})`,
-                color: accentTheme === 'yellow' ? '#3a2c00' : '#ffffff',
+                color: active
+                    ? 'var(--brand-contrast)'
+                    : accentTheme === 'astro'
+                      ? '#1a1a00'
+                      : '#ffffff',
                 boxShadow: `0 8px 18px color-mix(in srgb, ${color} 24%, transparent)`,
             }}
             className={`grid shrink-0 place-items-center rounded-xl font-bold ${compact ? 'size-8 text-[9px]' : 'size-9 text-[10px]'}`}

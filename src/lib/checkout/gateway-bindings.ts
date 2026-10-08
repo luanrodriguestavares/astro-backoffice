@@ -1,8 +1,55 @@
 import type {
     CheckoutEnvironment,
+    CheckoutGatewayBinding,
     CheckoutPaymentMethod,
     GatewayConnection,
 } from '@/lib/api/types';
+
+/** Cascata por método: o primeiro id é o principal, os demais são contingências. */
+export type GatewayCascades = Partial<Record<CheckoutPaymentMethod, string[]>>;
+
+export const maxGatewayFallbacks = 3;
+
+export function normalizeBindings(
+    bindings: Partial<Record<CheckoutPaymentMethod, CheckoutGatewayBinding>> | undefined,
+): GatewayCascades {
+    const result: GatewayCascades = {};
+    for (const method of paymentMethods) {
+        const value = bindings?.[method];
+        if (value === undefined) continue;
+        const ids = typeof value === 'string' ? [value] : value.filter(Boolean);
+        if (ids.length > 0) result[method] = ids;
+    }
+    return result;
+}
+
+/**
+ * Como o comprador paga no navegador. A API só aceita contingências com a mesma
+ * integração do gateway principal, pois a tela de pagamento já foi montada para ele.
+ */
+export function clientIntegration(connection: GatewayConnection, method: CheckoutPaymentMethod) {
+    if (connection.provider === 'stripe' && method === 'card') return 'stripe_elements';
+    const payments = recordValue(connection.capabilities.payments);
+    const checkout = recordValue(payments?.checkout);
+    return checkout?.transparent !== true && checkout?.hosted === true
+        ? 'redirect'
+        : 'instructions';
+}
+
+export function fallbackCandidates(
+    connections: readonly GatewayConnection[],
+    method: CheckoutPaymentMethod,
+    environment: CheckoutEnvironment,
+    primaryId: string | undefined,
+) {
+    const primary = connections.find(({ id }) => id === primaryId);
+    if (primary === undefined) return [];
+    return selectableConnections(connections, method, environment).filter(
+        (connection) =>
+            connection.id !== primary.id &&
+            clientIntegration(connection, method) === clientIntegration(primary, method),
+    );
+}
 
 export const paymentMethods: readonly CheckoutPaymentMethod[] = ['card', 'pix', 'boleto'];
 export const requiredCheckoutComponents = [
@@ -66,7 +113,7 @@ export function checkoutReadinessIssues({
 }: {
     content: readonly { type: string; props: unknown }[];
     environment: CheckoutEnvironment;
-    bindings: Partial<Record<CheckoutPaymentMethod, string>>;
+    bindings: GatewayCascades;
     connections: readonly GatewayConnection[];
 }) {
     const present = presentRequiredComponents(content);
@@ -81,8 +128,12 @@ export function checkoutReadinessIssues({
             issues.push(`payment:${method}:unavailable`);
             continue;
         }
-        if (environment === 'production' && !candidates.some(({ id }) => id === bindings[method]))
+        const [primary, ...fallbacks] = bindings[method] ?? [];
+        if (environment === 'production' && !candidates.some(({ id }) => id === primary))
             issues.push(`payment:${method}:binding`);
+        const compatible = fallbackCandidates(connections, method, environment, primary);
+        if (fallbacks.some((id) => !compatible.some((connection) => connection.id === id)))
+            issues.push(`payment:${method}:fallback`);
     }
     return issues;
 }

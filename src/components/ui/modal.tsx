@@ -36,7 +36,7 @@ export function Modal({
     if (!open) return null;
     return createPortal(
         <div
-            className="fixed inset-0 z-[200] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[200] grid place-items-center overflow-y-auto bg-[#111111]/20 p-4 backdrop-blur-sm"
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget) onClose();
             }}

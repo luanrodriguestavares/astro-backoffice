@@ -26,7 +26,7 @@ const stages: Array<{
         id: 'backlog',
         title: 'Backlog',
         description: 'Boas ideias esperando seu momento.',
-        accent: 'bg-[#9a91b6]',
+        accent: 'bg-[#9a9a9a]',
     },
     {
         id: 'planned',
@@ -205,16 +205,14 @@ export function CommunityRoadmap({
     return (
         <div className="space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="inline-flex rounded-xl border border-border bg-surface-muted/70 p-1">
+                <div className="ui-tabs">
                     {adminMode && (
                         <Button
                             type="button"
                             onClick={() => setActiveTab('moderation')}
-                            className={`h-9 rounded-lg px-3.5 text-[11px] font-semibold transition ${
-                                activeTab === 'moderation'
-                                    ? 'bg-surface text-foreground shadow-sm'
-                                    : 'text-muted hover:text-foreground'
-                            }`}
+                            data-active={activeTab === 'moderation'}
+                            aria-pressed={activeTab === 'moderation'}
+                            className="ui-tab px-3.5 py-1.5 text-[11px] font-semibold"
                         >
                             Ideias para aprovar
                             <span
@@ -231,11 +229,9 @@ export function CommunityRoadmap({
                     <Button
                         type="button"
                         onClick={() => setActiveTab('roadmap')}
-                        className={`h-9 rounded-lg px-3.5 text-[11px] font-semibold transition ${
-                            activeTab === 'roadmap'
-                                ? 'bg-surface text-foreground shadow-sm'
-                                : 'text-muted hover:text-foreground'
-                        }`}
+                        data-active={activeTab === 'roadmap'}
+                        aria-pressed={activeTab === 'roadmap'}
+                        className="ui-tab px-3.5 py-1.5 text-[11px] font-semibold"
                     >
                         {adminMode ? 'Quadro público' : 'Roadmap'}
                         <span className="ml-2 text-[9px] text-muted">{board.length}</span>
@@ -244,11 +240,9 @@ export function CommunityRoadmap({
                         <Button
                             type="button"
                             onClick={() => setActiveTab('mine')}
-                            className={`h-9 rounded-lg px-3.5 text-[11px] font-semibold transition ${
-                                activeTab === 'mine'
-                                    ? 'bg-surface text-foreground shadow-sm'
-                                    : 'text-muted hover:text-foreground'
-                            }`}
+                            data-active={activeTab === 'mine'}
+                            aria-pressed={activeTab === 'mine'}
+                            className="ui-tab px-3.5 py-1.5 text-[11px] font-semibold"
                         >
                             Minhas sugestões
                             <span className="ml-2 text-[9px] text-muted">
@@ -865,7 +859,7 @@ function SubmissionStatus({ status }: { status: 'pending' | 'approved' | 'reject
 function ModalShell({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
     return (
         <div
-            className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/25 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#111111]/25 p-4 backdrop-blur-sm"
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget) onClose();
             }}
@@ -970,7 +964,7 @@ function SuggestionModal({
                             autoFocus
                             defaultValue={initial?.title}
                             placeholder="Dê um nome claro para a sua ideia"
-                            className="mt-2 h-12 w-full rounded-2xl border border-border bg-[var(--control-bg)] px-4 font-normal outline-none transition placeholder:text-muted/60 focus:border-brand/35 focus:ring-3 focus:ring-brand/8"
+                            className="ui-control mt-2 h-11 w-full px-3.5 font-normal"
                         />
                     </label>
                     <label className="block text-[12px] font-semibold">
@@ -982,7 +976,7 @@ function SuggestionModal({
                             maxLength={3000}
                             defaultValue={initial?.description}
                             placeholder="Que problema ela resolve e como faria diferença no seu dia?"
-                            className="mt-2 min-h-36 w-full resize-y rounded-2xl border border-border bg-[var(--control-bg)] p-4 font-normal leading-6 outline-none transition placeholder:text-muted/60 focus:border-brand/35 focus:ring-3 focus:ring-brand/8"
+                            className="ui-control mt-2 min-h-36 w-full resize-y p-3.5 font-normal leading-6"
                         />
                     </label>
                 </div>
@@ -1081,7 +1075,7 @@ function ModerationModal({
                             required
                             minLength={5}
                             maxLength={160}
-                            className="mt-2 h-12 w-full rounded-2xl border border-border bg-[var(--control-bg)] px-4 font-normal outline-none transition focus:border-brand/35 focus:ring-3 focus:ring-brand/8"
+                            className="ui-control mt-2 h-11 w-full px-3.5 font-normal"
                         />
                     </label>
                     <label className="block text-[12px] font-semibold">
@@ -1092,12 +1086,12 @@ function ModerationModal({
                             required
                             minLength={20}
                             maxLength={3000}
-                            className="mt-2 min-h-28 w-full resize-y rounded-2xl border border-border bg-[var(--control-bg)] p-4 font-normal leading-6 outline-none transition focus:border-brand/35 focus:ring-3 focus:ring-brand/8"
+                            className="ui-control mt-2 min-h-28 w-full resize-y p-3.5 font-normal leading-6"
                         />
                     </label>
                     {forceBacklog ? (
                         <div className="flex items-center gap-3 rounded-2xl border border-brand/12 bg-brand-soft/45 p-3.5">
-                            <span className="size-2 rounded-full bg-[#9a91b6]" />
+                            <span className="size-2 rounded-full bg-[#9a9a9a]" />
                             <div>
                                 <p className="text-[11px] font-semibold">
                                     Destino após aprovação: Backlog

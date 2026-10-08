@@ -165,7 +165,7 @@ export function UserAdminTable({
 
             {target &&
                 createPortal(
-                    <div className="fixed inset-0 z-[150] grid place-items-center bg-[#11111d]/42 p-4 backdrop-blur-sm">
+                    <div className="fixed inset-0 z-[150] grid place-items-center bg-[#111111]/42 p-4 backdrop-blur-sm">
                         <div
                             role="dialog"
                             aria-modal="true"

@@ -419,7 +419,7 @@ export function ApiKeyCreateAction() {
                         onMouseDown={(event) => {
                             if (event.target === event.currentTarget) setSecret(undefined);
                         }}
-                        className="fixed inset-0 z-[110] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[110] grid place-items-center overflow-y-auto bg-[#111111]/20 p-4 backdrop-blur-sm"
                     >
                         <section className="modal-surface glass-panel my-6 w-full max-w-lg rounded-[26px] p-6">
                             <Icon name="check" className="size-5 text-success" />

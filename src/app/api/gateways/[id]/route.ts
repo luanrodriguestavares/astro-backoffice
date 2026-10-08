@@ -12,6 +12,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             name?: string;
             publicConfiguration?: Record<string, unknown>;
             credentials?: Record<string, unknown>;
+            feeSchedule?: Record<string, unknown>;
         };
         let connection = await apiFetch<GatewayConnection>(
             `/api/v1/gateway-connections/${encodeURIComponent(id)}`,
@@ -21,6 +22,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
                 body: JSON.stringify({
                     name: input.name,
                     publicConfiguration: input.publicConfiguration,
+                    feeSchedule: input.feeSchedule,
                 }),
             },
         );

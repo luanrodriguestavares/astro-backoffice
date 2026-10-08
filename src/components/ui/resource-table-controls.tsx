@@ -92,7 +92,7 @@ export function ResourceTableControls({
                             })
                         }
                         placeholder="Buscar nesta lista"
-                        className="h-10 w-full rounded-xl border border-border bg-[var(--control-bg)] pl-10 pr-3 text-[13px] outline-none transition focus:border-brand/60"
+                        className="ui-control h-11 w-full pl-10 pr-3"
                     />
                 </label>
                 <div className="w-40">

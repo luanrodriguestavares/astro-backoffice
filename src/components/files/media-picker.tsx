@@ -37,7 +37,7 @@ export function MediaPicker({
     return createPortal(
         <div
             onMouseDown={(event) => event.target === event.currentTarget && onClose()}
-            className="fixed inset-0 z-[140] grid place-items-center overflow-y-auto bg-[#11111d]/45 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[140] grid place-items-center overflow-y-auto bg-[#111111]/45 p-4 backdrop-blur-sm"
         >
             <section className="modal-surface glass-panel flex max-h-[min(720px,calc(100dvh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-[24px]">
                 <div className="shrink-0 border-b border-border/70 px-5 py-4 sm:px-6">
@@ -66,7 +66,7 @@ export function MediaPicker({
                         onChange={(event) => setQuery(event.target.value)}
                         placeholder="Buscar imagem..."
                         autoFocus
-                        className="h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] pl-10 pr-4 text-[13px] outline-none focus:border-brand/55 focus:shadow-[0_0_0_3px_rgba(109,93,244,.12)]"
+                        className="ui-control h-11 w-full pl-10 pr-4"
                     />
                 </label>
                 </div>
@@ -100,7 +100,7 @@ export function MediaPicker({
                                                 className="object-cover"
                                             />
                                             {selected && (
-                                                <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-brand text-white shadow-lg">
+                                                <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-brand text-brand-contrast shadow-lg">
                                                     <Icon name="check" className="size-3.5" />
                                                 </span>
                                             )}

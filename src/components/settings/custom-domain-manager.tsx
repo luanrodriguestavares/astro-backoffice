@@ -104,23 +104,28 @@ export function CustomDomainManager({ initialDomains, checkouts, canManage }: Pr
 
     return (
         <div className="space-y-5">
-            <section className="glass-panel rounded-[28px] p-6 sm:p-7">
-                <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
-                    <div>
-                        <div className="flex items-start gap-3">
-                            <span className="grid size-11 shrink-0 place-items-center rounded-2xl border border-border bg-brand-soft text-brand-strong">
+            <section className="glass-panel overflow-hidden rounded-[26px]">
+                <div className="flex flex-col justify-between gap-5 px-5 py-6 sm:px-7 lg:flex-row lg:items-center">
+                    <div className="flex items-start gap-3">
+                            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-foreground text-surface">
                                 <Icon name="link" className="size-[19px]" />
                             </span>
                             <div>
-                                <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-foreground">Seu checkout com a sua marca</h2>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Endereço próprio</p>
+                                <h2 className="mt-1 text-[19px] font-semibold tracking-[-0.035em] text-foreground">Sua marca também na URL</h2>
                                 <p className="mt-1 max-w-2xl text-[13px] leading-6 text-muted">
                                     Use um subdomínio como <strong className="font-semibold text-foreground">checkout.empresa.com</strong>. O Astro configura e renova o certificado SSL automaticamente.
                                 </p>
                             </div>
                         </div>
-
+                    <div className="shrink-0 lg:text-right">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Disponível no</p>
+                        <p className="mt-1 text-[13px] font-semibold text-foreground">Plano Pro ou superior</p>
+                    </div>
+                </div>
+                <div className="border-t border-border bg-surface-muted/20 px-5 py-5 sm:px-7">
                         {selectableCheckouts.length > 0 ? (
-                            <form className="mt-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.7fr)_auto]" onSubmit={createDomain}>
+                            <form className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.7fr)_auto]" onSubmit={createDomain}>
                                 <label className="grid gap-2 text-[12px] font-semibold text-muted">
                                     Domínio
                                     <input
@@ -128,7 +133,7 @@ export function CustomDomainManager({ initialDomains, checkouts, canManage }: Pr
                                         onChange={(event) => setHostname(event.target.value.toLowerCase())}
                                         placeholder="checkout.empresa.com"
                                         disabled={!canManage || busy !== null}
-                                        className="h-11 rounded-xl border border-border bg-[var(--control-bg)] px-4 text-[13px] font-medium text-foreground outline-none transition placeholder:text-muted/65 focus:border-brand/45 focus:ring-4 focus:ring-brand/10"
+                                        className="ui-control h-11 px-3.5 font-medium"
                                     />
                                 </label>
                                 <label className="grid gap-2 text-[12px] font-semibold text-muted">
@@ -155,17 +160,11 @@ export function CustomDomainManager({ initialDomains, checkouts, canManage }: Pr
                                 </Button>
                             </form>
                         ) : (
-                            <div className="mt-6 rounded-2xl border border-border bg-surface-muted/35 p-4 text-[13px] text-muted">
+                            <div className="text-[13px] text-muted">
                                 Crie um checkout antes de configurar o domínio.{' '}
                                 <ButtonLink href="/checkouts" variant="ghost">Ir para checkouts</ButtonLink>
                             </div>
                         )}
-                    </div>
-                    <div className="rounded-[22px] border border-border bg-surface-muted/35 p-5">
-                        <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-muted">Disponibilidade</p>
-                        <p className="mt-3 text-[15px] font-semibold text-foreground">Plano Pro ou superior</p>
-                        <p className="mt-1 text-[12px] leading-5 text-muted">A quantidade permitida é configurada por plano. O limite é validado também pela API.</p>
-                    </div>
                 </div>
             </section>
 
@@ -176,7 +175,7 @@ export function CustomDomainManager({ initialDomains, checkouts, canManage }: Pr
                     <p className="mt-1 text-[13px] text-muted">Adicione seu primeiro subdomínio para começar.</p>
                 </section>
             ) : (
-                <div className="grid gap-4">
+                <div className="grid gap-3">
                     {domains.map((domain) => (
                         <DomainCard
                             key={domain.id}
@@ -204,7 +203,7 @@ function DomainCard({ domain, busy, canManage, onVerify, onRemove, onCopy }: {
 }) {
     const active = domain.status === 'active';
     return (
-        <section className="glass-panel overflow-hidden rounded-[26px]">
+        <section className="glass-panel overflow-hidden rounded-[22px]">
             <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2.5">
@@ -229,8 +228,11 @@ function DomainCard({ domain, busy, canManage, onVerify, onRemove, onCopy }: {
                 </div>
             </div>
             {!active && (
-                <div className="border-t border-border bg-surface-muted/25 p-6">
-                    <p className="text-[13px] font-semibold text-foreground">Configure este registro no provedor do seu domínio</p>
+                <div className="border-t border-border bg-surface-muted/20 p-6">
+                    <div className="flex items-center gap-2">
+                        <span className="grid size-5 place-items-center rounded-full bg-foreground text-[10px] font-semibold text-surface">1</span>
+                        <p className="text-[13px] font-semibold text-foreground">Configure este registro no provedor do seu domínio</p>
+                    </div>
                     <div className="mt-4 grid gap-3 md:grid-cols-[110px_minmax(0,1fr)_minmax(0,1fr)]">
                         <DnsValue label="Tipo" value="CNAME" onCopy={onCopy} />
                         <DnsValue label="Nome / host" value={domain.hostname} onCopy={onCopy} />
@@ -245,7 +247,7 @@ function DomainCard({ domain, busy, canManage, onVerify, onRemove, onCopy }: {
 
 function DnsValue({ label, value, onCopy }: { label: string; value: string; onCopy: (value: string) => void }) {
     return (
-        <div className="rounded-2xl border border-border bg-[var(--control-bg)] p-4">
+        <div className="rounded-xl border border-border bg-[var(--control-bg)] p-3.5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">{label}</p>
             <div className="mt-2 flex items-center justify-between gap-2">
                 <code className="min-w-0 truncate text-[12px] font-semibold text-foreground">{value}</code>

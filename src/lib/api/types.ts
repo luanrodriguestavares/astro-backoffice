@@ -221,7 +221,7 @@ export interface Organization {
     defaultCurrency?: string;
     timezone?: string;
     locale?: string;
-    accentTheme?: 'astro' | 'blue' | 'violet' | 'yellow' | 'orange' | 'green' | 'rose';
+    accentTheme?: 'astro' | 'blue' | 'violet' | 'orange' | 'green' | 'rose';
     canManageAppearance?: boolean;
     permissions?: string[];
     version?: number;
@@ -243,6 +243,7 @@ export interface GatewayConnection {
     lastSuccessAt: string | null;
     lastFailureAt: string | null;
     failureReason: string | null;
+    feeSchedule?: GatewayFeeSchedule;
     version: number;
     createdAt: string;
     updatedAt: string;
@@ -373,6 +374,87 @@ export interface Payment {
     paymentMethod: string;
     approvedAt: string | null;
     createdAt: string;
+    routing?: PaymentRoutingDecision;
+    failureCode?: string | null;
+    failureCategory?: string | null;
+    failureMessage?: string | null;
+    cardBrand?: string | null;
+    cardBin?: string | null;
+    cardCountry?: string | null;
+    cardFunding?: string | null;
+}
+
+export interface FeeEntry {
+    percentBps: number;
+    fixedMinor: number;
+}
+
+export type GatewayFeeSchedule = Partial<Record<RoutingPaymentMethod, FeeEntry>>;
+
+interface ApprovalOutcome {
+    approved: number;
+    declined: number;
+    pending: number;
+    approvalRate: number | null;
+}
+
+export interface GatewayInsights {
+    periodDays: number;
+    summary: {
+        approved: number;
+        declined: number;
+        approvalRate: number | null;
+        routed: number;
+        routedByRule: number;
+        recoveredByFailover: number;
+    };
+    gateways: (ApprovalOutcome & {
+        gatewayConnectionId: string;
+        attempts: number;
+        failovers: number;
+        technicalFailures: number;
+        avgLatencyMs: number | null;
+        p95LatencyMs: number | null;
+    })[];
+    methods: (ApprovalOutcome & { paymentMethod: string })[];
+    brands: (ApprovalOutcome & { brand: string })[];
+    bins: (ApprovalOutcome & { bin: string; brand: string | null })[];
+    declineReasons: { category: string; count: number; retry: string }[];
+}
+
+export interface PaymentRoutingDecision {
+    source?: 'rule' | 'checkout' | 'default';
+    ruleId?: string;
+    ruleName?: string;
+    candidates?: string[];
+    strategy?: 'priority' | 'lowest_cost';
+    failovers?: { from: string; to: string; code: string; category?: string; at: string }[];
+}
+
+export type RoutingPaymentMethod = 'card' | 'pix' | 'boleto' | 'bank_transfer';
+
+export interface GatewayRoutingConditions {
+    paymentMethods?: RoutingPaymentMethod[];
+    currencies?: string[];
+    environments?: ('sandbox' | 'production')[];
+    minAmountMinor?: number;
+    maxAmountMinor?: number;
+    checkoutIds?: string[];
+    productIds?: string[];
+}
+
+export interface GatewayRoutingRule {
+    id: string;
+    name: string;
+    priority: number;
+    status: 'active' | 'inactive';
+    strategy: 'priority' | 'lowest_cost';
+    trafficPercentage: number;
+    gatewayConnectionId: string;
+    fallbackGatewayConnectionIds: string[];
+    conditions: GatewayRoutingConditions;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface Refund {
@@ -451,6 +533,7 @@ export type CheckoutSectionType =
     | 'client_logos'
     | 'floating_cta'
     | 'spacer_divider'
+    | 'order_bump'
     | 'product_summary'
     | 'checkout_form'
     | 'order_summary'
@@ -483,9 +566,12 @@ export type CheckoutPaymentMethod = 'card' | 'pix' | 'boleto';
 
 export type CheckoutEnvironment = 'sandbox' | 'production';
 
+/** Um gateway (formato antigo) ou a cascata: principal seguido das contingências. */
+export type CheckoutGatewayBinding = string | string[];
+
 export interface CheckoutSettings extends Record<string, unknown> {
     environment?: CheckoutEnvironment;
-    paymentGatewayBindings?: Partial<Record<CheckoutPaymentMethod, string>>;
+    paymentGatewayBindings?: Partial<Record<CheckoutPaymentMethod, CheckoutGatewayBinding>>;
 }
 
 export interface Checkout {
@@ -498,6 +584,21 @@ export interface Checkout {
     version: number;
     createdAt: string;
     updatedAt: string;
+    /** Itens do checkout; vem só no detalhe (GET /checkouts/:id). */
+    products?: CheckoutProductPrice[];
+}
+
+export interface CheckoutProductPrice {
+    productId: string;
+    productName: string;
+    priceId: string;
+    priceName: string;
+    pricingType: string;
+    amountMinor: number;
+    currency: string;
+    recurringInterval: string | null;
+    recurringIntervalCount: number | null;
+    isDefault: boolean;
 }
 
 export interface CheckoutDraft {

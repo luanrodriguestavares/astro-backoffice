@@ -230,7 +230,7 @@ function ApiKeyActions({ keyItem }: { keyItem: ApiKeyItem }) {
 function SecretDialog({ secret, close }: { secret: string; close: () => void }) {
     return createPortal(
         <div
-            className="fixed inset-0 z-[120] grid place-items-center bg-[#17172c]/20 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[120] grid place-items-center bg-[#111111]/20 p-4 backdrop-blur-sm"
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget) close();
             }}

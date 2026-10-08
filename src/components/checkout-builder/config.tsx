@@ -1,19 +1,26 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/ui/custom-select';
 import { MediaPicker } from '@/components/files/media-picker';
 
-import type { Config, Data, Slot } from '@puckeditor/core';
+import { FieldLabel, type Config, type Data, type Slot } from '@puckeditor/core';
 import { createContext, useContext, useEffect, useState } from 'react';
-import type { MediaFile } from '@/lib/api/types';
+import type { CheckoutProductPrice, MediaFile } from '@/lib/api/types';
 import {
+    checkoutBrandPresets,
     checkoutComponentSurfaceVariables,
+    checkoutFontPresets,
+    checkoutGoogleFontsUrl,
     checkoutThemeVariables,
+    fontStack as checkoutFontStack,
+    type CheckoutFontPreset,
 } from '@astro/checkout-renderer/theme';
 import { checkoutDesignSystemStyles } from '@astro/checkout-renderer/design-system';
 import {
     CheckoutDataTable,
     CheckoutBenefits,
+    checkoutBenefitIcons,
     CheckoutCardPayment,
     CheckoutCartSummary,
     CheckoutCoupon,
@@ -22,6 +29,7 @@ import {
     CheckoutHeadingText,
     CheckoutHero,
     CheckoutCustomerForm,
+    CheckoutOrderBump,
     CheckoutPaymentInstruction,
     CheckoutParagraphText,
     CheckoutPaymentMethods,
@@ -56,6 +64,12 @@ export const CheckoutBuilderMediaContext = createContext<BuilderMediaContextValu
     files: [],
     apiUrl: '',
 });
+
+/** Prévia estática (cards da listagem): sem animações nem timers rodando. */
+export const CheckoutBuilderStaticContext = createContext(false);
+
+/** Produtos e preços deste checkout, para vincular blocos (ex.: planos) a preços reais. */
+export const CheckoutBuilderProductsContext = createContext<CheckoutProductPrice[]>([]);
 
 type BuilderPropsBase = {
     hero: {
@@ -99,7 +113,14 @@ type BuilderPropsBase = {
         radius: LogoRadius;
         overlapBanner: boolean;
     };
-    banner: { imageUrl: string; alt: string; aspectRatio: BannerRatio; fit: 'cover' | 'contain' };
+    banner: {
+        imageUrl: string;
+        mobileImageUrl: string;
+        alt: string;
+        aspectRatio: BannerRatio;
+        mobileAspectRatio: BannerRatio | 'auto';
+        fit: 'cover' | 'contain';
+    };
     grid: {
         columns: '1' | '2' | '3';
         columnGap: SizePreset;
@@ -111,12 +132,16 @@ type BuilderPropsBase = {
     };
     benefits: {
         layout: BenefitsLayout;
+        eyebrow?: string;
         title: string;
-        items: { title: string; description: string }[];
+        description?: string;
+        items: { title: string; description: string; icon?: string }[];
     };
     testimonials: {
         layout: TestimonialsLayout;
+        eyebrow?: string;
         title: string;
+        description?: string;
         items: {
             quote: string;
             name: string;
@@ -126,13 +151,29 @@ type BuilderPropsBase = {
             verified: boolean;
         }[];
     };
-    faq: { layout: FaqLayout; title: string; items: { question: string; answer: string }[] };
+    faq: {
+        layout: FaqLayout;
+        eyebrow?: string;
+        title: string;
+        description?: string;
+        items: { question: string; answer: string }[];
+    };
     guarantee: { layout: GuaranteeLayout; title: string; description: string; days: number };
     countdown: { layout: CountdownLayout; title: string; deadline: string };
     plan_comparison: {
         layout: PlanComparisonLayout;
         title: string;
-        plans: { name: string; price: string; description: string; featured: boolean }[];
+        description?: string;
+        plans: {
+            name: string;
+            price: string;
+            priceId?: string;
+            period?: string;
+            originalPrice?: string;
+            description: string;
+            features?: string;
+            featured: boolean;
+        }[];
     };
     data_table: {
         layout: DataTableLayout;
@@ -142,7 +183,9 @@ type BuilderPropsBase = {
     };
     stats: {
         layout: StatsLayout;
+        eyebrow?: string;
         title: string;
+        description?: string;
         items: { value: string; label: string; detail: string }[];
     };
     before_after: {
@@ -169,6 +212,16 @@ type BuilderPropsBase = {
         buttonNewTab: boolean;
     };
     spacer_divider: { layout: SpacerDividerLayout; size: SizePreset; label: string };
+    order_bump: {
+        layout: OrderBumpLayout;
+        priceId: string;
+        title: string;
+        description: string;
+        callToAction: string;
+        badge: string;
+        originalPrice: string;
+        imageUrl: string;
+    };
     product_summary: {
         layout: ProductLayout;
         title: string;
@@ -236,19 +289,11 @@ type ThemeMode = 'light' | 'dark' | 'system';
 
 type GrayTone = 'neutral' | 'gray' | 'zinc' | 'slate';
 
-type FontPreset =
-    | 'system'
-    | 'geist'
-    | 'inter'
-    | 'montserrat'
-    | 'poppins'
-    | 'roboto'
-    | 'open-sans'
-    | 'lato'
-    | 'arial'
-    | 'georgia'
-    | 'serif'
-    | 'mono';
+type FontPreset = CheckoutFontPreset;
+
+type ButtonStylePreset = 'solid' | 'gradient' | 'glow' | 'outline';
+
+type ButtonShapePreset = 'rounded' | 'pill' | 'square';
 
 type FontWeightPreset = '400' | '500' | '600' | '700' | '800' | '900';
 
@@ -322,6 +367,8 @@ type GuaranteeLayout = 'horizontal' | 'seal' | 'banner' | 'boxed' | 'minimal';
 
 type ProductLayout = 'card' | 'compact' | 'detailed';
 
+type OrderBumpLayout = 'highlight' | 'card' | 'minimal';
+
 type FormLayout = 'card' | 'compact' | 'plain';
 
 type PaymentLayout = 'cards' | 'list' | 'segmented';
@@ -337,9 +384,13 @@ type TrustLayout = 'pills' | 'cards' | 'strip';
 type FooterLayout = 'centered' | 'columns' | 'minimal';
 
 export type BuilderRootProps = {
+    brandPreset: string;
     themeMode: ThemeMode;
     grayTone: GrayTone;
     fontFamily: FontPreset;
+    headingFontFamily: FontPreset | 'inherit';
+    buttonStyle: ButtonStylePreset;
+    buttonShape: ButtonShapePreset;
     headingFontWeight: FontWeightPreset;
     bodyFontWeight: FontWeightPreset;
     backgroundColor: string;
@@ -418,6 +469,105 @@ const colorField = (label: string) => ({
         field: { label?: string };
     }) => <ColorPickerField name={name} label={field.label} value={value} onChange={onChange} />,
 });
+const benefitIconLabels: Record<string, string> = {
+    zap: 'Raio (rapidez)',
+    rocket: 'Foguete (crescimento)',
+    award: 'Medalha (qualidade)',
+    headset: 'Fone (suporte)',
+    heart: 'Coração (cuidado)',
+    'shield-check': 'Escudo (segurança)',
+    clock: 'Relógio (tempo)',
+    gift: 'Presente (bônus)',
+    star: 'Estrela (destaque)',
+    sparkles: 'Brilho (novidade)',
+    smartphone: 'Celular (acesso)',
+    download: 'Download (material)',
+    check: 'Check',
+};
+
+const bannerRatioOptions = [
+    { label: 'Faixa baixa · 4:1', value: '4/1' },
+    { label: 'Panorâmico · 3:1', value: '3/1' },
+    { label: 'Retangular alto · 2:1', value: '2/1' },
+    { label: 'Paisagem · 16:9', value: '16/9' },
+    { label: 'Quadrado · 1:1', value: '1/1' },
+    { label: 'Vertical · 4:5', value: '4/5' },
+] as const;
+
+const priceLinkField = {
+    type: 'custom' as const,
+    label: 'Preço vinculado',
+    render: ({ value, onChange }: { value?: string; onChange: (value: string) => void }) => (
+        <PriceLinkField value={value ?? ''} onChange={onChange} />
+    ),
+};
+
+const bumpPriceField = {
+    type: 'custom' as const,
+    label: 'Produto oferecido',
+    render: ({ value, onChange }: { value?: string; onChange: (value: string) => void }) => (
+        <PriceLinkField
+            value={value ?? ''}
+            onChange={onChange}
+            label="Produto oferecido"
+            emptyLabel="Escolha um preço do checkout"
+            help={{
+                empty: 'Vincule o produto do bump ao checkout (aba Produtos) para poder oferecê-lo.',
+                filled: 'Ao marcar a oferta, este preço entra no carrinho junto do produto principal. Sem preço vinculado, o bloco não aparece para o comprador.',
+            }}
+        />
+    ),
+};
+
+/** Ao escolher o plano, o checkout troca o item do carrinho por este preço. */
+function PriceLinkField({
+    value,
+    onChange,
+    label = 'Preço vinculado',
+    emptyLabel = 'Nenhum (só exibição)',
+    help = {
+        empty: 'Adicione preços ao checkout para tornar os planos selecionáveis.',
+        filled: 'Com um preço vinculado, o comprador escolhe o plano e o carrinho é atualizado.',
+    },
+}: {
+    value: string;
+    onChange(value: string): void;
+    label?: string;
+    emptyLabel?: string;
+    help?: { empty: string; filled: string };
+}) {
+    const products = useContext(CheckoutBuilderProductsContext);
+    return (
+        <FieldLabel label={label}>
+            <div className="grid gap-1.5">
+                <CustomSelect
+                    name="planPriceId"
+                    value={value}
+                    placeholder={emptyLabel}
+                    options={[
+                        { value: '', label: emptyLabel },
+                        ...products.map((item) => ({
+                            value: item.priceId,
+                            label: `${item.productName} — ${item.priceName}`,
+                            badge: formatMinor(item.amountMinor, item.currency),
+                        })),
+                    ]}
+                    onValueChange={onChange}
+                />
+                <p className="text-[11px] leading-4 text-muted">
+                    {products.length === 0 ? help.empty : help.filled}
+                </p>
+            </div>
+        </FieldLabel>
+    );
+}
+
+function formatMinor(amountMinor: number, currency: string) {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(
+        amountMinor / 100,
+    );
+}
+
 const imageField = (label: string, placeholder = 'https://exemplo.com/imagem.jpg') => ({
     type: 'custom' as const,
     label,
@@ -575,6 +725,15 @@ const productLayoutField = templateField<ProductLayout>('Organização interna d
     { value: 'compact', label: 'Compacto', description: 'Produto e preço em uma linha.' },
     { value: 'detailed', label: 'Detalhado', description: 'Visual de recibo com quantidade.' },
 ]);
+const orderBumpLayoutField = templateField<OrderBumpLayout>('Template da oferta', [
+    {
+        value: 'highlight',
+        label: 'Destaque',
+        description: 'Faixa na cor do tema com seta e caixa de seleção.',
+    },
+    { value: 'card', label: 'Cartão', description: 'Faixa suave e conteúdo em cartão.' },
+    { value: 'minimal', label: 'Discreto', description: 'Uma linha com caixa de seleção.' },
+]);
 const formLayoutField = templateField<FormLayout>('Organização interna dos campos', [
     { value: 'card', label: 'Vertical', description: 'Campos em uma coluna confortável.' },
     {
@@ -638,7 +797,7 @@ const footerLayoutField = templateField<FooterLayout>('Template do rodapé', [
     { value: 'minimal', label: 'Minimal', description: 'Linha fina e discreta.' },
 ]);
 const checkoutPageStyles = `
-  @import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=Lato:wght@400;700;900&family=Montserrat:wght@400;500;600;700;800;900&family=Open+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800;900&family=Roboto:wght@400;500;600;700;800;900&display=swap");
+  @import url("${checkoutGoogleFontsUrl}");
   [data-checkout-page] input,
   [data-checkout-page] select,
   [data-checkout-page] textarea {
@@ -882,7 +1041,7 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
         },
         checkout: {
             title: 'Checkout',
-            components: ['product_summary', 'checkout_form', 'coupon_field'],
+            components: ['product_summary', 'order_bump', 'checkout_form', 'coupon_field'],
             defaultExpanded: false,
         },
         payment: {
@@ -890,10 +1049,12 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             components: ['payment_methods', 'card_payment', 'pix_payment', 'boleto_payment'],
             defaultExpanded: false,
         },
+        // Frete fica fora do editor enquanto só há produtos digitais; documentos antigos
+        // com esses blocos continuam abrindo normalmente.
         shipping: {
             title: 'Frete',
             components: ['shipping_address', 'shipping_methods'],
-            defaultExpanded: false,
+            visible: false,
         },
         trust: { title: 'Confiança', components: ['security_badges'], defaultExpanded: false },
         structure: { title: 'Estrutura', components: ['grid', 'footer'], defaultExpanded: false },
@@ -901,6 +1062,13 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
     root: {
         label: 'Página',
         fields: {
+            brandPreset: {
+                type: 'custom',
+                label: 'Identidade visual',
+                render: ({ value, onChange }) => (
+                    <BrandPresetPicker value={value ?? ''} onChange={onChange} />
+                ),
+            },
             themeMode: {
                 type: 'select',
                 label: 'Tema',
@@ -922,20 +1090,40 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             },
             fontFamily: {
                 type: 'select',
-                label: 'Tipografia',
+                label: 'Fonte do texto',
+                options: checkoutFontPresets.map((font) => ({
+                    label: font.label,
+                    value: font.value,
+                })),
+            },
+            headingFontFamily: {
+                type: 'select',
+                label: 'Fonte dos títulos',
                 options: [
-                    { label: 'Sistema', value: 'system' },
-                    { label: 'Geist', value: 'geist' },
-                    { label: 'Inter', value: 'inter' },
-                    { label: 'Montserrat', value: 'montserrat' },
-                    { label: 'Poppins', value: 'poppins' },
-                    { label: 'Roboto', value: 'roboto' },
-                    { label: 'Open Sans', value: 'open-sans' },
-                    { label: 'Lato', value: 'lato' },
-                    { label: 'Arial', value: 'arial' },
-                    { label: 'Georgia', value: 'georgia' },
-                    { label: 'Serif clássica', value: 'serif' },
-                    { label: 'Monoespaçada', value: 'mono' },
+                    { label: 'Mesma do texto', value: 'inherit' },
+                    ...checkoutFontPresets.map((font) => ({
+                        label: font.label,
+                        value: font.value,
+                    })),
+                ],
+            },
+            buttonStyle: {
+                type: 'select',
+                label: 'Estilo do botão principal',
+                options: [
+                    { label: 'Sólido', value: 'solid' },
+                    { label: 'Degradê', value: 'gradient' },
+                    { label: 'Brilho', value: 'glow' },
+                    { label: 'Contorno', value: 'outline' },
+                ],
+            },
+            buttonShape: {
+                type: 'select',
+                label: 'Formato do botão principal',
+                options: [
+                    { label: 'Acompanha o arredondamento', value: 'rounded' },
+                    { label: 'Pílula', value: 'pill' },
+                    { label: 'Reto', value: 'square' },
                 ],
             },
             headingFontWeight: {
@@ -1025,15 +1213,19 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             },
         },
         defaultProps: {
+            brandPreset: '',
             themeMode: 'light',
             grayTone: 'neutral',
             fontFamily: 'system',
+            headingFontFamily: 'inherit',
+            buttonStyle: 'solid',
+            buttonShape: 'rounded',
             headingFontWeight: '700',
             bodyFontWeight: '400',
-            backgroundColor: '#f7f7fb',
+            backgroundColor: '#f5f6f7',
             surfaceColor: '#ffffff',
-            textColor: '#202235',
-            accentColor: '#7065e8',
+            textColor: '#101214',
+            accentColor: '#101214',
             radius: 'md',
             shadow: 'sm',
             maxWidth: 'lg',
@@ -1044,12 +1236,42 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             componentBorderStyle: 'visible',
             componentShadowMode: 'auto',
         },
-        render: ({ children, ...theme }) => {
+        // Escolher um preset preenche tipografia, cores, formas e botão de uma vez.
+        resolveData: (data, { changed, lastData, trigger }) => {
+            // Só aplica quando o vendedor troca o preset; ao abrir o editor, preserva os
+            // ajustes já salvos por cima do preset.
+            if (
+                trigger === 'load' ||
+                !changed.brandPreset ||
+                !lastData ||
+                lastData.props?.brandPreset === data.props?.brandPreset
+            )
+                return data;
+            const preset = checkoutBrandPresets.find(
+                (item) => item.value === data.props?.brandPreset,
+            );
+            if (!preset) return data;
+            return {
+                ...data,
+                props: {
+                    ...data.props,
+                    ...(preset.theme as Partial<BuilderRootProps>),
+                    ...(preset.layout as Partial<BuilderRootProps>),
+                    inputGroupStyle:
+                        preset.layout.componentBackgroundStyle === 'transparent'
+                            ? 'outlined'
+                            : 'filled',
+                },
+            };
+        },
+        render: function CheckoutRootRender({ children, ...theme }) {
+            const isStaticPreview = useContext(CheckoutBuilderStaticContext);
             const palette = resolvePalette(theme);
             const colorScheme = theme.themeMode === 'system' ? 'light dark' : theme.themeMode;
             return (
                 <div
                     data-checkout-page
+                    data-checkout-static={isStaticPreview || undefined}
                     data-checkout-width={theme.maxWidth ?? 'lg'}
                     style={{
                         ...variables(theme as BuilderRootProps),
@@ -1248,18 +1470,17 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             label: 'Banner',
             fields: {
                 imageUrl: imageField('Imagem do banner'),
+                mobileImageUrl: imageField('Imagem para celular (opcional)'),
                 alt: { type: 'text', label: 'Texto alternativo' },
                 aspectRatio: {
                     type: 'select',
                     label: 'Formato',
-                    options: [
-                        { label: 'Faixa baixa · 4:1', value: '4/1' },
-                        { label: 'Panorâmico · 3:1', value: '3/1' },
-                        { label: 'Retangular alto · 2:1', value: '2/1' },
-                        { label: 'Paisagem · 16:9', value: '16/9' },
-                        { label: 'Quadrado · 1:1', value: '1/1' },
-                        { label: 'Vertical · 4:5', value: '4/5' },
-                    ],
+                    options: bannerRatioOptions,
+                },
+                mobileAspectRatio: {
+                    type: 'select',
+                    label: 'Formato no celular',
+                    options: [{ label: 'Automático', value: 'auto' }, ...bannerRatioOptions],
                 },
                 fit: {
                     type: 'select',
@@ -1272,12 +1493,21 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             },
             defaultProps: {
                 imageUrl: '',
+                mobileImageUrl: '',
                 alt: 'Banner da oferta',
                 aspectRatio: '3/1',
+                mobileAspectRatio: 'auto',
                 fit: 'cover',
             },
-            render: ({ imageUrl, alt, aspectRatio, fit }) => (
-                <CheckoutBanner imageUrl={imageUrl} alt={alt} aspectRatio={aspectRatio} fit={fit} />
+            render: ({ imageUrl, mobileImageUrl, alt, aspectRatio, mobileAspectRatio, fit }) => (
+                <CheckoutBanner
+                    imageUrl={imageUrl}
+                    mobileImageUrl={mobileImageUrl}
+                    alt={alt}
+                    aspectRatio={aspectRatio}
+                    mobileAspectRatio={mobileAspectRatio}
+                    fit={fit}
+                />
             ),
         },
         grid: {
@@ -1539,17 +1769,31 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             label: 'Benefícios',
             fields: {
                 layout: benefitsLayoutField,
+                eyebrow: { type: 'text', label: 'Sobretítulo (opcional)' },
                 title: { type: 'text', label: 'Título', contentEditable: true },
+                description: { type: 'textarea', label: 'Subtítulo (opcional)' },
                 items: {
                     type: 'array',
                     label: 'Benefícios',
                     min: 1,
                     max: 6,
                     arrayFields: {
+                        icon: {
+                            type: 'select',
+                            label: 'Ícone',
+                            options: [
+                                { label: 'Automático', value: '' },
+                                ...checkoutBenefitIcons.map((icon) => ({
+                                    label: benefitIconLabels[icon] ?? icon,
+                                    value: icon,
+                                })),
+                            ],
+                        },
                         title: { type: 'text', label: 'Título' },
                         description: { type: 'textarea', label: 'Descrição' },
                     },
                     defaultItemProps: {
+                        icon: '',
                         title: 'Novo benefício',
                         description: 'Descreva este benefício.',
                     },
@@ -1571,15 +1815,23 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                     { title: 'Suporte de verdade', description: 'Tenha ajuda quando precisar.' },
                 ],
             },
-            render: ({ layout, title, items }) => (
-                <CheckoutBenefits layout={layout ?? 'cards'} title={title} items={items} />
+            render: ({ layout, eyebrow, title, description, items }) => (
+                <CheckoutBenefits
+                    layout={layout ?? 'cards'}
+                    eyebrow={eyebrow || undefined}
+                    title={title}
+                    description={description || undefined}
+                    items={items}
+                />
             ),
         },
         testimonials: {
             label: 'Depoimentos',
             fields: {
                 layout: testimonialsLayoutField,
+                eyebrow: { type: 'text', label: 'Sobretítulo (opcional)' },
                 title: { type: 'text', label: 'Título', contentEditable: true },
+                description: { type: 'textarea', label: 'Subtítulo (opcional)' },
                 items: {
                     type: 'array',
                     label: 'Depoimentos',
@@ -1630,9 +1882,11 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                     },
                 ],
             },
-            render: ({ layout, title, items }) => (
+            render: ({ layout, eyebrow, title, description, items }) => (
                 <CheckoutTestimonials
                     layout={layout ?? 'cards'}
+                    eyebrow={eyebrow || undefined}
+                    description={description || undefined}
                     title={title}
                     items={items.map((item) => ({ ...item, rating: item.rating ?? 5 }))}
                 />
@@ -1642,7 +1896,9 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             label: 'Perguntas frequentes',
             fields: {
                 layout: faqLayoutField,
+                eyebrow: { type: 'text', label: 'Sobretítulo (opcional)' },
                 title: { type: 'text', label: 'Título', contentEditable: true },
+                description: { type: 'textarea', label: 'Subtítulo (opcional)' },
                 items: {
                     type: 'array',
                     label: 'Perguntas',
@@ -1670,8 +1926,14 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                     },
                 ],
             },
-            render: ({ layout, title, items }) => (
-                <CheckoutFaq layout={layout ?? 'accordion'} title={title} items={items} />
+            render: ({ layout, eyebrow, title, description, items }) => (
+                <CheckoutFaq
+                    layout={layout ?? 'accordion'}
+                    eyebrow={eyebrow || undefined}
+                    title={title}
+                    description={description || undefined}
+                    items={items}
+                />
             ),
         },
         guarantee: {
@@ -1710,9 +1972,32 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 title: 'Esta condição termina em breve',
                 deadline: '2026-12-31T23:59:59-03:00',
             },
-            render: ({ layout, title, deadline }) => (
-                <CheckoutCountdown layout={layout ?? 'cards'} title={title} deadline={deadline} />
-            ),
+            render: (props) => <CountdownPreview {...props} />,
+        },
+        order_bump: {
+            label: 'Order bump',
+            fields: {
+                layout: orderBumpLayoutField,
+                priceId: bumpPriceField,
+                callToAction: { type: 'text', label: 'Chamada da caixa de seleção' },
+                title: { type: 'text', label: 'Título da oferta', contentEditable: true },
+                description: { type: 'textarea', label: 'Descrição' },
+                badge: { type: 'text', label: 'Selo (opcional)' },
+                originalPrice: { type: 'text', label: 'Preço antigo (riscado, opcional)' },
+                imageUrl: imageField('Imagem do produto (opcional)'),
+            },
+            defaultProps: {
+                layout: 'highlight',
+                priceId: '',
+                callToAction: 'Sim, quero adicionar ao meu pedido',
+                title: 'Leve também o material complementar',
+                description:
+                    'Oferta exclusiva desta página: acelere seus resultados com um conteúdo extra.',
+                badge: 'Oferta única',
+                originalPrice: '',
+                imageUrl: '',
+            },
+            render: (props) => <OrderBumpPreview {...props} />,
         },
         product_summary: {
             label: 'Carrinho e finalização',
@@ -2095,6 +2380,7 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             fields: {
                 layout: planComparisonLayoutField,
                 title: { type: 'text', label: 'Título', contentEditable: true },
+                description: { type: 'textarea', label: 'Subtítulo (opcional)' },
                 plans: {
                     type: 'array',
                     label: 'Planos',
@@ -2102,14 +2388,21 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                     max: 6,
                     arrayFields: {
                         name: { type: 'text', label: 'Nome' },
-                        price: { type: 'text', label: 'Preço' },
+                        priceId: priceLinkField,
+                        price: { type: 'text', label: 'Preço exibido' },
+                        period: { type: 'text', label: 'Período (ex.: /mês)' },
+                        originalPrice: { type: 'text', label: 'Preço antigo (riscado)' },
                         description: { type: 'textarea', label: 'Descrição' },
+                        features: { type: 'textarea', label: 'Benefícios (um por linha)' },
                         featured: { type: 'radio', label: 'Destaque', options: booleanOptions },
                     },
                     defaultItemProps: {
                         name: 'Plano',
                         price: 'R$ 97',
+                        period: '',
+                        originalPrice: '',
                         description: 'Acesso completo aos principais recursos.',
+                        features: 'Acesso a todo o conteúdo\nSuporte por e-mail',
                         featured: false,
                     },
                     getItemSummary: (item) => item.name,
@@ -2122,14 +2415,28 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                     {
                         name: 'Básico',
                         price: 'R$ 47',
+                        period: '/mês',
                         description: 'Para começar.',
+                        features: 'Acesso ao conteúdo principal\nSuporte por e-mail',
                         featured: false,
                     },
-                    { name: 'Pro', price: 'R$ 97', description: 'Mais vendido.', featured: true },
+                    {
+                        name: 'Pro',
+                        price: 'R$ 97',
+                        period: '/mês',
+                        description: 'Para quem quer ir além.',
+                        features: 'Tudo do Básico\nMentorias ao vivo\nSuporte prioritário',
+                        featured: true,
+                    },
                 ],
             },
-            render: ({ layout, title, plans }) => (
-                <CheckoutPlans layout={layout ?? 'cards'} title={title} plans={plans} />
+            render: ({ layout, title, description, plans }) => (
+                <PlansPreview
+                    layout={layout ?? 'cards'}
+                    title={title}
+                    description={description}
+                    plans={plans}
+                />
             ),
         },
         data_table: {
@@ -2182,7 +2489,9 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             label: 'Estatísticas',
             fields: {
                 layout: statsLayoutField,
+                eyebrow: { type: 'text', label: 'Sobretítulo (opcional)' },
                 title: { type: 'text', label: 'Título', contentEditable: true },
+                description: { type: 'textarea', label: 'Subtítulo (opcional)' },
                 items: {
                     type: 'array',
                     label: 'Metricas',
@@ -2209,8 +2518,14 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                     { value: '+2k', label: 'Compras', detail: 'processadas' },
                 ],
             },
-            render: ({ layout, title, items }) => (
-                <CheckoutStats layout={layout ?? 'cards'} title={title} items={items} />
+            render: ({ layout, eyebrow, title, description, items }) => (
+                <CheckoutStats
+                    layout={layout ?? 'cards'}
+                    eyebrow={eyebrow || undefined}
+                    title={title}
+                    description={description || undefined}
+                    items={items}
+                />
             ),
         },
         before_after: {
@@ -2423,6 +2738,72 @@ function withComponentSurfaceControls(
         }),
     ) as Config<BuilderProps, BuilderRootProps>['components'];
     return { ...config, components };
+}
+
+/** Miniaturas dos presets: fundo, cartão, destaque e texto de cada identidade. */
+function BrandPresetPicker({ value, onChange }: { value: string; onChange(value: string): void }) {
+    return (
+        <FieldLabel label="Identidade visual">
+            <div className="grid gap-1.5">
+                <div className="grid grid-cols-2 gap-2">
+                    {checkoutBrandPresets.map((preset) => {
+                        const [background, surface, accent, text] = preset.swatch;
+                        const active = preset.value === value;
+                        return (
+                            <button
+                                key={preset.value}
+                                type="button"
+                                onClick={() => onChange(preset.value)}
+                                aria-pressed={active}
+                                className={`grid gap-1.5 rounded-lg border p-1.5 text-left transition ${
+                                    active
+                                        ? 'border-primary ring-2 ring-primary/20'
+                                        : 'border-border hover:border-primary/50'
+                                }`}
+                            >
+                                <span
+                                    className="relative block h-12 overflow-hidden rounded-md"
+                                    style={{ background }}
+                                >
+                                    <span
+                                        className="absolute inset-x-2 top-2 bottom-0 rounded-t-md p-1.5"
+                                        style={{
+                                            background: surface,
+                                            boxShadow: '0 1px 3px rgb(0 0 0 / 12%)',
+                                        }}
+                                    >
+                                        <span
+                                            className="block h-1.5 w-3/5 rounded-full"
+                                            style={{ background: text, opacity: 0.85 }}
+                                        />
+                                        <span
+                                            className="mt-1.5 block h-3 w-2/5 rounded"
+                                            style={{
+                                                background: accent,
+                                                borderRadius:
+                                                    preset.theme.buttonShape === 'pill'
+                                                        ? 999
+                                                        : preset.theme.buttonShape === 'square'
+                                                          ? 1
+                                                          : 3,
+                                            }}
+                                        />
+                                    </span>
+                                </span>
+                                <span className="px-0.5 text-[12px] font-semibold leading-4">
+                                    {preset.label}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+                <p className="text-[11px] leading-4 text-muted">
+                    {checkoutBrandPresets.find((preset) => preset.value === value)?.description ??
+                        'Escolha um ponto de partida e depois ajuste cores e fontes da sua marca.'}
+                </p>
+            </div>
+        </FieldLabel>
+    );
 }
 
 type TemplateOption<T extends string> = { value: T; label: string; description: string };
@@ -4762,22 +5143,7 @@ function variables(theme: BuilderRootProps) {
 }
 
 function fontStack(font: FontPreset) {
-    return (
-        {
-            system: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-            geist: 'Geist, Inter, system-ui, sans-serif',
-            inter: "Inter, 'Segoe UI', system-ui, sans-serif",
-            montserrat: "Montserrat, Avenir, 'Segoe UI', sans-serif",
-            poppins: "Poppins, Montserrat, 'Segoe UI', sans-serif",
-            roboto: 'Roboto, Arial, sans-serif',
-            'open-sans': "'Open Sans', Arial, sans-serif",
-            lato: "Lato, 'Segoe UI', sans-serif",
-            arial: 'Arial, Helvetica, sans-serif',
-            georgia: "Georgia, 'Times New Roman', serif",
-            serif: "'Iowan Old Style', Baskerville, 'Times New Roman', serif",
-            mono: "'SFMono-Regular', Consolas, 'Liberation Mono', monospace",
-        }[font] ?? 'system-ui, sans-serif'
-    );
+    return checkoutFontStack(font);
 }
 
 function fullWidth(): React.CSSProperties {
@@ -6151,4 +6517,111 @@ function formatDeadline(value: string) {
     return Number.isNaN(date.getTime())
         ? 'Defina uma data válida'
         : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeStyle: 'short' }).format(date);
+}
+
+/** Benefícios do plano: um por linha no editor. */
+function featureLines(value: string | undefined) {
+    return (value ?? '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+}
+
+/** Pré-visualização dos planos: selecionável no editor quando há preço vinculado. */
+function CountdownPreview({ layout, title, deadline }: BuilderProps['countdown']) {
+    const isStatic = useContext(CheckoutBuilderStaticContext);
+    return (
+        <CheckoutCountdown
+            layout={layout ?? 'cards'}
+            title={title}
+            deadline={deadline}
+            live={!isStatic}
+        />
+    );
+}
+
+/** Preview interativo: o preço vem do produto vinculado ao checkout. */
+function OrderBumpPreview({
+    layout,
+    priceId,
+    title,
+    description,
+    callToAction,
+    badge,
+    originalPrice,
+    imageUrl,
+}: BuilderProps['order_bump']) {
+    const products = useContext(CheckoutBuilderProductsContext);
+    const product = products.find((item) => item.priceId === priceId);
+    const [selected, setSelected] = useState(false);
+    // O checkout só mostra o bump com um preço adicional vinculado; o editor explica o motivo.
+    const hiddenReason = !product
+        ? products.length <= 1
+            ? 'Oculto no checkout: adicione um segundo produto ao checkout (aba Produtos) e vincule-o em “Produto oferecido”.'
+            : 'Oculto no checkout: escolha o produto oferecido nas configurações deste bloco.'
+        : product.isDefault
+          ? 'Oculto no checkout: o produto oferecido é o mesmo produto principal. Escolha outro preço.'
+          : undefined;
+    return (
+        <div style={{ display: 'grid', gap: 8 }}>
+            {hiddenReason && (
+                <p
+                    style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 8,
+                        margin: 0,
+                        border: '1px solid #f3d38b',
+                        borderRadius: 10,
+                        background: '#fff8e6',
+                        padding: '9px 12px',
+                        color: '#8a5a00',
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        lineHeight: 1.45,
+                    }}
+                >
+                    {hiddenReason}
+                </p>
+            )}
+            <CheckoutOrderBump
+                layout={layout ?? 'highlight'}
+                title={title || product?.productName || 'Oferta complementar'}
+                description={description || undefined}
+                callToAction={callToAction}
+                badge={badge || undefined}
+                originalPrice={originalPrice || undefined}
+                imageUrl={imageUrl || undefined}
+                imageAlt={title}
+                price={product ? formatMinor(product.amountMinor, product.currency) : 'R$ 0,00'}
+                selected={selected}
+                onChange={setSelected}
+            />
+        </div>
+    );
+}
+
+function PlansPreview({
+    layout,
+    title,
+    description,
+    plans,
+}: {
+    layout: PlanComparisonLayout;
+    title: string;
+    description?: string;
+    plans: BuilderProps['plan_comparison']['plans'];
+}) {
+    const selectable = plans.some((plan) => Boolean(plan.priceId));
+    const featuredIndex = plans.findIndex((plan) => plan.featured);
+    const [selected, setSelected] = useState(featuredIndex >= 0 ? featuredIndex : 0);
+    return (
+        <CheckoutPlans
+            layout={layout}
+            title={title}
+            description={description || undefined}
+            plans={plans.map((plan) => ({ ...plan, features: featureLines(plan.features) }))}
+            {...(selectable ? { selectedIndex: selected, onSelect: setSelected } : {})}
+        />
+    );
 }

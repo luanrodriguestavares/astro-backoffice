@@ -5,17 +5,18 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 import { Brand } from '@/components/brand';
+import { isHiddenInV1 } from '@/lib/features/release';
 import { AppearanceOnboarding } from '@/components/dashboard/appearance-onboarding';
 import { setAccentTheme } from '@/components/layout/accent-theme-controller';
 import { HeaderSearch } from '@/components/layout/header-search';
 import { NotificationCenter } from '@/components/layout/notification-center';
 import { ProfileMenu } from '@/components/layout/profile-menu';
+import { ShellActionsProvider } from '@/components/layout/shell-actions';
 import { WorkspaceSwitcher } from '@/components/layout/workspace-switcher';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { ThemeSwitch } from '@/components/ui/theme-switch';
 import type { CurrentUser, Organization } from '@/lib/api/types';
 import { canAccessNavigationItem } from '@/lib/navigation/access';
 
@@ -62,9 +63,11 @@ const overview: NavigationItem[] = [
     },
 ];
 
-const navigationGroups: { label: string; items: NavigationItem[] }[] = [
+const navigationGroups: { label: string; icon: IconName; items: NavigationItem[] }[] = [
+    { label: 'Painel', icon: 'bolt', items: overview },
     {
         label: 'Vendas',
+        icon: 'cart',
         items: [
             {
                 label: 'Produtos',
@@ -121,6 +124,7 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
     },
     {
         label: 'Conteúdo',
+        icon: 'folder',
         items: [
             {
                 label: 'Biblioteca de mídia',
@@ -133,6 +137,7 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
     },
     {
         label: 'Comunidade',
+        icon: 'heart',
         items: [
             {
                 label: 'Roadmap',
@@ -143,6 +148,7 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
     },
     {
         label: 'Produtos físicos',
+        icon: 'box',
         items: [
             {
                 label: 'Estoque',
@@ -164,6 +170,7 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
     },
     {
         label: 'Financeiro',
+        icon: 'card',
         items: [
             {
                 label: 'Faturas',
@@ -182,7 +189,37 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
         ],
     },
     {
+        // Decide por onde cada venda é cobrada; Integrações só conecta os provedores.
+        label: 'Orquestração',
+        icon: 'route',
+        items: [
+            {
+                label: 'Resumo',
+                href: '/orchestration',
+                icon: 'pulse',
+                exact: true,
+                permission: 'payments.read',
+                feature: 'gateways.connected',
+            },
+            {
+                label: 'Regras',
+                href: '/orchestration/rules',
+                icon: 'route',
+                permission: 'gateway_connections.manage',
+                feature: 'gateways.connected',
+            },
+            {
+                label: 'Taxas',
+                href: '/orchestration/costs',
+                icon: 'coins',
+                permission: 'gateway_connections.manage',
+                feature: 'gateways.connected',
+            },
+        ],
+    },
+    {
         label: 'Integrações',
+        icon: 'plug',
         items: [
             {
                 label: 'Gateways',
@@ -216,6 +253,7 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
     },
     {
         label: 'Configurações',
+        icon: 'settings',
         items: [
             {
                 label: 'Equipe',
@@ -269,16 +307,27 @@ export function DashboardShell({
     const organizationName = organization.displayName ?? organization.legalName ?? 'Organização';
     const permissions = new Set(organization.permissions ?? []);
     const canSee = (item: NavigationItem) =>
-        canAccessNavigationItem(item, permissions, billingAccess);
+        !isHiddenInV1(item.href) && canAccessNavigationItem(item, permissions, billingAccess);
     const visibleNavigationGroups = navigationGroups
         .map((group) => ({
             ...group,
             items: group.items.filter(canSee),
         }))
         .filter((group) => group.items.length > 0);
-    const inaccessibleRoute = [...overview, ...navigationGroups.flatMap((group) => group.items)]
+    const inaccessibleRoute = navigationGroups
+        .flatMap((group) => group.items)
         .filter((item) => item.feature !== undefined)
         .find((item) => matchesNavigationPath(pathname, item.href) && !canSee(item));
+    const activeGroup =
+        visibleNavigationGroups.find((group) =>
+            group.items.some((item) => isActive(pathname, item.href, currentView, item.exact)),
+        )?.label ?? null;
+    const [expandedGroup, setExpandedGroup] = useState<string | null>(activeGroup);
+    const [previousActiveGroup, setPreviousActiveGroup] = useState(activeGroup);
+    if (activeGroup !== previousActiveGroup) {
+        setPreviousActiveGroup(activeGroup);
+        if (activeGroup !== null) setExpandedGroup(activeGroup);
+    }
     const focusedEditor = /^\/checkouts\/[^/]+\/(?:builder|preview)\/?$/.test(pathname);
     const dashboardDark = dashboardTheme === 'dark';
 
@@ -317,7 +366,7 @@ export function DashboardShell({
         return (
             <div
                 className={
-                    dashboardDark ? 'dashboard-dark min-h-screen' : 'min-h-screen bg-[#f7f7fc]'
+                    dashboardDark ? 'dashboard-dark min-h-screen' : 'min-h-screen bg-[#f6f6f6]'
                 }
             >
                 {children}
@@ -327,9 +376,14 @@ export function DashboardShell({
 
     return (
         <div
-            className={`astro-shell min-h-screen transition-[grid-template-columns] duration-300 lg:grid ${dashboardDark ? 'dashboard-dark' : ''} ${collapsed ? 'lg:grid-cols-[76px_1fr]' : 'lg:grid-cols-[248px_1fr]'}`}
+            className={`astro-shell relative min-h-screen transition-[grid-template-columns] duration-200 ease-out lg:grid lg:h-screen lg:overflow-hidden ${dashboardDark ? 'dashboard-dark' : ''} ${collapsed ? 'lg:grid-cols-[76px_1fr]' : 'lg:grid-cols-[248px_1fr]'}`}
         >
-            <AmbientBackground />
+            {/* Estende a faixa verde da logo por trás do canto arredondado do painel. */}
+            <div
+                aria-hidden="true"
+                className={`pointer-events-none absolute left-0 top-0 hidden h-16 bg-[#C6F448] transition-[width] duration-200 ease-out lg:block ${collapsed ? 'w-[100px]' : 'w-[272px]'}`}
+            />
+
             <AppearanceOnboarding
                 open={appearanceOnboarding}
                 organization={organization}
@@ -340,31 +394,31 @@ export function DashboardShell({
                 <Button
                     type="button"
                     aria-label="Fechar menu"
-                    className="fixed inset-0 z-30 bg-[#17172c]/20 backdrop-blur-sm lg:hidden"
+                    className="fixed inset-0 z-30 bg-[#111111]/20 backdrop-blur-sm lg:hidden"
                     onClick={() => setOpen(false)}
                 />
             )}
 
             <aside
                 data-tour="main-navigation"
-                className={`astro-sidebar fixed inset-y-0 left-0 z-40 flex w-[280px] flex-col border-r border-border/70 bg-white/62 px-4 py-5 shadow-[20px_0_80px_color-mix(in_srgb,var(--brand)_3.5%,transparent)] backdrop-blur-3xl transition-all duration-300 lg:sticky lg:top-0 lg:h-screen lg:w-auto ${collapsed ? 'lg:px-2.5' : ''} ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+                className={`astro-sidebar fixed inset-y-0 left-0 z-40 flex w-[280px] flex-col px-4 py-5 transition-all duration-200 ease-out max-lg:border-r max-lg:border-border max-lg:bg-surface/96 max-lg:shadow-[18px_0_50px_rgb(16_18_20_/_8%)] max-lg:backdrop-blur-md lg:sticky lg:top-0 lg:h-screen lg:w-auto ${collapsed ? 'lg:px-2.5' : ''} ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
             >
                 <Button
                     type="button"
                     aria-label={collapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
                     aria-expanded={!collapsed}
                     title={collapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
-                    className="shell-header-control absolute -right-3 top-7 z-10 hidden size-7 place-items-center rounded-full text-muted shadow-[0_8px_22px_color-mix(in_srgb,var(--brand)_10%,transparent)] transition hover:scale-105 hover:text-brand lg:grid"
+                    className="shell-header-control absolute -right-3 top-[50px] z-10 hidden size-7 place-items-center rounded-full text-muted shadow-[0_8px_22px_color-mix(in_srgb,var(--brand)_10%,transparent)] transition hover:scale-105 hover:text-brand lg:grid"
                     onClick={() => setCollapsed((value) => !value)}
                 >
                     <Icon
                         name="arrow-right"
-                        className={`size-3 transition-transform duration-300 ${collapsed ? '' : 'rotate-180'}`}
+                        className={`size-3 transition-transform duration-200 ease-out ${collapsed ? '' : 'rotate-180'}`}
                     />
                 </Button>
 
                 <div
-                    className={`flex h-10 items-center justify-between ${collapsed ? 'lg:justify-center' : 'px-1'}`}
+                    className={`relative -mx-4 -mt-5 flex h-16 items-center justify-center bg-[#C6F448] px-5 ${collapsed ? 'lg:-mx-2.5 lg:px-2.5' : ''}`}
                 >
                     <span className="lg:hidden">
                         <Brand />
@@ -375,7 +429,7 @@ export function DashboardShell({
                     <Button
                         type="button"
                         aria-label="Fechar menu"
-                        className="rounded-xl p-2 text-muted transition hover:bg-white/70 lg:hidden"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-2 text-muted transition hover:bg-white/70 lg:hidden"
                         onClick={() => setOpen(false)}
                     >
                         <Icon name="close" />
@@ -389,93 +443,167 @@ export function DashboardShell({
                 />
 
                 <nav
-                    className="mt-5 min-h-0 flex-1 space-y-5 overflow-y-auto pr-1 [scrollbar-width:none]"
+                    className="mt-5 min-h-0 flex-1 space-y-1 overflow-y-auto pr-1 [scrollbar-width:none]"
                     aria-label="Navegação principal"
                 >
-                    <div className="space-y-0.5">
-                        {overview.filter(canSee).map((item) => (
-                            <NavItem
-                                key={item.href}
-                                label={item.label}
-                                href={item.href}
-                                icon={item.icon}
-                                active={isActive(pathname, item.href, currentView, item.exact)}
-                                collapsed={collapsed}
-                                badge={item.badge}
-                                onClick={() => setOpen(false)}
-                            />
-                        ))}
-                    </div>
                     {visibleNavigationGroups.map((group) => (
-                        <div key={group.label}>
-                            <p
-                                className={`shell-nav-label mb-1.5 px-3 text-[9px] font-semibold uppercase tracking-[0.16em] text-muted ${collapsed ? 'lg:hidden' : ''}`}
-                            >
-                                {group.label}
-                            </p>
-                            <div className="space-y-0.5">
-                                {group.items.map((item) => (
-                                    <NavItem
-                                        key={`${group.label}-${item.label}`}
-                                        label={item.label}
-                                        href={item.href}
-                                        icon={item.icon}
-                                        active={isActive(
-                                            pathname,
-                                            item.href,
-                                            currentView,
-                                            item.exact,
-                                        )}
-                                        collapsed={collapsed}
-                                        badge={item.badge}
-                                        onClick={() => setOpen(false)}
-                                    />
-                                ))}
-                            </div>
-                        </div>
+                        <NavGroup
+                            key={group.label}
+                            label={group.label}
+                            icon={group.icon}
+                            expanded={collapsed || expandedGroup === group.label}
+                            containsActive={activeGroup === group.label}
+                            collapsed={collapsed}
+                            onToggle={() =>
+                                setExpandedGroup((current) =>
+                                    current === group.label ? null : group.label,
+                                )
+                            }
+                        >
+                            {group.items.map((item) => (
+                                <NavItem
+                                    key={`${group.label}-${item.label}`}
+                                    label={item.label}
+                                    href={item.href}
+                                    icon={item.icon}
+                                    active={isActive(pathname, item.href, currentView, item.exact)}
+                                    collapsed={collapsed}
+                                    badge={item.badge}
+                                    onClick={() => setOpen(false)}
+                                />
+                            ))}
+                        </NavGroup>
                     ))}
                 </nav>
 
                 {/* <div className="mt-auto pt-4">{!collapsed && <ProCard />}</div> */}
-            </aside>
 
-            <div className="relative z-10 min-w-0">
-                <header className="astro-topbar sticky top-0 z-20 flex h-[76px] items-center gap-3 bg-gradient-to-b from-background/95 via-background/75 to-transparent px-4 backdrop-blur-xl sm:px-6 lg:px-9">
-                    <Button
-                        type="button"
-                        aria-label="Abrir menu"
-                        className="glass-panel-soft rounded-xl p-2.5 text-muted lg:hidden"
-                        onClick={() => setOpen(true)}
-                    >
-                        <Icon name="menu" />
-                    </Button>
-
-                    <div data-tour="global-search" className="min-w-0 flex-1">
-                        <HeaderSearch
-                            dark={dashboardDark}
-                            permissions={organization.permissions ?? []}
-                            billingAccess={billingAccess}
+                <div className="shell-sidebar-footer mt-3 border-t border-border/70 pt-3">
+                    <div data-tour="account-menu">
+                        <ProfileMenu
+                            user={user}
+                            contextLabel={organizationName}
+                            settingsHref="/settings"
+                            logoutAction="/api/auth/logout"
+                            placement="sidebar"
+                            collapsed={collapsed}
+                            theme={{ dark: dashboardDark, onToggle: toggleDashboardTheme }}
                         />
                     </div>
+                </div>
+            </aside>
 
-                    <div className="ml-auto flex items-center gap-2.5">
-                        <ThemeSwitch dark={dashboardDark} onToggle={toggleDashboardTheme} />
-                        <NotificationCenter storageScope={`${user.id}:${organization.id}`} />
-                        <div data-tour="account-menu">
-                            <ProfileMenu
-                                user={user}
-                                contextLabel={organizationName}
-                                settingsHref="/settings"
-                                logoutAction="/api/auth/logout"
-                            />
-                        </div>
-                    </div>
-                </header>
+            <div className="astro-shell-panel relative z-10 min-w-0 lg:h-screen lg:overflow-hidden lg:rounded-l-[24px]">
+                <AmbientBackground />
+                <div className="astro-shell-scroll relative lg:h-full lg:overflow-y-auto">
+                    <header className="astro-topbar sticky top-0 z-20 flex h-16 items-center gap-3 bg-gradient-to-b from-background/95 via-background/75 to-transparent px-4 backdrop-blur-xl sm:px-6 lg:hidden">
+                        <Button
+                            type="button"
+                            aria-label="Abrir menu"
+                            className="glass-panel-soft rounded-xl p-2.5 text-muted"
+                            onClick={() => setOpen(true)}
+                        >
+                            <Icon name="menu" />
+                        </Button>
+                        <Brand />
+                    </header>
 
-                <main className="mx-auto w-full max-w-[1540px] px-4 pb-10 pt-3 sm:px-6 sm:pt-5 lg:px-10 lg:pb-14">
-                    {children}
-                </main>
+                    <main className="mx-auto w-full max-w-[1540px] px-4 pb-10 pt-3 sm:px-6 sm:pt-5 lg:px-10 lg:pb-14 lg:pt-8">
+                        <ShellActionsProvider
+                            actions={
+                                <>
+                                    <span data-tour="global-search">
+                                        <HeaderSearch
+                                            dark={dashboardDark}
+                                            permissions={organization.permissions ?? []}
+                                            billingAccess={billingAccess}
+                                        />
+                                    </span>
+                                    <NotificationCenter
+                                        storageScope={`${user.id}:${organization.id}`}
+                                    />
+                                </>
+                            }
+                        >
+                            {children}
+                        </ShellActionsProvider>
+                    </main>
+                </div>
             </div>
+        </div>
+    );
+}
+
+const navGroupTransition = { duration: 0.22, ease: [0.4, 0, 0.2, 1] } as const;
+
+function NavGroup({
+    label,
+    icon,
+    expanded,
+    containsActive,
+    collapsed,
+    onToggle,
+    children,
+}: {
+    label: string;
+    icon: IconName;
+    expanded: boolean;
+    containsActive: boolean;
+    collapsed: boolean;
+    onToggle: () => void;
+    children: React.ReactNode;
+}) {
+    const reduceMotion = useReducedMotion();
+    const transition = reduceMotion ? { duration: 0 } : navGroupTransition;
+
+    return (
+        <div className="astro-nav-group" data-collapsed={collapsed}>
+            <Button
+                type="button"
+                aria-expanded={expanded}
+                onClick={onToggle}
+                data-expanded={expanded}
+                className={`shell-nav-group group flex h-10 w-full items-center gap-3 rounded-xl px-3 text-left text-[10px] font-semibold uppercase tracking-[0.1em] text-muted/80 transition-colors duration-200 hover:bg-foreground/[0.04] hover:text-foreground ${collapsed ? 'lg:hidden' : ''}`}
+            >
+                <Icon
+                    name={icon}
+                    className="shell-nav-group-icon size-[16px] shrink-0 text-muted transition-colors duration-200 group-hover:text-foreground"
+                />
+                <span className="flex-1 truncate">{label}</span>
+                {containsActive && !expanded && (
+                    <span className="astro-nav-active-dot size-1 rounded-full bg-brand" />
+                )}
+                <motion.span
+                    className="grid place-items-center text-muted"
+                    initial={false}
+                    animate={{ rotate: expanded ? 0 : -90 }}
+                    transition={transition}
+                >
+                    <Icon name="chevron-down" className="size-3" />
+                </motion.span>
+            </Button>
+            <AnimatePresence initial={false}>
+                {expanded && (
+                    <motion.div
+                        key="items"
+                        className="overflow-hidden"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={transition}
+                    >
+                        <motion.div
+                            className={`shell-nav-group-items space-y-0.5 pb-1.5 pt-0.5 ${collapsed ? 'lg:ml-0 lg:border-l-0 lg:pl-0' : ''} ml-[19.5px] border-l border-border pl-2`}
+                            initial={{ y: -6 }}
+                            animate={{ y: 0 }}
+                            exit={{ y: -6 }}
+                            transition={transition}
+                        >
+                            {children}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
@@ -507,7 +635,7 @@ function NavItem({
                 title={collapsed ? `${label}${badge ? ` · ${badge}` : ''}` : undefined}
                 aria-label={collapsed ? label : undefined}
                 data-active={active}
-                className={`astro-nav-item group relative flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-medium text-muted transition-all duration-200 hover:bg-surface/55 hover:text-foreground ${collapsed ? 'lg:justify-center lg:gap-0 lg:px-2' : ''}`}
+                className={`astro-nav-item group relative flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-medium text-muted transition-all duration-200 hover:bg-foreground/[0.04] hover:text-foreground ${collapsed ? 'lg:justify-center lg:gap-0 lg:px-2' : ''}`}
             >
                 <motion.span
                     className="grid shrink-0 place-items-center"
@@ -519,10 +647,10 @@ function NavItem({
                             transition: { type: 'spring', stiffness: 360, damping: 24 },
                         },
                         hover: {
-                            y: -2.5,
-                            rotate: -8,
-                            scale: 1.09,
-                            transition: { type: 'spring', stiffness: 420, damping: 20 },
+                            y: -1,
+                            rotate: -3,
+                            scale: 1.04,
+                            transition: { type: 'spring', stiffness: 480, damping: 34 },
                         },
                     }}
                 >
@@ -539,9 +667,6 @@ function NavItem({
                         {badge}
                     </span>
                 )}
-                {active && !collapsed && !badge && (
-                    <span className="astro-nav-active-dot ml-auto size-1 rounded-full bg-brand" />
-                )}
             </Link>
         </motion.div>
     );
@@ -554,7 +679,7 @@ function NavItem({
                 <span className="pro-card-icon grid size-8 place-items-center rounded-xl border border-white/80 bg-white/55 text-brand backdrop-blur-xl transition duration-500 group-hover:-translate-y-0.5">
                     <Icon name="bolt" className="size-4" />
                 </span>
-                <p className="pro-card-title mt-3 text-[13px] font-semibold leading-5 tracking-[-0.02em] text-[#22233b]">
+                <p className="pro-card-title mt-3 text-[13px] font-semibold leading-5 tracking-[-0.02em] text-[#1a1a1a]">
                     Eleve suas vendas com o Astro Pro
                 </p>
                 <p className="mt-1.5 text-[10px] leading-4 text-muted">
@@ -575,7 +700,7 @@ function NavItem({
 function AmbientBackground() {
     return (
         <div
-            className="astro-ambient pointer-events-none fixed inset-0 z-0 overflow-hidden"
+            className="astro-ambient pointer-events-none fixed inset-0 z-0 overflow-hidden lg:absolute"
             aria-hidden="true"
         >
             <div className="absolute -right-48 -top-56 size-[620px] rounded-full bg-brand opacity-[0.055] blur-[90px]" />

@@ -121,14 +121,14 @@ export function AppearancePreferences({ organization }: { organization: Organiza
                                     onClick={() => chooseTheme(option.value)}
                                     className={`group flex min-h-24 items-start gap-3 rounded-2xl border p-4 text-left transition ${
                                         theme === option.value
-                                            ? 'border-brand/40 bg-brand-soft/72 text-brand-strong shadow-[0_12px_30px_color-mix(in_srgb,var(--brand)_12%,transparent)]'
+                                            ? 'border-[color-mix(in_srgb,var(--foreground)_18%,var(--border))] bg-surface-muted/55 text-foreground shadow-[0_8px_24px_rgb(16_18_20_/_6%)]'
                                             : 'border-border bg-[var(--control-bg)] text-foreground hover:border-brand/24 hover:bg-surface-muted/55'
                                     }`}
                                 >
                                     <span
                                         className={`grid size-10 shrink-0 place-items-center rounded-xl border ${
                                             theme === option.value
-                                                ? 'border-brand/20 bg-white/55 text-brand-strong'
+                                                ? 'border-border bg-surface text-foreground'
                                                 : 'border-border bg-surface-muted/45 text-muted group-hover:text-brand'
                                         }`}
                                     >
@@ -168,7 +168,7 @@ export function AppearancePreferences({ organization }: { organization: Organiza
                                     onClick={() => void chooseAccent(option.value)}
                                     className={`flex min-h-[74px] items-center gap-3 rounded-2xl border p-3 text-left transition ${
                                         accent === option.value
-                                            ? 'border-brand/42 bg-brand-soft/68 shadow-[0_10px_26px_color-mix(in_srgb,var(--brand)_10%,transparent)]'
+                                            ? 'border-[color-mix(in_srgb,var(--foreground)_18%,var(--border))] bg-surface-muted/55 shadow-[0_8px_24px_rgb(16_18_20_/_6%)]'
                                             : `border-border bg-[var(--control-bg)] ${organization.canManageAppearance ? 'hover:border-brand/24 hover:bg-surface-muted/55' : 'cursor-not-allowed opacity-65'}`
                                     }`}
                                 >
@@ -206,10 +206,10 @@ function ThemePreview({ theme, accentColor }: { theme: DashboardTheme; accentCol
     return (
         <div className="border-b border-white/60 p-5 sm:p-6 lg:border-b-0 lg:border-r lg:border-white/60">
             <div
-                className={`overflow-hidden rounded-[24px] border p-3 shadow-[0_22px_60px_rgba(34,30,70,.14)] ${
+                className={`overflow-hidden rounded-[24px] border p-3 shadow-[0_22px_60px_rgba(17,17,17,.14)] ${
                     dark
                         ? 'border-white/10 bg-[#18191d] text-white'
-                        : 'border-white/80 bg-[#f8f8fc] text-[#24253c]'
+                        : 'border-white/80 bg-[#f7f7f7] text-[#1a1a1a]'
                 }`}
             >
                 <div
@@ -245,12 +245,12 @@ function ThemePreview({ theme, accentColor }: { theme: DashboardTheme; accentCol
                         />
                         <span
                             className={`block h-2 rounded-full ${
-                                dark ? 'bg-white/10' : 'bg-[#e8e7f2]'
+                                dark ? 'bg-white/10' : 'bg-[#e8e8e8]'
                             }`}
                         />
                         <span
                             className={`block h-2 rounded-full ${
-                                dark ? 'bg-white/10' : 'bg-[#e8e7f2]'
+                                dark ? 'bg-white/10' : 'bg-[#e8e8e8]'
                             }`}
                         />
                     </div>
@@ -262,7 +262,7 @@ function ThemePreview({ theme, accentColor }: { theme: DashboardTheme; accentCol
                         >
                             <span
                                 className={`block h-2 w-20 rounded-full ${
-                                    dark ? 'bg-white/18' : 'bg-[#d9d7e8]'
+                                    dark ? 'bg-white/18' : 'bg-[#e2e2e2]'
                                 }`}
                             />
                             <span

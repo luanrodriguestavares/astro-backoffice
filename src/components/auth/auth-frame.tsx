@@ -13,24 +13,22 @@ export function AuthFrame({
     const login = mode === 'login';
     return (
         <div className="astro-shell relative min-h-screen overflow-hidden px-4 py-5 sm:px-6 sm:py-8">
-            <div className="pointer-events-none absolute -left-32 top-[-8rem] size-[28rem] rounded-full bg-brand/8 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-48 right-[-8rem] size-[32rem] rounded-full bg-[#b7d8ff]/12 blur-3xl" />
             <div
-                className={`relative mx-auto grid min-h-[calc(100vh-2.5rem)] max-w-6xl overflow-hidden rounded-[32px] border border-white/85 bg-white/62 shadow-[0_32px_100px_rgba(50,43,100,.1)] backdrop-blur-3xl sm:min-h-[calc(100vh-4rem)] ${login ? 'lg:grid-cols-[.9fr_1.1fr]' : 'lg:grid-cols-[.78fr_1.22fr]'}`}
+                className={`relative mx-auto grid min-h-[calc(100vh-2.5rem)] max-w-6xl overflow-hidden rounded-[32px] border border-border bg-surface shadow-[0_24px_72px_rgb(16_18_20_/_8%)] sm:min-h-[calc(100vh-4rem)] ${login ? 'lg:grid-cols-[.9fr_1.1fr]' : 'lg:grid-cols-[.78fr_1.22fr]'}`}
             >
-                <aside className="relative hidden overflow-hidden border-r border-white/75 bg-gradient-to-br from-[#f2efff]/90 via-white/55 to-[#edf6ff]/70 p-10 lg:flex lg:flex-col xl:p-12">
-                    <div className="absolute -right-24 top-1/3 size-72 rounded-full bg-brand/10 blur-3xl" />
+                <aside className="relative hidden overflow-hidden border-r border-border bg-[#efefe9] p-10 lg:flex lg:flex-col xl:p-12">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-highlight" />
                     <div className="relative">
                         <Brand />
                     </div>
                     <div className="relative my-auto max-w-md">
-                        <span className="grid size-12 place-items-center rounded-2xl border border-white bg-white/75 text-brand shadow-[0_14px_35px_rgba(91,69,180,.12)]">
+                        <span className="grid size-12 place-items-center rounded-2xl border border-highlight bg-highlight text-highlight-contrast">
                             <Icon name={login ? 'chart' : 'bolt'} className="size-5" />
                         </span>
                         <p className="mt-7 text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-strong">
                             {login ? 'Sua operação em um só lugar' : 'Comece com uma base sólida'}
                         </p>
-                        <h1 className="mt-3 text-4xl font-semibold leading-[1.12] tracking-[-0.05em] text-[#17182f]">
+                        <h1 className="mt-3 text-4xl font-semibold leading-[1.12] tracking-[-0.05em] text-[#111111]">
                             {login ? (
                                 <>
                                     Venda mais.
@@ -65,9 +63,9 @@ export function AuthFrame({
                             ).map((text, index) => (
                                 <div
                                     key={text}
-                                    className="flex items-center gap-3 text-[13px] font-medium text-[#4d4d68]"
+                                    className="flex items-center gap-3 text-[13px] font-medium text-[#4f514d]"
                                 >
-                                    <span className="grid size-7 place-items-center rounded-full border border-white bg-white/75 text-brand shadow-sm">
+                                    <span className="grid size-7 place-items-center rounded-full border border-border bg-surface text-foreground">
                                         {login ? (
                                             <Icon name="check" className="size-3.5" />
                                         ) : (

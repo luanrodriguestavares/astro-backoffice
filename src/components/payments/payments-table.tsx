@@ -8,6 +8,7 @@ import { Icon } from '@/components/ui/icon';
 import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
 import { TableActionButton } from '@/components/ui/table-action-button';
 import type { Customer, GatewayConnection, Payment } from '@/lib/api/types';
+import { declineLabel, retryAdviceFor, retryAdviceLabels } from '@/lib/payments/decline';
 import { paymentStatusLabel, paymentStatusLabels } from '@/lib/commerce-status';
 
 const successful = new Set(['approved', 'paid', 'captured', 'succeeded']);
@@ -40,8 +41,7 @@ export function PaymentsTable({
             `${payment.id} ${payment.orderId ?? ''} ${customer?.name ?? ''} ${customer?.email ?? ''} ${gatewayById.get(payment.gatewayConnectionId)?.name ?? ''} ${payment.paymentMethod} ${paymentStatusLabel(payment.status)}`,
         );
         return (
-            (status === 'all' || payment.status === status) &&
-            haystack.includes(normalize(query))
+            (status === 'all' || payment.status === status) && haystack.includes(normalize(query))
         );
     });
     const [page, setPage] = useState(() => {
@@ -67,7 +67,10 @@ export function PaymentsTable({
 
     return (
         <>
-            <section data-tour="page-primary" className="glass-panel overflow-hidden rounded-[28px]">
+            <section
+                data-tour="page-primary"
+                className="glass-panel overflow-hidden rounded-[28px]"
+            >
                 <div className="border-b border-white/65 px-5 py-5 sm:px-6">
                     <h2 className="text-sm font-semibold">Transações recentes</h2>
                     <p className="mt-1 text-[12px] text-muted">
@@ -87,7 +90,7 @@ export function PaymentsTable({
                                 setPage(1);
                             }}
                             placeholder="Buscar por cliente, pagamento ou pedido"
-                            className="h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] pl-10 pr-3 text-[13px] outline-none"
+                            className="ui-control h-11 w-full pl-10 pr-3"
                         />
                     </label>
                     <CustomSelect
@@ -225,51 +228,126 @@ export function PaymentsTable({
                             onClose={() => setSelected(undefined)}
                         />
                         <ModalBody>
-                        <div className="flex flex-col gap-5 rounded-[22px] border border-brand/15 bg-brand-soft/35 p-5 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <p className="text-[11px] uppercase tracking-[.12em] text-muted">
-                                    Valor solicitado
-                                </p>
-                                <p className="mt-1 text-3xl tracking-[-.04em]">
-                                    {money(selected.amountMinor, selected.currency)}
-                                </p>
+                            <div className="flex flex-col gap-5 rounded-[22px] border border-brand/15 bg-brand-soft/35 p-5 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <p className="text-[11px] uppercase tracking-[.12em] text-muted">
+                                        Valor solicitado
+                                    </p>
+                                    <p className="mt-1 text-3xl tracking-[-.04em]">
+                                        {money(selected.amountMinor, selected.currency)}
+                                    </p>
+                                </div>
+                                <Status value={selected.status} />
                             </div>
-                            <Status value={selected.status} />
-                        </div>
-                        <DetailSection title="Liquidação">
-                            <Detail
-                                label="Capturado"
-                                value={money(selected.capturedMinor, selected.currency)}
-                            />
-                            <Detail
-                                label="Reembolsado"
-                                value={money(selected.refundedMinor, selected.currency)}
-                            />
-                            <Detail
-                                label="Método e gateway"
-                                value={`${method(selected.paymentMethod)} · ${gatewayById.get(selected.gatewayConnectionId)?.name ?? 'Conexão não identificada'}`}
-                            />
-                        </DetailSection>
-                        <DetailSection title="Origem">
-                            <Detail
-                                label="Cliente"
-                                value={selectedCustomer?.name ?? 'Cliente não identificado'}
-                                detail={selectedCustomer?.email}
-                            />
-                            <Detail
-                                label="Pedido relacionado"
-                                value={selected.orderId ?? 'Não vinculado'}
-                            />
-                            <Detail label="Criado em" value={dateTime(selected.createdAt)} />
-                            <Detail
-                                label="Aprovado em"
-                                value={
-                                    selected.approvedAt
-                                        ? dateTime(selected.approvedAt)
-                                        : 'Ainda não aprovado'
-                                }
-                            />
-                        </DetailSection>
+                            <DetailSection title="Liquidação">
+                                <Detail
+                                    label="Capturado"
+                                    value={money(selected.capturedMinor, selected.currency)}
+                                />
+                                <Detail
+                                    label="Reembolsado"
+                                    value={money(selected.refundedMinor, selected.currency)}
+                                />
+                                <Detail
+                                    label="Método e gateway"
+                                    value={`${method(selected.paymentMethod)} · ${gatewayById.get(selected.gatewayConnectionId)?.name ?? 'Conexão não identificada'}`}
+                                />
+                            </DetailSection>
+                            {(selected.failureCategory ??
+                                selected.failureCode ??
+                                selected.cardBrand) && (
+                                <DetailSection title="Resultado">
+                                    {(selected.failureCategory ?? selected.failureCode) && (
+                                        <Detail
+                                            label="Motivo da recusa"
+                                            value={declineLabel(selected.failureCategory)}
+                                            detail={[
+                                                selected.failureCategory
+                                                    ? retryAdviceLabels[
+                                                          retryAdviceFor(selected.failureCategory)
+                                                      ]
+                                                    : undefined,
+                                                selected.failureCode
+                                                    ? `Código do gateway: ${selected.failureCode}`
+                                                    : undefined,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' · ')}
+                                        />
+                                    )}
+                                    {selected.cardBrand && (
+                                        <Detail
+                                            label="Cartão"
+                                            value={[
+                                                selected.cardBrand,
+                                                selected.cardFunding === 'debit'
+                                                    ? 'débito'
+                                                    : selected.cardFunding === 'credit'
+                                                      ? 'crédito'
+                                                      : null,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' · ')}
+                                            detail={[
+                                                selected.cardBin ? `BIN ${selected.cardBin}` : null,
+                                                selected.cardCountry
+                                                    ? `Emitido em ${selected.cardCountry}`
+                                                    : null,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' · ')}
+                                        />
+                                    )}
+                                </DetailSection>
+                            )}
+                            {selected.routing?.source && (
+                                <DetailSection title="Roteamento">
+                                    <Detail
+                                        label="Decidido por"
+                                        value={
+                                            selected.routing.source === 'rule'
+                                                ? `Regra "${selected.routing.ruleName ?? selected.routing.ruleId ?? ''}"`
+                                                : selected.routing.source === 'checkout'
+                                                  ? 'Configuração do checkout'
+                                                  : 'Primeiro gateway compatível'
+                                        }
+                                    />
+                                    <Detail
+                                        label="Contingência"
+                                        value={
+                                            selected.routing.failovers?.length
+                                                ? `${String(selected.routing.failovers.length)} troca${selected.routing.failovers.length > 1 ? 's' : ''} de gateway`
+                                                : 'Não foi necessária'
+                                        }
+                                        detail={selected.routing.failovers
+                                            ?.map(
+                                                (step) =>
+                                                    `${gatewayById.get(step.from)?.name ?? shortId(step.from)} → ${gatewayById.get(step.to)?.name ?? shortId(step.to)} (${step.category ? declineLabel(step.category) : step.code})`,
+                                            )
+                                            .join(' · ')}
+                                    />
+                                </DetailSection>
+                            )}
+                            <DetailSection title="Origem">
+                                <Detail
+                                    label="Cliente"
+                                    value={selectedCustomer?.name ?? 'Cliente não identificado'}
+                                    detail={selectedCustomer?.email}
+                                />
+                                <Detail
+                                    label="Pedido relacionado"
+                                    value={selected.orderId ?? 'Não vinculado'}
+                                />
+                                <Detail label="Criado em" value={dateTime(selected.createdAt)} />
+                                <Detail
+                                    label="Aprovado em"
+                                    value={
+                                        selected.approvedAt
+                                            ? dateTime(selected.approvedAt)
+                                            : 'Ainda não aprovado'
+                                    }
+                                />
+                            </DetailSection>
                         </ModalBody>
                         <ModalFooter>
                             <Button variant="secondary" onClick={() => setSelected(undefined)}>

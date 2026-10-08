@@ -4,7 +4,10 @@ import { Render } from '@puckeditor/core';
 import { useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { checkoutBuilderConfig } from '@/components/checkout-builder/config';
+import {
+    CheckoutBuilderStaticContext,
+    checkoutBuilderConfig,
+} from '@/components/checkout-builder/config';
 import { documentToPuck } from '@/lib/checkout/puck-data';
 import type { Checkout, CheckoutDraft } from '@/lib/api/types';
 
@@ -12,10 +15,13 @@ export function CheckoutPreview({
     checkout,
     draft,
     embedded = false,
+    staticMode = false,
 }: {
     checkout: Checkout;
     draft: CheckoutDraft;
     embedded?: boolean;
+    /** Miniatura: sem animações, transições nem timers. */
+    staticMode?: boolean;
 }) {
     const [previewRoot, setPreviewRoot] = useState<ShadowRoot | null>(null);
     const mountPreview = useCallback((host: HTMLDivElement | null) => {
@@ -30,10 +36,12 @@ export function CheckoutPreview({
             <div ref={mountPreview} className="min-h-dvh" />
             {previewRoot &&
                 createPortal(
-                    <Render
-                        config={checkoutBuilderConfig}
-                        data={documentToPuck(draft.document)}
-                    />,
+                    <CheckoutBuilderStaticContext.Provider value={staticMode}>
+                        <Render
+                            config={checkoutBuilderConfig}
+                            data={documentToPuck(draft.document)}
+                        />
+                    </CheckoutBuilderStaticContext.Provider>,
                     previewRoot,
                 )}
             {!embedded && (

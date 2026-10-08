@@ -108,7 +108,7 @@ export function InviteMember({ roles }: { roles: InvitableRole[] }) {
                         onMouseDown={(event) => {
                             if (event.target === event.currentTarget) close();
                         }}
-                        className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#111111]/20 p-4 backdrop-blur-sm"
                     >
                         <form
                             onSubmit={submit}

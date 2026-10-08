@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import Link from 'next/link';
 import { GatewayMark } from '@/components/gateways/gateway-mark';
 import {
     GatewayEditModal,
@@ -64,7 +65,7 @@ export function ConnectedGatewayCard({
         router.refresh();
     }
 
-    const presentation = provider(connection.provider);
+    const presentation = providerPresentation(connection.provider);
     const status = statusPresentation(connection);
     const gateway = gatewayDefinition(connection.provider);
     return (
@@ -105,9 +106,16 @@ export function ConnectedGatewayCard({
                         </span>
                         <p className="mt-1 text-[10px] text-muted">{status.detail}</p>
                     </div>
-                    <div>
-                        <p className="text-[12px] font-semibold">Sob consulta</p>
-                        <p className="mt-1 text-[10px] text-muted">Taxa contratada</p>
+                    <div className="min-w-0">
+                        {/* Taxas são configuração de orquestração: editadas na página de custos. */}
+                        <Link href="/orchestration/costs" className="block max-w-full">
+                            <span className="block truncate text-[12px] font-semibold">
+                                {feeSummary(connection.feeSchedule) || 'Não cadastrada'}
+                            </span>
+                            <span className="mt-1 block text-[10px] text-muted underline-offset-2 hover:underline">
+                                Taxa contratada
+                            </span>
+                        </Link>
                     </div>
                     <div>
                         {canReadPayments ? (
@@ -185,7 +193,7 @@ export function ConnectedGatewayCard({
     );
 }
 
-function provider(value: GatewayConnection['provider']) {
+export function providerPresentation(value: GatewayConnection['provider']) {
     return {
         stripe: {
             name: 'Stripe',
@@ -214,7 +222,7 @@ function provider(value: GatewayConnection['provider']) {
         mock: {
             name: 'Ambiente de testes',
             initials: 'M',
-            color: 'bg-[#55576b]',
+            color: 'bg-[#565656]',
             logo: '/gateways/astro-mock.png',
             logoFill: true,
             methods: 'Simulações e sandbox',
@@ -223,7 +231,7 @@ function provider(value: GatewayConnection['provider']) {
 }
 
 function gatewayDefinition(value: GatewayConnection['provider']): GatewayDefinition {
-    const item = provider(value);
+    const item = providerPresentation(value);
     return {
         provider: value,
         name: item.name,
@@ -237,11 +245,18 @@ function gatewayDefinition(value: GatewayConnection['provider']): GatewayDefinit
 }
 
 function statusPresentation(connection: GatewayConnection) {
-    if (connection.failureReason)
+    // O motivo de falha também registra erros técnicos e degradação: o status é a fonte.
+    if (connection.status === 'invalid_credentials')
         return {
             label: 'Erro de autenticação',
             detail: 'Requer atenção',
             className: 'bg-[#fff0f2] text-danger',
+        };
+    if (connection.status === 'degraded')
+        return {
+            label: 'Instável',
+            detail: connection.failureReason ?? 'Usado só depois dos gateways estáveis',
+            className: 'bg-[#fff5e9] text-warning',
         };
     if (connection.status === 'active')
         return {
@@ -264,4 +279,26 @@ function statusPresentation(connection: GatewayConnection) {
 
 function money(value: number, currency: string) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value / 100);
+}
+
+function feeSummary(schedule: GatewayConnection['feeSchedule']) {
+    const labels = { card: 'Cartão', pix: 'Pix', boleto: 'Boleto' } as const;
+    return (['card', 'pix', 'boleto'] as const)
+        .flatMap((method) => {
+            const fee = schedule?.[method];
+            if (!fee) return [];
+            const percent = `${(fee.percentBps / 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
+            const fixed = new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+            }).format(fee.fixedMinor / 100);
+            const value =
+                fee.fixedMinor === 0
+                    ? percent
+                    : fee.percentBps === 0
+                      ? fixed
+                      : `${percent} + ${fixed}`;
+            return [`${labels[method]} ${value}`];
+        })
+        .join(' · ');
 }

@@ -1,5 +1,6 @@
 import type { BuilderData, BuilderRootProps } from '@/components/checkout-builder/config';
 import type { CheckoutDocument, CheckoutSectionType } from '@/lib/api/types';
+import { checkoutFontPresets } from '@astro/checkout-renderer/theme';
 
 const supported = new Set<CheckoutSectionType>([
     'hero',
@@ -23,6 +24,7 @@ const supported = new Set<CheckoutSectionType>([
     'client_logos',
     'floating_cta',
     'spacer_divider',
+    'order_bump',
     'product_summary',
     'checkout_form',
     'payment_methods',
@@ -44,13 +46,20 @@ export function documentToPuck(document: CheckoutDocument): BuilderData {
             props: {
                 themeMode: themeModeValue(theme.themeMode ?? theme.themePreset),
                 grayTone: grayToneValue(theme.grayTone ?? theme.themePreset),
+                brandPreset: stringValue(theme.brandPreset, ''),
                 fontFamily: fontValue(theme.fontFamily),
+                headingFontFamily:
+                    theme.headingFontFamily === undefined || theme.headingFontFamily === 'inherit'
+                        ? 'inherit'
+                        : fontValue(theme.headingFontFamily),
+                buttonStyle: buttonStyleValue(theme.buttonStyle),
+                buttonShape: buttonShapeValue(theme.buttonShape),
                 headingFontWeight: fontWeightValue(theme.headingFontWeight, '700'),
                 bodyFontWeight: fontWeightValue(theme.bodyFontWeight, '400'),
-                backgroundColor: stringValue(theme.backgroundColor, '#f7f7fb'),
+                backgroundColor: stringValue(theme.backgroundColor, '#f5f6f7'),
                 surfaceColor: stringValue(theme.surfaceColor, '#ffffff'),
-                textColor: stringValue(theme.textColor, '#202235'),
-                accentColor: stringValue(theme.accentColor, '#7065e8'),
+                textColor: stringValue(theme.textColor, '#101214'),
+                accentColor: stringValue(theme.accentColor, '#101214'),
                 radius: sizeValue(theme.radius),
                 shadow: shadowValue(theme.shadow),
                 maxWidth: widthValue(layout.maxWidth),
@@ -86,13 +95,20 @@ export function puckToDocument(data: BuilderData, previous: CheckoutDocument): C
         theme: {
             themeMode: themeModeValue(root.themeMode),
             grayTone: grayToneValue(root.grayTone),
+            brandPreset: typeof root.brandPreset === 'string' ? root.brandPreset : '',
             fontFamily: fontValue(root.fontFamily),
+            headingFontFamily:
+                root.headingFontFamily === undefined || root.headingFontFamily === 'inherit'
+                    ? 'inherit'
+                    : fontValue(root.headingFontFamily),
+            buttonStyle: buttonStyleValue(root.buttonStyle),
+            buttonShape: buttonShapeValue(root.buttonShape),
             headingFontWeight: fontWeightValue(root.headingFontWeight, '700'),
             bodyFontWeight: fontWeightValue(root.bodyFontWeight, '400'),
-            backgroundColor: safeColor(root.backgroundColor, '#f7f7fb'),
+            backgroundColor: safeColor(root.backgroundColor, '#f5f6f7'),
             surfaceColor: safeColor(root.surfaceColor, '#ffffff'),
-            textColor: safeColor(root.textColor, '#202235'),
-            accentColor: safeColor(root.accentColor, '#7065e8'),
+            textColor: safeColor(root.textColor, '#101214'),
+            accentColor: safeColor(root.accentColor, '#101214'),
             radius: sizeValue(root.radius),
             shadow: shadowValue(root.shadow),
         },
@@ -162,22 +178,17 @@ function grayToneValue(value: unknown): BuilderRootProps['grayTone'] {
 }
 
 function fontValue(value: unknown): BuilderRootProps['fontFamily'] {
-    return [
-        'system',
-        'geist',
-        'inter',
-        'montserrat',
-        'poppins',
-        'roboto',
-        'open-sans',
-        'lato',
-        'arial',
-        'georgia',
-        'serif',
-        'mono',
-    ].includes(String(value))
+    return checkoutFontPresets.some((font) => font.value === value)
         ? (value as BuilderRootProps['fontFamily'])
         : 'system';
+}
+
+function buttonStyleValue(value: unknown): BuilderRootProps['buttonStyle'] {
+    return value === 'gradient' || value === 'glow' || value === 'outline' ? value : 'solid';
+}
+
+function buttonShapeValue(value: unknown): BuilderRootProps['buttonShape'] {
+    return value === 'pill' || value === 'square' ? value : 'rounded';
 }
 
 function sizeValue(

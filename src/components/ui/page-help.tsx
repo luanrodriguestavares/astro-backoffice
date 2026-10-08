@@ -53,7 +53,7 @@ export function PageHelp({
                 <section
                     role="dialog"
                     aria-label={title}
-                    className={`glass-popover absolute top-[calc(100%+10px)] z-[80] w-[min(360px,calc(100vw-32px))] rounded-[20px] p-4 shadow-[0_22px_65px_rgba(39,33,82,.16)] ${align === 'right' ? 'right-0' : 'left-0'}`}
+                    className={`glass-popover absolute top-[calc(100%+10px)] z-[80] w-[min(360px,calc(100vw-32px))] rounded-[20px] p-4 shadow-[0_22px_65px_rgba(17,17,17,.16)] ${align === 'right' ? 'right-0' : 'left-0'}`}
                 >
                     <h2 className="text-[13px] font-semibold text-foreground">{title}</h2>
                     <div className="mt-2 text-[12px] leading-5 text-muted">{children}</div>

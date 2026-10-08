@@ -11,12 +11,7 @@ export default async function AnalyticsPage() {
         <div>
             <PageHeader
                 eyebrow="Analytics"
-                title={
-                    <>
-                        Decisões com{' '}
-                        <span className="font-serif font-normal italic text-brand">clareza.</span>
-                    </>
-                }
+                title="Decisões com clareza."
                 description="Receita, conversão, recorrência e operação em uma visão analítica completa."
             />
             {canRead ? (

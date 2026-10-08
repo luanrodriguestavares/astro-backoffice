@@ -218,7 +218,7 @@ function OrganizationDialog({
 }) {
     const statusChange = dialog.kind === 'status';
     return (
-        <div className="fixed inset-0 z-[150] grid place-items-center overflow-y-auto bg-[#11111d]/42 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[150] grid place-items-center overflow-y-auto bg-[#111111]/42 p-4 backdrop-blur-sm">
             <div
                 role="dialog"
                 aria-modal="true"

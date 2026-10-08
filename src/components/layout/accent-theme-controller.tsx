@@ -2,7 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from 'react';
 
-export type AccentTheme = 'astro' | 'blue' | 'violet' | 'yellow' | 'orange' | 'green' | 'rose';
+export type AccentTheme = 'astro' | 'blue' | 'violet' | 'orange' | 'green' | 'rose';
 
 export const accentThemes: {
     value: AccentTheme;
@@ -13,12 +13,11 @@ export const accentThemes: {
     {
         value: 'astro',
         label: 'Astro',
-        description: 'Roxo azulado original',
-        color: '#6d5df4',
+        description: 'Preto com destaque lima',
+        color: '#c6f448',
     },
     { value: 'blue', label: 'Azul', description: 'Limpo e objetivo', color: '#286dcc' },
     { value: 'violet', label: 'Roxo', description: 'Criativo e profundo', color: '#7651d1' },
-    { value: 'yellow', label: 'Amarelo', description: 'Quente e energético', color: '#d6a300' },
     { value: 'orange', label: 'Laranja', description: 'Próximo e expressivo', color: '#c4551c' },
     { value: 'green', label: 'Verde', description: 'Calmo e natural', color: '#16815f' },
     { value: 'rose', label: 'Rosa', description: 'Marcante e moderno', color: '#bd416b' },

@@ -161,39 +161,49 @@ export function AnalyticsDashboard() {
         product: 'all',
     });
     const visible = useMemo(() => reports.filter((report) => report.tab === tab), [tab]);
+    const metrics = visible.filter((report) => report.kind === 'metric');
+    const primaryMetrics = metrics.filter((report) =>
+        ['total-revenue', 'approved-orders', 'average-ticket', 'conversion-rate'].includes(
+            report.slug,
+        ),
+    );
+    const secondaryMetrics = metrics.filter(
+        (report) => !primaryMetrics.some((primary) => primary.slug === report.slug),
+    );
+    const visualReports = visible.filter(
+        (report) => tab !== 'overview' || report.kind !== 'metric',
+    );
 
     return (
         <div className="space-y-5" data-tour="analytics-dashboard">
             <section
                 data-tour="analytics-controls"
-                className="glass-panel flex flex-col gap-4 rounded-[24px] p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4"
+                className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
             >
-                <div className="flex min-w-0 gap-1 overflow-x-auto">
+                <div className="ui-tabs w-fit max-w-full">
                     {tabs.map((item) => (
                         <Button
                             key={item.value}
                             data-tour={`analytics-tab-${item.value}`}
                             aria-pressed={tab === item.value}
+                            data-active={tab === item.value}
                             onClick={() => setTab(item.value)}
-                            className="dashboard-period-option shrink-0 rounded-xl px-4 py-2.5 text-left text-muted transition hover:bg-surface-muted/60 hover:text-foreground"
+                            className="ui-tab px-4 py-2 text-center text-[12px] font-semibold"
                         >
-                            <span className="block text-[12px] font-semibold">{item.label}</span>
-                            <span className="hidden text-[10px] opacity-70 sm:block">
-                                {item.description}
-                            </span>
+                            {item.label}
                         </Button>
                     ))}
                 </div>
                 <div
                     data-tour="analytics-period"
-                    className="flex shrink-0 items-center gap-1 rounded-xl border border-border bg-[var(--control-bg)] p-1"
+                    className="flex h-10 shrink-0 items-center gap-0.5 rounded-xl border border-border bg-[var(--control-bg)] p-1"
                 >
                     {(['24h', '7d', '30d', '90d', '12m'] as const).map((value) => (
                         <Button
                             key={value}
                             aria-pressed={period === value}
                             onClick={() => setPeriod(value)}
-                            className={`rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition ${period === value ? 'bg-surface text-brand-strong shadow-sm' : 'text-muted hover:text-foreground'}`}
+                            className={`h-8 rounded-lg px-2.5 text-[11px] font-semibold transition ${period === value ? 'bg-surface text-foreground shadow-sm' : 'text-muted hover:text-foreground'}`}
                         >
                             {value.toUpperCase()}
                         </Button>
@@ -204,26 +214,65 @@ export function AnalyticsDashboard() {
             {tab === 'reports' && <ReportFilterBar filters={filters} onApply={setFilters} />}
 
             {tab === 'overview' && (
-                <div
+                <section
                     data-tour="analytics-metrics"
-                    className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-12"
+                    className="glass-panel overflow-hidden rounded-[26px]"
                 >
-                    {visible
-                        .filter((report) => report.kind === 'metric')
-                        .map((report) => (
+                    <div className="flex items-end justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
+                        <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                                Pulso da operação
+                            </p>
+                            <h2 className="mt-1 text-[17px] font-semibold tracking-[-0.03em]">
+                                O que importa agora
+                            </h2>
+                        </div>
+                        <span className="text-[11px] text-muted">{period.toUpperCase()}</span>
+                    </div>
+                    <div className="grid sm:grid-cols-2 xl:grid-cols-4">
+                        {primaryMetrics.map((report) => (
                             <MetricCard
                                 key={`${report.slug}-${period}`}
                                 report={report}
                                 period={period}
                             />
                         ))}
-                </div>
+                    </div>
+                    {secondaryMetrics.length > 0 && (
+                        <details className="group border-t border-border">
+                            <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-3 text-[12px] font-semibold text-muted transition hover:bg-surface-muted/45 hover:text-foreground sm:px-6">
+                                <span>Ver indicadores complementares</span>
+                                <Icon
+                                    name="chevron-down"
+                                    className="size-3.5 transition-transform group-open:rotate-180"
+                                />
+                            </summary>
+                            <div className="grid border-t border-border sm:grid-cols-2 xl:grid-cols-4">
+                                {secondaryMetrics.map((report) => (
+                                    <MetricCard
+                                        key={`${report.slug}-${period}`}
+                                        report={report}
+                                        period={period}
+                                        compact
+                                    />
+                                ))}
+                            </div>
+                        </details>
+                    )}
+                </section>
             )}
 
-            <div className="grid gap-4 xl:grid-cols-12">
-                {visible
-                    .filter((report) => tab !== 'overview' || report.kind !== 'metric')
-                    .map((report) => (
+            <section className="glass-panel overflow-hidden rounded-[26px]">
+                <div className="border-b border-border px-5 py-4 sm:px-6">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                        {tab === 'reports' ? 'Base operacional' : 'Leitura visual'}
+                    </p>
+                    <h2 className="mt-1 text-[17px] font-semibold tracking-[-0.03em]">
+                        {tabs.find((item) => item.value === tab)?.description}
+                    </h2>
+                </div>
+                <div className="grid xl:grid-cols-12">
+                    {visualReports.map((report) => (
                         <ReportPanel
                             key={`${report.slug}-${period}-${JSON.stringify(filters)}`}
                             report={report}
@@ -231,12 +280,21 @@ export function AnalyticsDashboard() {
                             filters={filters}
                         />
                     ))}
-            </div>
+                </div>
+            </section>
         </div>
     );
 }
 
-function MetricCard({ report, period }: { report: ReportDefinition; period: Period }) {
+function MetricCard({
+    report,
+    period,
+    compact = false,
+}: {
+    report: ReportDefinition;
+    period: Period;
+    compact?: boolean;
+}) {
     const state = useReport(report.slug, period);
     const row = state.data?.rows[0];
     const presentation = metricPresentation[report.slug] ?? {
@@ -246,9 +304,8 @@ function MetricCard({ report, period }: { report: ReportDefinition; period: Peri
     };
     return (
         <article
-            className={`dashboard-stat-card glass-panel group relative flex flex-col overflow-hidden rounded-[22px] p-5 transition hover:-translate-y-0.5 ${presentation.layout} ${presentation.featured ? 'min-h-[184px]' : 'min-h-[158px]'}`}
+            className={`group relative flex flex-col border-b border-border p-5 transition hover:bg-surface-muted/35 sm:border-r xl:border-b-0 xl:last:border-r-0 ${compact ? 'min-h-[132px]' : 'min-h-[158px]'}`}
         >
-            <div className="absolute -right-10 -top-10 size-28 rounded-full bg-brand-soft opacity-55 blur-2xl transition group-hover:opacity-80" />
             <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                     <p className="dashboard-stat-label text-[12px] font-medium text-muted">
@@ -260,13 +317,13 @@ function MetricCard({ report, period }: { report: ReportDefinition; period: Peri
                         <p className="mt-5 text-[12px] text-danger">Não foi possível carregar</p>
                     ) : (
                         <p
-                            className={`${presentation.featured ? 'text-[31px]' : 'text-[25px]'} mt-2.5 truncate font-semibold tracking-[-.055em] text-foreground`}
+                            className={`${compact ? 'text-[23px]' : 'text-[28px]'} mt-2.5 truncate font-semibold tracking-[-.055em] text-foreground`}
                         >
                             {formatValue(row?.value, row?.unit)}
                         </p>
                     )}
                 </div>
-                <span className="dashboard-stat-icon grid size-9 shrink-0 place-items-center rounded-full border border-border bg-brand-soft text-brand-strong">
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-muted text-muted transition group-hover:text-foreground">
                     <Icon name={presentation.icon} className="size-4" />
                 </span>
             </div>
@@ -291,7 +348,7 @@ function ReportPanel({
     return (
         <article
             data-tour={report.slug === 'revenue-over-time' ? 'analytics-trend' : undefined}
-            className={`glass-panel min-w-0 rounded-[26px] p-5 sm:p-6 ${report.wide ? 'xl:col-span-12' : 'xl:col-span-6'}`}
+            className={`min-w-0 border-b border-border p-5 sm:p-6 xl:border-r ${report.wide ? 'xl:col-span-12 xl:border-r-0' : 'xl:col-span-6 xl:even:border-r-0'}`}
         >
             <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
@@ -399,15 +456,15 @@ function ReportVisualization({ kind, result }: { kind: ChartKind; result: Report
                     >
                         <defs>
                             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.24} />
-                                <stop offset="72%" stopColor="var(--brand)" stopOpacity={0.06} />
-                                <stop offset="100%" stopColor="var(--brand)" stopOpacity={0} />
+                                <stop offset="0%" stopColor="var(--chart-primary)" stopOpacity={0.24} />
+                                <stop offset="72%" stopColor="var(--chart-primary)" stopOpacity={0.06} />
+                                <stop offset="100%" stopColor="var(--chart-primary)" stopOpacity={0} />
                             </linearGradient>
                         </defs>
                         <CartesianGrid
                             vertical={kind === 'bar'}
                             horizontal={kind !== 'bar'}
-                            stroke="var(--dashboard-chart-grid, #8f8aa8)"
+                            stroke="var(--dashboard-chart-grid, #8f8f8f)"
                             strokeOpacity={0.1}
                         />
                         {kind === 'bar' ? (
@@ -418,7 +475,7 @@ function ReportVisualization({ kind, result }: { kind: ChartKind; result: Report
                                     tickLine={false}
                                     tick={{
                                         fontSize: 11,
-                                        fill: 'var(--dashboard-chart-muted, #89899b)',
+                                        fill: 'var(--dashboard-chart-muted, #8a8a8a)',
                                     }}
                                     tickFormatter={(value: number) =>
                                         compactChartValue(value, result.report)
@@ -433,7 +490,7 @@ function ReportVisualization({ kind, result }: { kind: ChartKind; result: Report
                                     width={124}
                                     tick={{
                                         fontSize: 11,
-                                        fill: 'var(--dashboard-chart-muted, #89899b)',
+                                        fill: 'var(--dashboard-chart-muted, #8a8a8a)',
                                     }}
                                     tickFormatter={(value: unknown) =>
                                         shortChartLabel(String(value))
@@ -450,7 +507,7 @@ function ReportVisualization({ kind, result }: { kind: ChartKind; result: Report
                                     textAnchor="middle"
                                     tick={{
                                         fontSize: 11,
-                                        fill: 'var(--dashboard-chart-muted, #89899b)',
+                                        fill: 'var(--dashboard-chart-muted, #8a8a8a)',
                                     }}
                                     dy={10}
                                     tickFormatter={(value: unknown) =>
@@ -465,7 +522,7 @@ function ReportVisualization({ kind, result }: { kind: ChartKind; result: Report
                                     width={66}
                                     tick={{
                                         fontSize: 11,
-                                        fill: 'var(--dashboard-chart-muted, #89899b)',
+                                        fill: 'var(--dashboard-chart-muted, #8a8a8a)',
                                     }}
                                     tickFormatter={(value: number) =>
                                         compactChartValue(value, result.report)
@@ -477,7 +534,7 @@ function ReportVisualization({ kind, result }: { kind: ChartKind; result: Report
                             cursor={
                                 kind === 'line'
                                     ? {
-                                          stroke: 'var(--brand)',
+                                          stroke: 'var(--chart-primary)',
                                           strokeOpacity: 0.2,
                                           strokeDasharray: '3 4',
                                       }
@@ -499,9 +556,9 @@ function ReportVisualization({ kind, result }: { kind: ChartKind; result: Report
                             <ReferenceArea
                                 x1={result.rows[selectedRange.start]?.[labelKey] as string | number}
                                 x2={result.rows[selectedRange.end]?.[labelKey] as string | number}
-                                fill="var(--brand)"
+                                fill="var(--chart-primary)"
                                 fillOpacity={0.1}
-                                stroke="var(--brand)"
+                                stroke="var(--chart-primary)"
                                 strokeOpacity={0.28}
                                 ifOverflow="extendDomain"
                             />
@@ -518,14 +575,14 @@ function ReportVisualization({ kind, result }: { kind: ChartKind; result: Report
                                     key={key}
                                     type="monotone"
                                     dataKey={key}
-                                    stroke="var(--brand)"
+                                    stroke="var(--chart-primary)"
                                     strokeWidth={2.2}
                                     fill={`url(#${gradientId})`}
                                     dot={false}
                                     animationDuration={850}
                                     activeDot={{
                                         r: 4.5,
-                                        fill: 'var(--brand)',
+                                        fill: 'var(--chart-primary)',
                                         stroke: 'var(--dashboard-chart-surface, #fff)',
                                         strokeWidth: 2,
                                     }}
@@ -683,7 +740,7 @@ function AnalyticsTooltip({
                         <span className="flex items-center gap-2 text-muted">
                             <span
                                 className="size-1.5 rounded-full"
-                                style={{ background: item.color ?? item.fill ?? 'var(--brand)' }}
+                                style={{ background: item.color ?? item.fill ?? 'var(--chart-primary)' }}
                             />
                             {columnLabel(String(item.dataKey ?? 'value'))}
                         </span>
@@ -771,7 +828,7 @@ function FunnelView({ result }: { result: ReportResult }) {
                         </div>
                         <div className="h-9 overflow-hidden rounded-xl bg-surface-muted/70">
                             <div
-                                className="flex h-full items-center rounded-xl bg-brand px-3 text-[11px] font-semibold text-white transition-[width]"
+                                className="flex h-full items-center rounded-xl bg-brand px-3 text-[11px] font-semibold text-brand-contrast transition-[width]"
                                 style={{ width: `${percentage}%`, opacity: 1 - index * 0.12 }}
                             >
                                 {index === 0 ? 'Entrada' : `Etapa ${index + 1}`}
@@ -905,7 +962,7 @@ function FilterInput({
                 value={value}
                 placeholder={placeholder}
                 onChange={(event) => onChange(event.target.value)}
-                className="h-10 w-full rounded-xl border border-border bg-[var(--control-bg)] px-3 text-[12px] outline-none transition placeholder:text-muted/60 focus:border-brand/35"
+                className="ui-control h-11 w-full px-3"
             />
         </label>
     );
@@ -1014,7 +1071,7 @@ function columnLabel(column: string) {
     );
 }
 function chartColor(index: number) {
-    return ['var(--brand)', 'var(--success)', 'var(--warning)', 'var(--danger)'][index % 4];
+    return ['var(--chart-primary)', 'var(--success)', 'var(--warning)', 'var(--danger)'][index % 4];
 }
 
 function shortChartLabel(value: string) {

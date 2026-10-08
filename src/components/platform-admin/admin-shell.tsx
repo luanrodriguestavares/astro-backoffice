@@ -73,7 +73,7 @@ export function AdminShell({ user, children }: { user: CurrentUser; children: Re
             {mobileOpen && (
                 <Button
                     aria-label="Fechar menu"
-                    className="fixed inset-0 z-30 bg-[#11111d]/35 backdrop-blur-sm lg:hidden"
+                    className="fixed inset-0 z-30 bg-[#111111]/35 backdrop-blur-sm lg:hidden"
                     onClick={() => setMobileOpen(false)}
                 />
             )}
@@ -82,11 +82,11 @@ export function AdminShell({ user, children }: { user: CurrentUser; children: Re
                     mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
                 }`}
             >
-                <div className="flex h-10 items-center justify-between px-1">
+                <div className="relative -mx-4 -mt-5 flex h-16 items-center justify-center bg-[#C6F448] px-5">
                     <Brand href="/admin" />
                     <Button
                         aria-label="Fechar menu"
-                        className="grid size-9 place-items-center rounded-xl text-muted hover:bg-surface-muted lg:hidden"
+                        className="absolute right-3 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-xl text-muted hover:bg-surface-muted lg:hidden"
                         onClick={() => setMobileOpen(false)}
                     >
                         <Icon name="close" className="size-4" />
@@ -95,7 +95,7 @@ export function AdminShell({ user, children }: { user: CurrentUser; children: Re
 
                 <div className="mt-5 rounded-[20px] border border-brand/12 bg-brand-soft/60 p-3.5">
                     <div className="flex items-center gap-3">
-                        <span className="grid size-9 place-items-center rounded-xl bg-brand text-white shadow-[0_8px_24px_rgba(109,93,244,.2)]">
+                        <span className="grid size-9 place-items-center rounded-xl bg-brand text-brand-contrast shadow-[0_8px_24px_color-mix(in_srgb,var(--brand)_20%,transparent)]">
                             <Icon name="settings" className="size-4" />
                         </span>
                         <div className="min-w-0">

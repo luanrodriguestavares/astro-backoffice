@@ -7,10 +7,15 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 
-import { Icon, type IconName } from '@/components/ui/icon';
+import { Icon } from '@/components/ui/icon';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { showToast } from '@/components/ui/toast';
-import { blankCheckoutDocument } from '@/lib/checkout/document';
+import {
+    buildCheckoutFromTemplate,
+    checkoutTemplates,
+    periodLabel,
+    type CheckoutTemplateId,
+} from '@/lib/checkout/templates';
 import { checkoutPublicUrl } from '@/lib/checkout/public-url';
 import type { Checkout } from '@/lib/api/types';
 import { useEscapeClose } from '@/hooks/use-escape-close';
@@ -23,45 +28,10 @@ export type CheckoutCatalogOption = {
     amountMinor: number;
     currency: string;
     pricingType: string;
+    recurringInterval?: string | null;
+    recurringIntervalCount?: number | null;
     active: boolean;
 };
-
-const templates: {
-    id: string;
-    name: string;
-    description: string;
-    icon: IconName;
-    available: boolean;
-}[] = [
-    {
-        id: 'blank',
-        name: 'Em branco',
-        description: 'Comece só com a estrutura essencial de pagamento e personalize o restante.',
-        icon: 'plus',
-        available: true,
-    },
-    {
-        id: 'product-launch',
-        name: 'Lançamento',
-        description: 'Estrutura para apresentar uma oferta e gerar conversão.',
-        icon: 'bolt',
-        available: false,
-    },
-    {
-        id: 'digital-product',
-        name: 'Produto digital',
-        description: 'Página completa para cursos, ebooks e comunidades.',
-        icon: 'box',
-        available: false,
-    },
-    {
-        id: 'subscription',
-        name: 'Assinatura',
-        description: 'Experiência focada em planos e cobrança recorrente.',
-        icon: 'repeat',
-        available: false,
-    },
-];
 
 export function CheckoutManager({
     checkouts,
@@ -79,7 +49,10 @@ export function CheckoutManager({
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState<'template' | 'details'>('template');
-    const [template, setTemplate] = useState<string>();
+    const [template, setTemplate] = useState<CheckoutTemplateId>();
+    const [name, setName] = useState('');
+    const [slug, setSlug] = useState('');
+    const [slugTouched, setSlugTouched] = useState(false);
     const [loading, setLoading] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<Checkout>();
     const [deleting, setDeleting] = useState(false);
@@ -109,6 +82,9 @@ export function CheckoutManager({
         }
         setStep('template');
         setTemplate(undefined);
+        setName('');
+        setSlug('');
+        setSlugTouched(false);
         setOpen(true);
     }
 
@@ -133,25 +109,17 @@ export function CheckoutManager({
             showToast({ tone: 'warning', description: 'Selecione um produto e preço.' });
             return;
         }
-        const name = String(form.get('name') ?? '').trim();
+        const built = buildCheckoutFromTemplate(template ?? 'blank', selected, catalog);
         const response = await fetch('/api/checkouts', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({
-                name,
-                slug: slugify(String(form.get('slug') || name)),
-                checkoutType: 'single_product',
+                name: name.trim(),
+                slug: slugify(slug || name),
+                checkoutType: built.products.length > 1 ? 'multi_product' : 'single_product',
                 defaultCurrency: selected.currency,
-                products: [
-                    {
-                        productId: selected.productId,
-                        priceId: selected.priceId,
-                        isDefault: true,
-                        minimumQuantity: 1,
-                        maximumQuantity: 1,
-                    },
-                ],
-                document: blankCheckoutDocument,
+                products: built.products,
+                document: built.document,
             }),
         });
         const body = (await response.json()) as { data?: Checkout; detail?: string };
@@ -202,7 +170,7 @@ export function CheckoutManager({
                 </div>
                 <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                     {checkouts.length > 0 && (
-                        <label className="filter-control flex h-10 min-w-0 items-center gap-2 rounded-xl border border-border bg-white/70 px-3 transition focus-within:border-brand/70 sm:w-[260px]">
+                        <label className="filter-control ui-control-frame flex h-11 min-w-0 items-center gap-2 px-3.5 sm:w-[260px]">
                             <Icon name="search" className="size-3.5 shrink-0 text-muted" />
                             <input
                                 value={query}
@@ -212,11 +180,16 @@ export function CheckoutManager({
                             />
                         </label>
                     )}
-                {canWrite && (
-                    <Button type="button" variant="primary" onClick={openCreate} className="h-10 px-4">
-                        <Icon name="plus" className="size-3.5" /> Criar checkout
-                    </Button>
-                )}
+                    {canWrite && (
+                        <Button
+                            type="button"
+                            variant="primary"
+                            onClick={openCreate}
+                            className="h-10 px-4"
+                        >
+                            <Icon name="plus" className="size-3.5" /> Criar checkout
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -256,7 +229,11 @@ export function CheckoutManager({
                         }}
                         className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 backdrop-blur-sm"
                     >
-                        <div className="theme-modal modal-surface glass-panel my-6 w-full max-w-3xl overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7">
+                        <div
+                            role="dialog"
+                            aria-modal="true"
+                            className={`theme-modal modal-surface glass-panel my-6 w-full overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(16,18,20,.18)] sm:p-7 ${step === 'template' ? 'max-w-3xl' : 'max-w-xl'}`}
+                        >
                             <div className="flex items-start justify-between gap-5">
                                 <div>
                                     <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-strong">
@@ -271,7 +248,7 @@ export function CheckoutManager({
                                     <p className="mt-1.5 text-[13px] leading-5 text-muted">
                                         {step === 'template'
                                             ? 'Escolha um ponto de partida. Você poderá personalizar tudo no editor.'
-                                            : 'Defina a oferta e os dados básicos antes de abrir o editor.'}
+                                            : `Modelo: ${checkoutTemplates.find((item) => item.id === template)?.name ?? ''}. Defina o nome e a oferta principal.`}
                                     </p>
                                 </div>
                                 <Button
@@ -287,36 +264,59 @@ export function CheckoutManager({
 
                             {step === 'template' ? (
                                 <>
-                                    <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                                        {templates.map((item) => (
-                                            <Button
-                                                key={item.id}
-                                                type="button"
-                                                disabled={!item.available}
-                                                data-selected={template === item.id}
-                                                onClick={() => setTemplate(item.id)}
-                                                className={`checkout-template-option relative min-h-36 rounded-[20px] border p-5 text-left transition ${template === item.id ? 'border-brand/40 bg-brand-soft/70 shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_8%,transparent)]' : 'border-border bg-[var(--control-bg)] hover:border-brand/24 hover:bg-surface-muted/55'} disabled:cursor-not-allowed disabled:opacity-55`}
-                                            >
-                                                <span
-                                                    className={`grid size-10 place-items-center rounded-xl ${template === item.id ? 'bg-brand text-white' : 'bg-surface-muted/55 text-brand'}`}
+                                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                                        {checkoutTemplates.map((item) => {
+                                            const selected = template === item.id;
+                                            return (
+                                                <button
+                                                    key={item.id}
+                                                    type="button"
+                                                    aria-pressed={selected}
+                                                    onClick={() => setTemplate(item.id)}
+                                                    onDoubleClick={() => {
+                                                        setTemplate(item.id);
+                                                        setStep('details');
+                                                    }}
+                                                    className={`checkout-template-card group grid gap-3 rounded-[20px] border p-2.5 text-left transition ${selected ? 'border-brand/45 bg-brand-soft/60 shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_10%,transparent)]' : 'border-border bg-[var(--control-bg)] hover:border-brand/25'}`}
                                                 >
-                                                    <Icon name={item.icon} className="size-4" />
-                                                </span>
-                                                <p className="mt-4 text-sm font-semibold">
-                                                    {item.name}
-                                                </p>
-                                                <p className="mt-1 text-[12px] leading-5 text-muted">
-                                                    {item.description}
-                                                </p>
-                                                {!item.available && (
-                                                    <span className="absolute right-4 top-4 rounded-full border border-border bg-[var(--control-bg)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
-                                                        Em breve
+                                                    <TemplateThumb id={item.id} />
+                                                    <span className="grid gap-1 px-1.5 pb-1.5">
+                                                        <span className="flex items-center justify-between gap-2">
+                                                            <span className="text-sm font-semibold tracking-[-0.01em]">
+                                                                {item.name}
+                                                            </span>
+                                                            <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-semibold text-muted">
+                                                                {item.audience}
+                                                            </span>
+                                                        </span>
+                                                        <span className="text-[12px] leading-5 text-muted">
+                                                            {item.description}
+                                                        </span>
+                                                        <span className="mt-1 flex flex-wrap gap-1">
+                                                            {item.highlights.map((highlight) => (
+                                                                <span
+                                                                    key={highlight}
+                                                                    className="inline-flex items-center gap-1 rounded-md bg-surface-muted px-1.5 py-0.5 text-[10.5px] font-medium text-foreground/75"
+                                                                >
+                                                                    <Icon
+                                                                        name="check"
+                                                                        className="size-3"
+                                                                    />
+                                                                    {highlight}
+                                                                </span>
+                                                            ))}
+                                                        </span>
                                                     </span>
-                                                )}
-                                            </Button>
-                                        ))}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
-                                    <div className="mt-7 flex justify-end gap-2">
+                                    <p className="mt-4 text-[12px] leading-5 text-muted">
+                                        Todos os modelos usam a identidade neutra do Astro. No
+                                        editor, troque a cor, o logo e os textos — ou aplique outra
+                                        identidade visual em um clique.
+                                    </p>
+                                    <div className="mt-6 flex justify-end gap-2">
                                         <Button
                                             type="button"
                                             variant="secondary"
@@ -337,34 +337,66 @@ export function CheckoutManager({
                                 </>
                             ) : (
                                 <form onSubmit={submit}>
-                                    <div className="mt-7 grid gap-4 sm:grid-cols-2">
-                                        <Field
-                                            name="name"
-                                            label="Nome do checkout"
-                                            placeholder="Ex.: Checkout principal"
-                                            required
-                                        />
-                                        <Field
-                                            name="slug"
-                                            label="Slug (opcional)"
-                                            placeholder="checkout-principal"
-                                        />
-                                        <label className="text-[13px] font-semibold sm:col-span-2">
-                                            Produto e preço
+                                    <div className="mt-6 grid gap-4">
+                                        <label className="text-[13px] font-semibold">
+                                            Nome do checkout
+                                            <input
+                                                name="name"
+                                                required
+                                                value={name}
+                                                onChange={(event) => {
+                                                    setName(event.target.value);
+                                                    if (!slugTouched)
+                                                        setSlug(slugify(event.target.value));
+                                                }}
+                                                placeholder="Ex.: Plano Pro anual"
+                                                className={inputClass}
+                                            />
+                                        </label>
+                                        <label className="text-[13px] font-semibold">
+                                            Endereço da página
+                                            <span className="mt-2 flex h-11 items-center overflow-hidden rounded-xl border border-border bg-[var(--control-bg)] focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]">
+                                                <span className="hidden h-full items-center border-r border-border bg-surface-muted px-3 text-[12px] font-normal text-muted sm:flex">
+                                                    {checkoutPublicUrl('').replace(/\/$/, '')}/
+                                                </span>
+                                                <input
+                                                    name="slug"
+                                                    value={slug}
+                                                    onChange={(event) => {
+                                                        setSlugTouched(true);
+                                                        setSlug(slugify(event.target.value));
+                                                    }}
+                                                    placeholder="meu-checkout"
+                                                    className="h-full min-w-0 flex-1 bg-transparent px-3 font-normal outline-none placeholder:text-muted"
+                                                />
+                                            </span>
+                                        </label>
+                                        <label className="text-[13px] font-semibold">
+                                            {template === 'subscription'
+                                                ? 'Plano principal'
+                                                : 'Produto e preço'}
                                             <div className="mt-2">
                                                 <CustomSelect
                                                     name="priceId"
                                                     required
                                                     placeholder="Selecione um produto e preço"
-                                                    options={catalog.map((item) => ({
-                                                        value: item.priceId,
-                                                        label: `${item.productName} · ${item.priceName} · ${money(item.amountMinor, item.currency)}${item.pricingType === 'recurring' ? '/recorrente' : ''}`,
-                                                    }))}
+                                                    options={orderedCatalog(catalog, template).map(
+                                                        (item) => ({
+                                                            value: item.priceId,
+                                                            label: `${item.productName} · ${item.priceName}`,
+                                                            badge: `${money(item.amountMinor, item.currency)}${periodLabel(item)}`,
+                                                        }),
+                                                    )}
                                                 />
                                             </div>
+                                            <span className="mt-1.5 block text-[11.5px] font-normal leading-4 text-muted">
+                                                {template === 'subscription'
+                                                    ? 'Os outros preços recorrentes do mesmo produto viram planos selecionáveis automaticamente.'
+                                                    : 'Você pode adicionar mais produtos e ofertas depois, no editor.'}
+                                            </span>
                                         </label>
                                     </div>
-                                    <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                    <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                         <Button
                                             type="button"
                                             variant="secondary"
@@ -492,7 +524,8 @@ function CheckoutCard({
     canWrite: boolean;
     focused?: boolean;
 }) {
-    const previewUrl = `/checkouts/${checkout.id}/preview?embed=1&saved=${encodeURIComponent(checkout.updatedAt)}`;
+    // Miniatura estática: sem animações nem cronômetro rodando em cada card da lista.
+    const previewUrl = `/checkouts/${checkout.id}/preview?embed=1&static=1&saved=${encodeURIComponent(checkout.updatedAt)}`;
     const publicUrl = checkoutPublicUrl(checkout.slug);
     return (
         <article
@@ -500,7 +533,11 @@ function CheckoutCard({
             className={`checkout-list-card glass-panel group overflow-hidden rounded-[20px] p-3.5 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_48px_rgba(66,57,128,.08)] ${focused ? 'ring-2 ring-brand/35 shadow-[0_18px_48px_color-mix(in_srgb,var(--brand)_14%,transparent)]' : ''}`}
         >
             <Link
-                href={canWrite ? `/checkouts/${checkout.id}/builder` : `/checkouts/${checkout.id}/preview`}
+                href={
+                    canWrite
+                        ? `/checkouts/${checkout.id}/builder`
+                        : `/checkouts/${checkout.id}/preview`
+                }
                 className="relative block h-32 overflow-hidden rounded-[14px] border border-[#dfddea]/70 bg-gradient-to-br from-[#f5f3ff] to-[#edf4ff]"
                 aria-label={`Abrir editor de ${checkout.name}`}
             >
@@ -569,30 +606,20 @@ function CheckoutCard({
                         </Button>
                     )}
                     <ButtonLink
-                        href={canWrite ? `/checkouts/${checkout.id}/builder` : `/checkouts/${checkout.id}/preview`}
+                        href={
+                            canWrite
+                                ? `/checkouts/${checkout.id}/builder`
+                                : `/checkouts/${checkout.id}/preview`
+                        }
                         variant="ghost"
                         className="h-8 rounded-lg px-2.5"
                     >
-                        {canWrite ? 'Editar' : 'Visualizar'} <Icon name="arrow-right" className="size-3.5" />
+                        {canWrite ? 'Editar' : 'Visualizar'}{' '}
+                        <Icon name="arrow-right" className="size-3.5" />
                     </ButtonLink>
                 </div>
             </div>
         </article>
-    );
-}
-
-function Field({
-    label,
-    ...input
-}: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
-    return (
-        <label className="text-[13px] font-semibold">
-            {label}
-            <input
-                {...input}
-                className="mt-2 h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] px-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]"
-            />
-        </label>
     );
 }
 
@@ -614,4 +641,129 @@ function normalize(value: string) {
 
 function money(value: number, currency: string) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value / 100);
+}
+
+const inputClass =
+    'mt-2 h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] px-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]';
+
+/** Assinatura mostra primeiro os preços recorrentes; os demais modelos mantêm a ordem. */
+function orderedCatalog(catalog: CheckoutCatalogOption[], template?: CheckoutTemplateId) {
+    if (template !== 'subscription') return catalog;
+    return [...catalog].sort(
+        (a, b) => Number(b.pricingType === 'recurring') - Number(a.pricingType === 'recurring'),
+    );
+}
+
+/** Miniatura do layout de cada modelo, desenhada com os tokens do painel (claro e escuro). */
+function TemplateThumb({ id }: { id: CheckoutTemplateId }) {
+    const bar = 'block rounded-full bg-foreground/15';
+    const card = 'rounded-[6px] border border-border bg-surface p-1.5';
+    const button = 'block h-2.5 rounded-[4px] bg-brand';
+    return (
+        <span
+            aria-hidden="true"
+            className="relative block h-[118px] overflow-hidden rounded-[14px] border border-border bg-surface-muted p-2.5"
+        >
+            {id === 'subscription' && (
+                <span className="grid h-full grid-cols-[1.3fr_1fr] gap-1.5">
+                    <span className="grid content-start gap-1">
+                        {[0, 1, 2].map((index) => (
+                            <span
+                                key={index}
+                                className={`flex items-center gap-1.5 rounded-[6px] border px-1.5 py-1 ${index === 2 ? 'border-brand bg-surface' : 'border-border bg-surface'}`}
+                            >
+                                <span
+                                    className={`size-2 rounded-full border ${index === 2 ? 'border-[3px] border-brand' : 'border-foreground/25'}`}
+                                />
+                                <span className={`${bar} h-1.5 w-10`} />
+                                <span className={`${bar} ml-auto h-1.5 w-5 bg-foreground/30`} />
+                            </span>
+                        ))}
+                        <span className={`${card} grid gap-1`}>
+                            <span className={`${bar} h-1.5 w-12`} />
+                            <span className="block h-2.5 rounded-[4px] border border-border" />
+                        </span>
+                    </span>
+                    <span className={`${card} grid content-start gap-1`}>
+                        <span className={`${bar} h-1.5 w-10`} />
+                        <span className={`${bar} h-1 w-14 bg-foreground/10`} />
+                        <span className="mt-1 flex justify-between">
+                            <span className={`${bar} h-1.5 w-6`} />
+                            <span className={`${bar} h-1.5 w-8 bg-foreground/35`} />
+                        </span>
+                        <span className={`${button} mt-1`} />
+                        <span className="mt-0.5 block h-1.5 w-8 rounded-full bg-[#c6f448]" />
+                    </span>
+                </span>
+            )}
+            {id === 'digital-product' && (
+                <span className="grid h-full content-start gap-1.5">
+                    <span className="flex h-3.5 items-center justify-between rounded-[5px] bg-brand px-1.5">
+                        <span className="block h-1 w-12 rounded-full bg-white/60" />
+                        <span className="flex gap-0.5">
+                            {[0, 1, 2].map((index) => (
+                                <span
+                                    key={index}
+                                    className="block size-2 rounded-[2px] bg-white/30"
+                                />
+                            ))}
+                        </span>
+                    </span>
+                    <span className="grid justify-items-center gap-1 py-1">
+                        <span className={`${bar} h-2 w-24 bg-foreground/30`} />
+                        <span className={`${bar} h-1 w-16`} />
+                        <span className="block h-2.5 w-14 rounded-[4px] bg-brand" />
+                    </span>
+                    <span className="grid grid-cols-3 gap-1">
+                        {[0, 1, 2].map((index) => (
+                            <span key={index} className={`${card} grid gap-1`}>
+                                <span className="block size-2 rounded-[3px] bg-[#c6f448]" />
+                                <span className={`${bar} h-1 w-8`} />
+                            </span>
+                        ))}
+                    </span>
+                </span>
+            )}
+            {id === 'express' && (
+                <span className="grid h-full content-start gap-1.5">
+                    <span className="flex h-3 items-center gap-1 rounded-[5px] border border-border bg-surface px-1.5">
+                        <span className="block size-1.5 rounded-full bg-[#c6f448] ring-2 ring-[#c6f448]/30" />
+                        <span className={`${bar} h-1 w-16`} />
+                    </span>
+                    <span className="grid grid-cols-[1.25fr_1fr] gap-1.5">
+                        <span className="grid gap-1">
+                            <span className={`${card} grid gap-1`}>
+                                <span className="block h-2 rounded-[3px] border border-border" />
+                                <span className="block h-2 rounded-[3px] border border-border" />
+                            </span>
+                            <span className="grid grid-cols-3 gap-0.5 rounded-[6px] bg-foreground/[.06] p-0.5">
+                                <span className="block h-2.5 rounded-[4px] bg-surface" />
+                                <span className="block h-2.5" />
+                                <span className="block h-2.5" />
+                            </span>
+                        </span>
+                        <span className={`${card} grid content-start gap-1`}>
+                            <span className="flex justify-between">
+                                <span className={`${bar} h-1.5 w-7`} />
+                                <span className={`${bar} h-1.5 w-6 bg-foreground/35`} />
+                            </span>
+                            <span className={`${button} mt-1`} />
+                        </span>
+                    </span>
+                </span>
+            )}
+            {id === 'blank' && (
+                <span className="grid h-full grid-cols-2 gap-1.5">
+                    {[0, 1, 2].map((index) => (
+                        <span
+                            key={index}
+                            className={`grid place-items-center rounded-[6px] border border-dashed border-foreground/20 ${index === 2 ? 'col-span-2' : ''}`}
+                        >
+                            <Icon name="plus" className="size-3 text-muted" />
+                        </span>
+                    ))}
+                </span>
+            )}
+        </span>
+    );
 }

@@ -100,7 +100,7 @@ export function OrdersTable({
                                 setPage(1);
                             }}
                             placeholder="Buscar pedido ou cliente"
-                            className="h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] pl-10 pr-3 text-[13px] outline-none"
+                            className="ui-control h-11 w-full pl-10 pr-3"
                         />
                     </label>
                     <CustomSelect

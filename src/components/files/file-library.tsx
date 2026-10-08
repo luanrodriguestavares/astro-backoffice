@@ -257,7 +257,7 @@ export function FileLibrary({
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
                             placeholder="Buscar em toda a biblioteca..."
-                            className="h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] pl-10 pr-4 text-[13px] outline-none transition placeholder:text-muted focus:border-brand/55 focus:shadow-[0_0_0_3px_rgba(109,93,244,.12)]"
+                            className="ui-control h-11 w-full pl-10 pr-4"
                         />
                     </label>
                     <div className="grid gap-2 sm:grid-cols-2 xl:w-[390px]">
@@ -763,12 +763,12 @@ function FileCard({
             draggable
             onDragStart={(event) => startFileDrag(event, file)}
             onContextMenu={onContextMenu}
-            className="glass-panel group overflow-hidden rounded-[22px] transition duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-[0_18px_48px_rgba(72,60,135,.10)]"
+            className="media-file-card glass-panel group overflow-hidden rounded-[22px] transition duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-[0_18px_48px_rgba(72,60,135,.10)]"
         >
             <button
                 type="button"
                 onClick={onPreview}
-                className="relative block aspect-[16/10] w-full overflow-hidden bg-surface-muted text-left"
+                className="media-file-card-preview relative block aspect-[16/10] w-full overflow-hidden bg-surface-muted text-left"
             >
                 {image ? (
                     <Image
@@ -1017,7 +1017,7 @@ function NameDialog({
                         defaultValue={defaultValue}
                         required
                         autoFocus
-                        className="mt-2 h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] px-3.5 font-normal outline-none focus:border-brand/60 focus:shadow-[0_0_0_3px_rgba(109,93,244,.12)]"
+                        className="mt-2 h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] px-3.5 font-normal outline-none focus:border-brand/60 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_12%,transparent)]"
                     />
                 </label>
                 <div className="mt-6 flex justify-end gap-2">
@@ -1149,7 +1149,7 @@ function DialogSurface({
     return (
         <div
             onMouseDown={(event) => event.target === event.currentTarget && onClose()}
-            className="fixed inset-0 z-[120] grid place-items-center overflow-y-auto bg-[#11111d]/45 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[120] grid place-items-center overflow-y-auto bg-[#111111]/45 p-4 backdrop-blur-sm"
         >
             <section
                 className={`modal-surface glass-panel my-6 w-full rounded-[26px] p-5 sm:p-6 ${

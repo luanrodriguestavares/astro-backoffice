@@ -85,7 +85,7 @@ export function GatewayConnectCard({ gateway }: { gateway: GatewayDefinition }) 
                         onMouseDown={(event) => {
                             if (event.target === event.currentTarget && !loading) setOpen(false);
                         }}
-                        className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/18 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#111111]/18 p-4 backdrop-blur-sm"
                     >
                         <form
                             onSubmit={submit}
@@ -158,7 +158,7 @@ export function GatewayConnectCard({ gateway }: { gateway: GatewayDefinition }) 
                         onMouseDown={(event) => {
                             if (event.target === event.currentTarget) setCreated(undefined);
                         }}
-                        className="fixed inset-0 z-[110] grid place-items-center bg-[#17172c]/18 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[110] grid place-items-center bg-[#111111]/18 p-4 backdrop-blur-sm"
                     >
                         <section
                             role="alertdialog"
@@ -246,7 +246,7 @@ export function GatewayEditModal({
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget && !loading) close();
             }}
-            className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/18 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#111111]/18 p-4 backdrop-blur-sm"
         >
             <form
                 onSubmit={submit}
@@ -416,7 +416,7 @@ function Secret({ label, value }: { label: string; value: string }) {
     return (
         <div className="mt-4">
             <p className="text-[12px] font-semibold">{label}</p>
-            <code className="mt-2 block overflow-x-auto rounded-xl bg-[#f4f4f8] p-3 text-[12px]">
+            <code className="mt-2 block overflow-x-auto rounded-xl bg-[#f4f4f4] p-3 text-[12px]">
                 {value}
             </code>
         </div>

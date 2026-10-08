@@ -9,13 +9,18 @@ export default async function CheckoutPreviewPage({
     searchParams,
 }: {
     params: Promise<{ id: string }>;
-    searchParams: Promise<{ embed?: string }>;
+    searchParams: Promise<{ embed?: string; static?: string }>;
 }) {
     const { id } = await params;
-    const { embed } = await searchParams;
+    const { embed, static: staticParam } = await searchParams;
     const result = await loadPreview(id);
     return (
-        <CheckoutPreview checkout={result.checkout} draft={result.draft} embedded={embed === '1'} />
+        <CheckoutPreview
+            checkout={result.checkout}
+            draft={result.draft}
+            embedded={embed === '1'}
+            staticMode={staticParam === '1'}
+        />
     );
 }
 

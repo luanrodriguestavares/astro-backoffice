@@ -51,6 +51,13 @@ export function NotificationCenter({ storageScope }: { storageScope: string }) {
             } else {
                 setUnseenCount(notifications.filter((item) => !seen.has(item.id)).length);
             }
+        } catch {
+            // HMR, navegação ou indisponibilidade momentânea podem interromper o fetch.
+            // A central se recupera na próxima atualização sem gerar uma rejeição global.
+            if (!loadedRef.current) {
+                setItems([]);
+                setUnseenCount(0);
+            }
         } finally {
             setLoading(false);
             setLoaded(true);
@@ -59,7 +66,7 @@ export function NotificationCenter({ storageScope }: { storageScope: string }) {
     }, [storageScope]);
 
     useEffect(() => {
-        void loadNotifications();
+        const initialLoad = window.setTimeout(() => void loadNotifications(), 0);
         const interval = window.setInterval(() => void loadNotifications(), 30_000);
         function refreshWhenVisible() {
             if (document.visibilityState === 'visible') void loadNotifications();
@@ -67,6 +74,7 @@ export function NotificationCenter({ storageScope }: { storageScope: string }) {
         document.addEventListener('visibilitychange', refreshWhenVisible);
         window.addEventListener('focus', refreshWhenVisible);
         return () => {
+            window.clearTimeout(initialLoad);
             window.clearInterval(interval);
             document.removeEventListener('visibilitychange', refreshWhenVisible);
             window.removeEventListener('focus', refreshWhenVisible);
@@ -114,7 +122,7 @@ export function NotificationCenter({ storageScope }: { storageScope: string }) {
         <div ref={root} className="relative">
             <Button
                 type="button"
-                className="shell-icon-button shell-header-control relative grid size-11 place-items-center rounded-2xl text-[#737187] transition hover:-translate-y-0.5 hover:text-brand"
+                className="shell-icon-button shell-header-control relative grid size-11 place-items-center rounded-2xl text-[#737373] transition hover:-translate-y-0.5 hover:text-brand"
                 aria-label={
                     unseenCount > 0
                         ? `Abrir notificações: ${unseenCount} não vistas`
@@ -127,7 +135,7 @@ export function NotificationCenter({ storageScope }: { storageScope: string }) {
                 <Icon name="bell" className="size-[17px]" />
                 {loaded && unseenCount > 0 && (
                     <span
-                        className="notification-unseen-badge absolute -right-1.5 -top-1.5 grid min-w-5 place-items-center rounded-full bg-brand px-1.5 py-0.5 text-[10px] font-bold leading-4 text-white shadow-[0_4px_14px_color-mix(in_srgb,var(--brand)_38%,transparent)]"
+                        className="notification-unseen-badge absolute -right-1.5 -top-1.5 grid min-w-5 place-items-center rounded-full bg-brand px-1.5 py-0.5 text-[10px] font-bold leading-4 text-brand-contrast shadow-[0_4px_14px_color-mix(in_srgb,var(--brand)_38%,transparent)]"
                         aria-hidden="true"
                     >
                         {unseenCount > 99 ? '99+' : unseenCount}
@@ -140,93 +148,93 @@ export function NotificationCenter({ storageScope }: { storageScope: string }) {
                     <motion.section
                         role="dialog"
                         aria-label="Notificações recentes"
-                        initial={
-                            reduceMotion
-                                ? false
-                                : { opacity: 0, y: -8, scale: 0.97, filter: 'blur(5px)' }
-                        }
-                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                        initial={reduceMotion ? false : { opacity: 0, y: -4, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={
                             reduceMotion
                                 ? { opacity: 0 }
-                                : { opacity: 0, y: -5, scale: 0.98, filter: 'blur(3px)' }
+                                : {
+                                      opacity: 0,
+                                      y: -2,
+                                      transition: { duration: 0.1, ease: 'easeIn' },
+                                  }
                         }
                         transition={
                             reduceMotion
                                 ? { duration: 0 }
-                                : { type: 'spring', stiffness: 430, damping: 32, mass: 0.72 }
+                                : { duration: 0.14, ease: [0.2, 0.8, 0.2, 1] }
                         }
                         style={{ transformOrigin: 'top right' }}
                         className="notification-popover glass-popover absolute right-0 top-[calc(100%+10px)] z-[90] w-[min(380px,calc(100vw-32px))] overflow-hidden rounded-[22px]"
                     >
-                    <header className="flex items-center justify-between gap-4 border-b border-white/70 px-4 py-4">
-                        <div>
-                            <h2 className="text-[13px] font-semibold">Notificações recentes</h2>
-                            <p className="mt-1 text-[10px] text-muted">
-                                Atualizações da sua operação
-                            </p>
-                        </div>
-                        <Link
-                            href="/notifications"
-                            onClick={() => {
-                                openRef.current = false;
-                                setOpen(false);
-                            }}
-                            className="text-[11px] font-semibold text-brand-strong hover:underline"
-                        >
-                            Ver todas
-                        </Link>
-                    </header>
-
-                    <div className="max-h-[380px] overflow-y-auto p-2">
-                        {loading ? (
-                            <p className="px-3 py-8 text-center text-[12px] text-muted">
-                                Carregando notificações...
-                            </p>
-                        ) : items.length ? (
-                            items.slice(0, 5).map((item) => (
-                                <Link
-                                    key={item.id}
-                                    href={item.href}
-                                    onClick={() => {
-                                        openRef.current = false;
-                                        setOpen(false);
-                                    }}
-                                    className="flex items-start gap-3 rounded-xl px-3 py-3 transition hover:bg-white/55"
-                                >
-                                    <span
-                                        className={`grid size-8 shrink-0 place-items-center rounded-xl ${toneClasses[item.tone]}`}
-                                    >
-                                        <Icon name={item.icon} className="size-3.5" />
-                                    </span>
-                                    <span className="min-w-0 flex-1">
-                                        <span className="block truncate text-[12px] font-semibold">
-                                            {item.title}
-                                        </span>
-                                        <span className="mt-1 block truncate text-[11px] text-muted">
-                                            {item.description}
-                                        </span>
-                                        <time
-                                            dateTime={item.createdAt}
-                                            className="mt-1.5 block text-[10px] text-muted"
-                                        >
-                                            {relativeTime(item.createdAt)}
-                                        </time>
-                                    </span>
-                                </Link>
-                            ))
-                        ) : (
-                            <div className="px-4 py-10 text-center">
-                                <Icon name="bell" className="mx-auto size-5 text-brand/55" />
-                                <p className="mt-3 text-[12px] font-semibold">
-                                    Nenhuma notificação recente
-                                </p>
-                                <p className="mt-1 text-[11px] text-muted">
-                                    As atualizações da operação aparecerão aqui.
+                        <header className="flex items-center justify-between gap-4 border-b border-white/70 px-4 py-4">
+                            <div>
+                                <h2 className="text-[13px] font-semibold">Notificações recentes</h2>
+                                <p className="mt-1 text-[10px] text-muted">
+                                    Atualizações da sua operação
                                 </p>
                             </div>
-                        )}
-                    </div>
+                            <Link
+                                href="/notifications"
+                                onClick={() => {
+                                    openRef.current = false;
+                                    setOpen(false);
+                                }}
+                                className="text-[11px] font-semibold text-brand-strong hover:underline"
+                            >
+                                Ver todas
+                            </Link>
+                        </header>
+
+                        <div className="max-h-[380px] overflow-y-auto p-2">
+                            {loading ? (
+                                <p className="px-3 py-8 text-center text-[12px] text-muted">
+                                    Carregando notificações...
+                                </p>
+                            ) : items.length ? (
+                                items.slice(0, 5).map((item) => (
+                                    <Link
+                                        key={item.id}
+                                        href={item.href}
+                                        onClick={() => {
+                                            openRef.current = false;
+                                            setOpen(false);
+                                        }}
+                                        className="flex items-start gap-3 rounded-xl px-3 py-3 transition hover:bg-white/55"
+                                    >
+                                        <span
+                                            className={`grid size-8 shrink-0 place-items-center rounded-xl ${toneClasses[item.tone]}`}
+                                        >
+                                            <Icon name={item.icon} className="size-3.5" />
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block truncate text-[12px] font-semibold">
+                                                {item.title}
+                                            </span>
+                                            <span className="mt-1 block truncate text-[11px] text-muted">
+                                                {item.description}
+                                            </span>
+                                            <time
+                                                dateTime={item.createdAt}
+                                                className="mt-1.5 block text-[10px] text-muted"
+                                            >
+                                                {relativeTime(item.createdAt)}
+                                            </time>
+                                        </span>
+                                    </Link>
+                                ))
+                            ) : (
+                                <div className="px-4 py-10 text-center">
+                                    <Icon name="bell" className="mx-auto size-5 text-brand/55" />
+                                    <p className="mt-3 text-[12px] font-semibold">
+                                        Nenhuma notificação recente
+                                    </p>
+                                    <p className="mt-1 text-[11px] text-muted">
+                                        As atualizações da operação aparecerão aqui.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                     </motion.section>
                 )}
             </AnimatePresence>

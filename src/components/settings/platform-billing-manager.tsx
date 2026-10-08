@@ -115,11 +115,11 @@ export function PlatformBillingManager({
                 </section>
             )}
 
-            <section className="glass-panel overflow-hidden rounded-[28px] p-6 sm:p-7">
-                <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <section className="glass-panel overflow-hidden rounded-[26px]">
+                <div className="flex flex-col gap-6 px-5 py-6 sm:px-7 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <div className="flex items-center gap-3">
-                            <span className="grid size-11 place-items-center rounded-2xl border border-border bg-brand-soft text-brand-strong">
+                            <span className="grid size-10 place-items-center rounded-full bg-foreground text-surface">
                                 <Icon name="card" className="size-5" />
                             </span>
                             <div>
@@ -133,7 +133,7 @@ export function PlatformBillingManager({
                                 </h2>
                             </div>
                         </div>
-                        <div className="mt-5 flex flex-wrap items-center gap-2 text-[12px]">
+                        <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px]">
                             <StatusBadge status={subscription.status} />
                             {hasContractedPlan && (
                                 <span className="rounded-full border border-border bg-surface-muted/55 px-3 py-1.5 text-muted">
@@ -149,7 +149,7 @@ export function PlatformBillingManager({
                             )}
                         </div>
                     </div>
-                    <div className="text-left lg:text-right">
+                    <div className="border-t border-border pt-5 text-left lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0 lg:text-right">
                         {hasContractedPlan ? (
                             <p className="text-3xl font-semibold tracking-[-0.05em]">
                                 {money(subscription.priceMinor, subscription.currency)}
@@ -201,14 +201,14 @@ export function PlatformBillingManager({
                     </div>
                 </div>
                 {subscription.status === 'past_due' && (
-                    <div className="mt-5 rounded-2xl border border-warning/25 bg-warning/10 px-4 py-3 text-[12px]">
+                    <div className="border-t border-warning/20 bg-warning/10 px-5 py-3 text-[12px] sm:px-7">
                         O último pagamento falhou. Regularize até{' '}
                         {date(subscription.gracePeriodEndsAt)} para evitar a interrupção do plano.
                     </div>
                 )}
             </section>
 
-            <nav className="flex gap-1 overflow-x-auto rounded-2xl border border-border bg-surface-muted/45 p-1" aria-label="Seções da assinatura">
+            <nav className="ui-tabs" aria-label="Seções da assinatura">
                 <TabButton active={tab === 'plan'} onClick={() => setTab('plan')} icon="card">
                     Plano e pagamento
                 </TabButton>
@@ -222,16 +222,19 @@ export function PlatformBillingManager({
 
             {tab === 'plan' && (
                 <div className="space-y-5">
-                    <section>
-                        <div className="mb-4">
-                            <h2 className="text-lg font-semibold tracking-[-0.03em]">
+                    <section className="glass-panel overflow-hidden rounded-[26px]">
+                        <div className="border-b border-border px-5 py-5 sm:px-6">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                                Planos disponíveis
+                            </p>
+                            <h2 className="mt-1 text-lg font-semibold tracking-[-0.03em]">
                                 Escolha seu plano
                             </h2>
                             <p className="mt-1 text-[13px] text-muted">
                                 O cartão é preenchido sem sair do painel do Astro.
                             </p>
                         </div>
-                        <div className="grid gap-4 lg:grid-cols-3">
+                        <div className="grid lg:grid-cols-3 lg:divide-x lg:divide-border">
                             {summary.plans.map((plan) => {
                                 const current =
                                     hasContractedPlan && plan.code === subscription.planCode;
@@ -241,8 +244,11 @@ export function PlatformBillingManager({
                                 return (
                                     <article
                                         key={plan.id}
-                                        className={`glass-panel flex min-h-[270px] flex-col rounded-[24px] p-6 ${current ? 'ring-1 ring-brand/35' : ''}`}
+                                        className={`relative flex min-h-[292px] flex-col border-b border-border p-6 transition lg:border-b-0 ${current ? 'bg-surface-muted/40' : 'hover:bg-surface-muted/20'}`}
                                     >
+                                        {current && (
+                                            <span className="absolute inset-x-0 top-0 h-0.5 bg-highlight" />
+                                        )}
                                         <div className="flex items-start justify-between gap-3">
                                             <div>
                                                 <h3 className="text-lg font-semibold">{plan.name}</h3>
@@ -251,12 +257,12 @@ export function PlatformBillingManager({
                                                 </p>
                                             </div>
                                             {current && (
-                                                <span className="rounded-full bg-brand-soft px-2.5 py-1 text-[11px] font-semibold text-brand-strong">
+                                                <span className="rounded-full bg-foreground px-2.5 py-1 text-[10px] font-semibold text-surface">
                                                     Atual
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="mt-6 text-3xl font-semibold tracking-[-0.05em]">
+                                        <p className="mt-7 text-3xl font-semibold tracking-[-0.05em]">
                                             {plan.pricingType === 'custom'
                                                 ? 'Sob consulta'
                                                 : money(plan.priceMinor, plan.currency)}
@@ -343,7 +349,7 @@ export function PlatformBillingManager({
                                     appearance: {
                                         theme: 'stripe',
                                         variables: {
-                                            colorPrimary: '#6c5ce7',
+                                            colorPrimary: '#101214',
                                             borderRadius: '12px',
                                             fontFamily: 'Inter, system-ui, sans-serif',
                                         },
@@ -471,7 +477,9 @@ function TabButton({
         <button
             type="button"
             onClick={onClick}
-            className={`flex min-w-max flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-semibold transition ${active ? 'bg-surface text-foreground shadow-sm' : 'text-muted hover:text-foreground'}`}
+            data-active={active}
+            aria-pressed={active}
+            className="ui-tab flex min-w-max flex-1 items-center justify-center gap-2 px-4 py-3 text-[13px] font-semibold"
         >
             <Icon name={icon} className="size-4" />
             {children}

@@ -8,7 +8,7 @@ import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 
 const inputClass =
-    'h-11 w-full rounded-xl border border-[#d9d7e8] bg-white/75 px-3.5 text-[12px] font-normal text-[#17182f] outline-none transition placeholder:text-[#aaaabd] focus:border-brand/70 focus:bg-white focus:shadow-[0_0_0_3px_rgba(109,93,244,.14)]';
+    'h-11 w-full rounded-xl border border-[#e2e2e2] bg-white/75 px-3.5 text-[12px] font-normal text-[#111111] outline-none transition placeholder:text-[#a9a9a9] focus:border-brand/70 focus:bg-white focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]';
 
 const organizationSteps = [
     { label: 'Seu acesso', description: 'Identidade e segurança' },
@@ -94,12 +94,12 @@ export function RegisterForm({ invitation }: { invitation?: InvitationContext })
                                     ? 'border-brand/35 bg-brand-soft/75 text-brand-strong'
                                     : index < step
                                       ? 'border-brand/15 bg-white/60 text-foreground hover:border-brand/28'
-                                      : 'border-[#ecebf3] bg-[#fafafe]/65 text-muted'
+                                      : 'border-[#ebebeb] bg-[#fafafa]/65 text-muted'
                             }`}
                         >
                             <span className="flex items-center gap-2">
                                 <span
-                                    className={`grid size-5 shrink-0 place-items-center rounded-full text-[9px] font-bold ${index <= step ? 'bg-brand text-white' : 'bg-[#e9e8f1] text-muted'}`}
+                                    className={`grid size-5 shrink-0 place-items-center rounded-full text-[9px] font-bold ${index <= step ? 'bg-brand text-brand-contrast' : 'bg-[#e8e8e8] text-muted'}`}
                                 >
                                     {index < step ? (
                                         <Icon name="check" className="size-3" />
@@ -119,7 +119,7 @@ export function RegisterForm({ invitation }: { invitation?: InvitationContext })
                 ))}
             </ol>
 
-            <div className="mt-4 min-h-[286px] rounded-[22px] border border-[#ecebf3] bg-[#fafafe]/75 p-4 sm:p-5">
+            <div className="mt-4 min-h-[286px] rounded-[22px] border border-[#ebebeb] bg-[#fafafa]/75 p-4 sm:p-5">
                 <section data-step="0" hidden={step !== 0}>
                     <StepHeading
                         icon="user"
@@ -151,7 +151,7 @@ export function RegisterForm({ invitation }: { invitation?: InvitationContext })
                                 maxLength={320}
                                 autoComplete="email"
                                 placeholder="voce@empresa.com"
-                                className={`${inputClass} ${invitation ? 'cursor-not-allowed bg-[#f1f0f7]/80 text-muted focus:border-[#d9d7e8] focus:shadow-none' : ''}`}
+                                className={`${inputClass} ${invitation ? 'cursor-not-allowed bg-[#f1f0f7]/80 text-muted focus:border-[#e2e2e2] focus:shadow-none' : ''}`}
                             />
                         </Field>
                         <Field label="Senha" hint="Mínimo de 12 caracteres">
@@ -258,8 +258,8 @@ export function RegisterForm({ invitation }: { invitation?: InvitationContext })
                     />
                     <div className="mt-5">
                         <Field label="Identificador da organização" hint="URLs e integrações">
-                            <div className="flex h-11 overflow-hidden rounded-xl border border-[#d9d7e8] bg-white/75 transition focus-within:border-brand/70 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(109,93,244,.14)]">
-                                <span className="flex items-center border-r border-[#d9d7e8] bg-[#faf9ff] px-3 text-[10px] text-muted">
+                            <div className="flex h-11 overflow-hidden rounded-xl border border-[#e2e2e2] bg-white/75 transition focus-within:border-brand/70 focus-within:bg-white focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]">
+                                <span className="flex items-center border-r border-[#e2e2e2] bg-[#faf9ff] px-3 text-[10px] text-muted">
                                     astro.app/
                                 </span>
                                 <input
@@ -324,7 +324,7 @@ function Terms() {
                 type="checkbox"
                 name="terms"
                 required
-                className="mt-0.5 size-3.5 shrink-0 rounded border-[#d9d7e8] accent-brand"
+                className="mt-0.5 size-3.5 shrink-0 rounded border-[#e2e2e2] accent-brand"
             />
             <span>
                 Li e concordo com os{' '}
@@ -367,7 +367,7 @@ function Field({
     children: React.ReactNode;
 }) {
     return (
-        <label className="block text-[11px] font-semibold text-[#24253c]">
+        <label className="block text-[11px] font-semibold text-[#1a1a1a]">
             <span className="mb-1.5 flex items-center justify-between gap-3">
                 <span>{label}</span>
                 {hint && <span className="text-[8px] font-normal text-muted">{hint}</span>}

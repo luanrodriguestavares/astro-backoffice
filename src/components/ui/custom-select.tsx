@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { Icon } from '@/components/ui/icon';
@@ -62,7 +62,7 @@ export function CustomSelect({
         };
     }, []);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!open) return;
 
         function position() {
@@ -113,7 +113,7 @@ export function CustomSelect({
             role="listbox"
             aria-disabled={!hasOptions}
             style={listboxStyle}
-            className="custom-select-popover max-h-64 overflow-y-auto rounded-2xl border border-white bg-white p-1.5 shadow-[0_20px_55px_rgba(39,33,82,.18)]"
+            className="custom-select-popover fixed max-h-64 overflow-y-auto rounded-2xl border border-white bg-white p-1.5 shadow-[0_20px_55px_rgba(17,17,17,.18)]"
         >
             {hasOptions ? (
                 options.map((option) => (
@@ -152,8 +152,9 @@ export function CustomSelect({
                 disabled={disabled}
                 aria-haspopup="listbox"
                 aria-expanded={open}
+                data-open={open}
                 onClick={() => setOpen((current) => !current)}
-                className={`custom-select-trigger flex h-11 w-full items-center justify-between gap-3 rounded-xl border px-3.5 text-left text-[13px] font-normal outline-none transition focus-visible:border-brand/70 focus-visible:bg-white focus-visible:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)] ${open ? 'border-brand/70 bg-white shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)]' : 'border-border bg-white/70 hover:border-brand/45'} disabled:opacity-50`}
+                className="ui-control custom-select-trigger flex h-11 w-full items-center justify-between gap-3 px-3.5 text-left font-normal disabled:opacity-50"
             >
                 <span className={label ? 'text-foreground' : 'text-muted'}>
                     {label ?? placeholder}

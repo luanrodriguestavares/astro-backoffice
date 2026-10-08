@@ -34,7 +34,7 @@ export function AuthToast({
         <div
             role={error ? 'alert' : 'status'}
             aria-live={error ? 'assertive' : 'polite'}
-            className="roadmap-toast fixed right-4 top-4 z-[170] w-[min(390px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#e7e5ef] bg-white/96 shadow-[0_22px_65px_rgba(31,27,60,.18)] backdrop-blur-xl sm:right-6 sm:top-6"
+            className="roadmap-toast fixed right-4 top-4 z-[170] w-[min(390px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#e7e7e7] bg-white/96 shadow-[0_22px_65px_rgba(31,27,60,.18)] backdrop-blur-xl sm:right-6 sm:top-6"
         >
             <div className="flex items-start gap-3.5 p-4 pr-3">
                 <span
@@ -45,16 +45,16 @@ export function AuthToast({
                     <Icon name={error ? 'close' : 'clock'} className="size-4" />
                 </span>
                 <div className="min-w-0 flex-1 pt-0.5">
-                    <p className="text-[12px] font-semibold text-[#24253c]">
+                    <p className="text-[12px] font-semibold text-[#1a1a1a]">
                         {error ? 'Não foi possível continuar' : 'Tudo certo'}
                     </p>
-                    <p className="mt-1 text-[11px] leading-5 text-[#74758a]">{message}</p>
+                    <p className="mt-1 text-[11px] leading-5 text-[#6b6b6b]">{message}</p>
                 </div>
                 <Button
                     type="button"
                     aria-label="Fechar aviso"
                     onClick={close}
-                    className="grid size-7 shrink-0 place-items-center rounded-lg text-[#74758a] transition hover:bg-[#f1f1f7] hover:text-[#24253c]"
+                    className="grid size-7 shrink-0 place-items-center rounded-lg text-[#6b6b6b] transition hover:bg-[#f2f2f2] hover:text-[#1a1a1a]"
                 >
                     <Icon name="close" className="size-3.5" />
                 </Button>

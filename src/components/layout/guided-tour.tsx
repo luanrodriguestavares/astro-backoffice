@@ -408,8 +408,9 @@ const dashboardSteps: DriveStep[] = [
         element: '[data-tour="account-menu"]',
         popover: {
             title: 'Sua conta',
-            description: 'Aqui você encontra as configurações da conta e a opção de sair.',
-            side: 'bottom',
+            description:
+                'Aqui você encontra as configurações da conta, a troca de tema e a opção de sair.',
+            side: 'right',
             align: 'end',
         },
     },

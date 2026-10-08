@@ -296,7 +296,7 @@ export function ProductManager({
                 className="glass-panel mb-4 flex flex-col gap-3 rounded-[22px] p-2.5 sm:flex-row sm:items-center sm:justify-between"
             >
                 <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-                    <label className="product-search filter-control flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-white/70 px-3.5 transition focus-within:border-brand/70 focus-within:bg-white focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)] sm:max-w-[310px]">
+                    <label className="product-search filter-control ui-control-frame flex h-11 min-w-0 flex-1 items-center gap-2 px-3.5 sm:max-w-[310px]">
                         <Icon name="search" className="size-3.5 shrink-0 text-muted" />
                         <input
                             value={query}
@@ -322,7 +322,7 @@ export function ProductManager({
                         )}
                     </label>
 
-                    <div className="product-filter-tabs flex overflow-x-auto rounded-xl border border-white/75 bg-white/32 p-1 [scrollbar-width:none]">
+                    <div className="product-filter-tabs ui-tabs">
                         {(
                             [
                                 ['all', 'Todos'],
@@ -339,7 +339,8 @@ export function ProductManager({
                                     setPage(1);
                                 }}
                                 data-active={status === value}
-                                className="shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-muted transition hover:text-foreground"
+                                aria-pressed={status === value}
+                                className="ui-tab px-3 py-1.5 text-[12px] font-semibold"
                             >
                                 {label}
                             </Button>
@@ -462,9 +463,6 @@ export function ProductManager({
                                     <option value="digital">Digital</option>
                                     <option value="service">Serviço</option>
                                     <option value="saas">SaaS</option>
-                                    <option value="physical" disabled data-badge="Em breve">
-                                        Físico
-                                    </option>
                                 </SelectField>
                                 <SelectField
                                     name="status"

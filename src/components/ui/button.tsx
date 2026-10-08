@@ -6,12 +6,12 @@ export type ButtonVariant = 'unstyled' | 'primary' | 'secondary' | 'ghost' | 'da
 const variants: Record<ButtonVariant, string> = {
     unstyled: '',
     primary:
-        'dashboard-primary-action glass-interactive group inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(to_right,var(--brand),var(--brand-strong))] px-5 text-[13px] font-semibold text-white transition duration-300 hover:-translate-y-0.5',
+        'dashboard-primary-action glass-interactive group inline-flex h-11 transform-gpu items-center justify-center gap-2 rounded-xl bg-brand px-5 text-[13px] font-semibold text-brand-contrast transition duration-200 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[.99]',
     secondary:
-        'inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border bg-[var(--control-bg)] px-5 text-[13px] font-semibold text-muted hover:border-brand/24 hover:bg-surface-muted/55 hover:text-foreground',
-    ghost: 'inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-[12px] font-semibold text-brand-strong hover:bg-brand-soft',
-    danger: 'inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-[#f2cbd0] px-3 text-[12px] font-semibold text-danger hover:bg-[#fff0f2]',
-    icon: 'inline-grid size-9 place-items-center rounded-full border border-border bg-[var(--control-bg)] text-muted hover:border-brand/24 hover:bg-surface-muted/55 hover:text-foreground',
+        'inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border bg-[var(--control-bg)] px-5 text-[13px] font-semibold text-muted hover:bg-surface-muted hover:text-foreground',
+    ghost: 'inline-flex h-9 items-center justify-center gap-2 rounded-xl px-3 text-[12px] font-semibold text-muted hover:bg-surface-muted hover:text-foreground',
+    danger: 'inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-[#f2cbd0] px-3 text-[12px] font-semibold text-danger hover:bg-[#fff0f2]',
+    icon: 'inline-grid size-9 place-items-center rounded-full border border-border bg-[var(--control-bg)] text-muted hover:bg-surface-muted hover:text-foreground',
 };
 
 export function buttonClassName(variant: ButtonVariant = 'unstyled', className = '') {
