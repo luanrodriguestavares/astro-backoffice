@@ -3,25 +3,28 @@ import { NextResponse } from 'next/server';
 
 import { apiFetch, AstroApiError } from '@/lib/api/server';
 import { clientProblem } from '@/lib/api/problem';
-import type { GatewayRoutingRule } from '@/lib/api/types';
 
-export async function POST(request: Request) {
+/** Repassa o corpo para a API; publicar e pausar exigem chave de idempotência. */
+export async function forwardFlowRequest(
+    request: Request,
+    path: string,
+    method: 'PUT' | 'POST' | 'PATCH',
+    fallback: string,
+    idempotent = false,
+) {
     try {
         const input = (await request.json()) as Record<string, unknown>;
-        const rule = await apiFetch<GatewayRoutingRule>('/api/v1/gateway-routing-rules', {
-            method: 'POST',
-            headers: { 'idempotency-key': randomUUID() },
+        const data = await apiFetch<unknown>(path, {
+            method,
+            ...(idempotent ? { headers: { 'idempotency-key': randomUUID() } } : {}),
             body: JSON.stringify(input),
         });
-        return NextResponse.json({ data: rule });
+        return NextResponse.json({ data });
     } catch (error) {
         if (error instanceof AstroApiError)
             return NextResponse.json(clientProblem(error.problem), {
                 status: error.problem.status,
             });
-        return NextResponse.json(
-            { detail: 'Não foi possível criar a regra de roteamento.' },
-            { status: 500 },
-        );
+        return NextResponse.json({ detail: fallback }, { status: 500 });
     }
 }

@@ -43,7 +43,24 @@ export type IconName =
     | 'heart'
     | 'route'
     | 'coins'
-    | 'pulse';
+    | 'pulse'
+    | 'branch'
+    | 'split'
+    | 'switch'
+    | 'alert'
+    | 'note'
+    | 'minus'
+    | 'maximize'
+    | 'undo'
+    | 'redo'
+    | 'x-circle'
+    | 'check-circle'
+    | 'layers'
+    | 'expand'
+    | 'shrink'
+    | 'clipboard'
+    | 'unlink'
+    | 'mail';
 
 const paths: Record<IconName, React.ReactNode> = {
     home: (
@@ -301,6 +318,123 @@ const paths: Record<IconName, React.ReactNode> = {
         </>
     ),
     moon: <path d="M20.5 14.4A8.5 8.5 0 0 1 9.6 3.5 8.5 8.5 0 1 0 20.5 14.4Z" />,
+    branch: (
+        <>
+            <circle cx="6" cy="5" r="2.2" />
+            <circle cx="6" cy="19" r="2.2" />
+            <circle cx="18" cy="8" r="2.2" />
+            <path d="M6 7.2v9.6" />
+            <path d="M18 10.2c0 4-6 3.2-11 6.6" />
+        </>
+    ),
+    split: (
+        <>
+            <path d="M3 12h6" />
+            <path d="M9 12c3 0 4-6 8-6h4" />
+            <path d="M9 12c3 0 4 6 8 6h4" />
+            <path d="m18 3 3 3-3 3" />
+            <path d="m18 15 3 3-3 3" />
+        </>
+    ),
+    switch: (
+        <>
+            <circle cx="5" cy="12" r="2.2" />
+            <circle cx="19" cy="5" r="2.2" />
+            <circle cx="19" cy="12" r="2.2" />
+            <circle cx="19" cy="19" r="2.2" />
+            <path d="M7.2 12h9.6" />
+            <path d="M7 11c4-1 5-6 9.8-6" />
+            <path d="M7 13c4 1 5 6 9.8 6" />
+        </>
+    ),
+    alert: (
+        <>
+            <path d="M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+        </>
+    ),
+    note: (
+        <>
+            <path d="M15 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10Z" />
+            <path d="M15 21v-6h6" />
+            <path d="M7 8h10M7 12h6" />
+        </>
+    ),
+    minus: <path d="M5 12h14" />,
+    maximize: (
+        <>
+            <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+            <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+            <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+            <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+        </>
+    ),
+    undo: (
+        <>
+            <path d="M9 14 4 9l5-5" />
+            <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+        </>
+    ),
+    redo: (
+        <>
+            <path d="m15 14 5-5-5-5" />
+            <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
+        </>
+    ),
+    'x-circle': (
+        <>
+            <circle cx="12" cy="12" r="9" />
+            <path d="m15 9-6 6M9 9l6 6" />
+        </>
+    ),
+    'check-circle': (
+        <>
+            <circle cx="12" cy="12" r="9" />
+            <path d="m8.5 12.5 2.5 2.5 4.5-5" />
+        </>
+    ),
+    expand: (
+        <>
+            <path d="M15 3h6v6" />
+            <path d="M9 21H3v-6" />
+            <path d="m21 3-7 7" />
+            <path d="m3 21 7-7" />
+        </>
+    ),
+    shrink: (
+        <>
+            <path d="M4 14h6v6" />
+            <path d="M20 10h-6V4" />
+            <path d="m14 10 7-7" />
+            <path d="m3 21 7-7" />
+        </>
+    ),
+    clipboard: (
+        <>
+            <rect x="8" y="2" width="8" height="4" rx="1" />
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+        </>
+    ),
+    unlink: (
+        <>
+            <path d="m18.8 13.3 1.5-1.5a4.2 4.2 0 0 0-6-6l-1.5 1.5" />
+            <path d="m5.2 10.7-1.5 1.5a4.2 4.2 0 0 0 6 6l1.5-1.5" />
+            <path d="M8 2v3M2 8h3M16 22v-3M22 16h-3" />
+        </>
+    ),
+    mail: (
+        <>
+            <rect x="3" y="5" width="18" height="14" rx="2" />
+            <path d="m3 7 9 6 9-6" />
+        </>
+    ),
+    layers: (
+        <>
+            <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+            <path d="m3 13 9 5 9-5" />
+        </>
+    ),
     heart: (
         <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
     ),

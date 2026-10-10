@@ -27,7 +27,7 @@ const featureLabels: Record<string, string> = {
     'webhooks.custom': 'Webhooks personalizados',
     'marketing.pixels': 'Pixels e conversões server-side',
     'checkout.abandoned_recovery': 'Recuperação de checkout abandonado',
-    'gateways.routing_rules': 'Regras de gateway por checkout',
+    'gateways.routing_rules': 'Orquestrador visual de gateways',
     'workspace.permissions': 'Permissões da equipe',
     'support.priority': 'Suporte prioritário',
     'notifications.sale_email': 'E-mail a cada venda aprovada',

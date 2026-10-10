@@ -194,18 +194,18 @@ const navigationGroups: { label: string; icon: IconName; items: NavigationItem[]
         icon: 'route',
         items: [
             {
-                label: 'Resumo',
+                label: 'Fluxo',
                 href: '/orchestration',
-                icon: 'pulse',
+                icon: 'route',
                 exact: true,
-                permission: 'payments.read',
+                permission: 'gateway_connections.manage',
                 feature: 'gateways.connected',
             },
             {
-                label: 'Regras',
-                href: '/orchestration/rules',
-                icon: 'route',
-                permission: 'gateway_connections.manage',
+                label: 'Desempenho',
+                href: '/orchestration/performance',
+                icon: 'pulse',
+                permission: 'payments.read',
                 feature: 'gateways.connected',
             },
             {

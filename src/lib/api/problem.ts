@@ -23,7 +23,8 @@ function translatedDetail(problem: ProblemDetails): string {
     if (problem.code === 'RATE_LIMIT_EXCEEDED')
         return 'Muitas solicitações em pouco tempo. Aguarde um instante e tente novamente.';
     if (problem.code === 'PLAN_FEATURE_UNAVAILABLE') {
-        const feature = typeof problem.meta?.feature === 'string' ? problem.meta.feature : 'recurso';
+        const feature =
+            typeof problem.meta?.feature === 'string' ? problem.meta.feature : 'recurso';
         const label = featureLabels[feature] ?? feature;
         return `O recurso de ${label} não está disponível sem uma assinatura ativa. Escolha um plano para continuar.`;
     }

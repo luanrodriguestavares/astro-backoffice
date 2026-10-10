@@ -7,7 +7,7 @@ import { providerPresentation } from '@/components/gateways/connected-gateway-ca
 import { GatewayMark } from '@/components/gateways/gateway-mark';
 import { Button } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
-import type { GatewayConnection, GatewayInsights, GatewayRoutingRule } from '@/lib/api/types';
+import type { GatewayConnection, GatewayFlow, GatewayInsights } from '@/lib/api/types';
 import { declineLabel, retryAdviceLabels } from '@/lib/payments/decline';
 
 const methodLabels: Record<string, string> = {
@@ -27,15 +27,15 @@ interface Recommendation {
 export function OrchestrationOverview({
     insights,
     connections,
-    rules,
+    flow,
 }: {
     insights: GatewayInsights;
     connections: GatewayConnection[];
-    rules: GatewayRoutingRule[];
+    flow: GatewayFlow | null;
 }) {
     return (
         <div className="space-y-4">
-            <NextSteps insights={insights} connections={connections} rules={rules} />
+            <NextSteps insights={insights} connections={connections} flow={flow} />
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,1fr)]">
                 <Gateways insights={insights} connections={connections} />
                 <DeclineReasons insights={insights} />
@@ -49,7 +49,7 @@ export function OrchestrationOverview({
 function recommendations(
     insights: GatewayInsights,
     connections: GatewayConnection[],
-    rules: GatewayRoutingRule[],
+    flow: GatewayFlow | null,
 ): Recommendation[] {
     const items: Recommendation[] = [];
     const unstable = connections.filter((connection) => connection.status === 'degraded');
@@ -78,17 +78,17 @@ function recommendations(
                 'Se o seu gateway sair do ar, as vendas param. Com um reserva, elas passam por ele automaticamente.',
             action: { label: 'Conectar outro gateway', href: '/gateways' },
         });
-    else if (insights.summary.recoveredByFailover === 0 && rules.length === 0)
+    else if (insights.summary.recoveredByFailover === 0 && flow?.published == null)
         items.push({
             tone: 'action',
             title: 'Use o segundo gateway como reserva',
             description:
-                'Você já tem mais de um gateway. No checkout, em Prontidão, adicione o segundo como reserva.',
-            action: { label: 'Abrir checkouts', href: '/checkouts' },
+                'Você já tem mais de um gateway. No fluxo de orquestração, ligue a saída "falhou" de um gateway ao outro.',
+            action: { label: 'Abrir o fluxo', href: '/orchestration' },
         });
-    const usesCost = rules.some(
-        (rule) => rule.status === 'active' && rule.strategy === 'lowest_cost',
-    );
+    const usesCost =
+        flow?.status === 'active' &&
+        (flow.published?.nodes.some((node) => node.type === 'cheapest') ?? false);
     const missingFees = connections.filter(
         (connection) => Object.keys(connection.feeSchedule ?? {}).length === 0,
     );
@@ -115,13 +115,13 @@ function recommendations(
 function NextSteps({
     insights,
     connections,
-    rules,
+    flow,
 }: {
     insights: GatewayInsights;
     connections: GatewayConnection[];
-    rules: GatewayRoutingRule[];
+    flow: GatewayFlow | null;
 }) {
-    const items = recommendations(insights, connections, rules);
+    const items = recommendations(insights, connections, flow);
     const icons: Record<Recommendation['tone'], IconName> = {
         action: 'bolt',
         warning: 'clock',

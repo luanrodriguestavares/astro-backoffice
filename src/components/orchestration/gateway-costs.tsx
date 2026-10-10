@@ -60,13 +60,13 @@ export function GatewayCosts({
 
             {costRules === 0 && (
                 <p className="px-1 pt-2 text-[13px] text-muted">
-                    As taxas servem para a regra &ldquo;o mais barato primeiro&rdquo; escolher o
+                    As taxas servem para o bloco &ldquo;Mais barato&rdquo; do fluxo escolher o
                     gateway.{' '}
                     <Link
-                        href="/orchestration/rules?new=1"
+                        href="/orchestration"
                         className="font-semibold text-foreground underline-offset-2 hover:underline"
                     >
-                        Criar essa regra
+                        Abrir o fluxo
                     </Link>
                 </p>
             )}

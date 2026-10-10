@@ -305,8 +305,8 @@ export function PaymentsTable({
                                     <Detail
                                         label="Decidido por"
                                         value={
-                                            selected.routing.source === 'rule'
-                                                ? `Regra "${selected.routing.ruleName ?? selected.routing.ruleId ?? ''}"`
+                                            selected.routing.source === 'flow'
+                                                ? `Fluxo de orquestração v${String(selected.routing.flowVersion ?? '')}`
                                                 : selected.routing.source === 'checkout'
                                                   ? 'Configuração do checkout'
                                                   : 'Primeiro gateway compatível'

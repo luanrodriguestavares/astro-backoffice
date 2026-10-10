@@ -1,19 +1,61 @@
 import 'server-only';
 
 import { apiFetch } from '@/lib/api/server';
-import type { Checkout, Organization, Payment, Product, Refund, Subscription } from '@/lib/api/types';
+import type {
+    Checkout,
+    Organization,
+    Payment,
+    Product,
+    Refund,
+    Subscription,
+} from '@/lib/api/types';
 import type { NotificationItem } from '@/lib/notifications/types';
 
 const approvedPaymentStatuses = new Set(['approved', 'paid', 'captured', 'succeeded']);
 const completedRefundStatuses = new Set(['completed', 'succeeded', 'approved']);
 const limitedFeatures = [
-    { feature: 'catalog.active_products', label: 'Produtos ativos', href: '/products', permission: 'products.read' },
-    { feature: 'checkout.published', label: 'Checkouts publicados', href: '/checkouts', permission: 'products.read' },
-    { feature: 'commerce.orders', label: 'Pedidos do ciclo', href: '/orders', permission: 'payments.read' },
-    { feature: 'subscriptions.active', label: 'Assinaturas ativas', href: '/subscriptions', permission: 'subscriptions.read' },
-    { feature: 'gateways.connected', label: 'Gateways conectados', href: '/gateways', permission: 'gateway_connections.manage' },
-    { feature: 'workspace.members', label: 'Usuários no workspace', href: '/team', permission: 'members.manage' },
-    { feature: 'media.storage_bytes', label: 'Armazenamento de mídia', href: '/files', permission: 'products.read' },
+    {
+        feature: 'catalog.active_products',
+        label: 'Produtos ativos',
+        href: '/products',
+        permission: 'products.read',
+    },
+    {
+        feature: 'checkout.published',
+        label: 'Checkouts publicados',
+        href: '/checkouts',
+        permission: 'products.read',
+    },
+    {
+        feature: 'commerce.orders',
+        label: 'Pedidos do ciclo',
+        href: '/orders',
+        permission: 'payments.read',
+    },
+    {
+        feature: 'subscriptions.active',
+        label: 'Assinaturas ativas',
+        href: '/subscriptions',
+        permission: 'subscriptions.read',
+    },
+    {
+        feature: 'gateways.connected',
+        label: 'Gateways conectados',
+        href: '/gateways',
+        permission: 'gateway_connections.manage',
+    },
+    {
+        feature: 'workspace.members',
+        label: 'Usuários no workspace',
+        href: '/team',
+        permission: 'members.manage',
+    },
+    {
+        feature: 'media.storage_bytes',
+        label: 'Armazenamento de mídia',
+        href: '/files',
+        permission: 'products.read',
+    },
 ] as const;
 
 export async function getRecentNotifications(limit = 30) {
@@ -29,18 +71,18 @@ export async function getRecentNotifications(limit = 30) {
             : [],
         can('payments.read') ? safely(() => apiFetch<Refund[]>('/api/v1/refunds')) : [],
         can('products.read') ? safely(() => apiFetch<Checkout[]>('/api/v1/checkouts')) : [],
-        can('products.read')
-            ? safely(() => apiFetch<Product[]>('/api/v1/products?limit=100'))
-            : [],
+        can('products.read') ? safely(() => apiFetch<Product[]>('/api/v1/products?limit=100')) : [],
         Promise.all(
-            limitedFeatures.filter(({ permission }) => can(permission)).map(async (definition) => ({
-                ...definition,
-                status: await safelyOne(() =>
-                    apiFetch<PlanFeatureStatus>(
-                        `/api/v1/platform/features/${encodeURIComponent(definition.feature)}`,
+            limitedFeatures
+                .filter(({ permission }) => can(permission))
+                .map(async (definition) => ({
+                    ...definition,
+                    status: await safelyOne(() =>
+                        apiFetch<PlanFeatureStatus>(
+                            `/api/v1/platform/features/${encodeURIComponent(definition.feature)}`,
+                        ),
                     ),
-                ),
-            })),
+                })),
         ),
     ]);
 

@@ -405,7 +405,7 @@ export interface GatewayInsights {
         declined: number;
         approvalRate: number | null;
         routed: number;
-        routedByRule: number;
+        routedByFlow: number;
         recoveredByFailover: number;
     };
     gateways: (ApprovalOutcome & {
@@ -423,38 +423,161 @@ export interface GatewayInsights {
 }
 
 export interface PaymentRoutingDecision {
-    source?: 'rule' | 'checkout' | 'default';
-    ruleId?: string;
-    ruleName?: string;
+    source?: 'flow' | 'checkout' | 'default';
+    /** Versão publicada do fluxo que decidiu e os nós percorridos. */
+    flowVersion?: number;
+    path?: string[];
     candidates?: string[];
-    strategy?: 'priority' | 'lowest_cost';
     failovers?: { from: string; to: string; code: string; category?: string; at: string }[];
 }
 
 export type RoutingPaymentMethod = 'card' | 'pix' | 'boleto' | 'bank_transfer';
 
-export interface GatewayRoutingConditions {
-    paymentMethods?: RoutingPaymentMethod[];
-    currencies?: string[];
-    environments?: ('sandbox' | 'production')[];
-    minAmountMinor?: number;
-    maxAmountMinor?: number;
-    checkoutIds?: string[];
-    productIds?: string[];
+export type FlowConditionField =
+    'paymentMethod' | 'amount' | 'currency' | 'environment' | 'checkout' | 'product';
+
+export type FlowCondition =
+    | {
+          id: string;
+          field: 'paymentMethod';
+          operator: 'in' | 'not_in';
+          values: RoutingPaymentMethod[];
+      }
+    | {
+          id: string;
+          field: 'amount';
+          operator: 'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'between' | 'not_between';
+          amountMinor: number;
+          amountToMinor?: number;
+      }
+    | { id: string; field: 'currency'; operator: 'in' | 'not_in'; values: string[] }
+    | {
+          id: string;
+          field: 'environment';
+          operator: 'in' | 'not_in';
+          values: ('sandbox' | 'production')[];
+      }
+    | { id: string; field: 'checkout'; operator: 'in' | 'not_in'; values: string[] }
+    | { id: string; field: 'product'; operator: 'any_in' | 'all_in' | 'none_in'; values: string[] };
+
+export interface FlowConditionGroup {
+    combinator: 'and' | 'or';
+    conditions: FlowCondition[];
 }
 
-export interface GatewayRoutingRule {
+interface FlowNodeBase {
     id: string;
+    position: { x: number; y: number };
+    name?: string;
+    notes?: string;
+    /** Seção do editor onde o bloco foi colocado; só organiza o quadro. */
+    sectionId?: string;
+}
+
+export type FlowNode = FlowNodeBase &
+    (
+        | { type: 'trigger'; config: Record<string, never> }
+        | { type: 'condition'; config: FlowConditionGroup }
+        | {
+              type: 'switch';
+              config: { cases: (FlowConditionGroup & { id: string; label: string })[] };
+          }
+        | { type: 'split'; config: { percentage: number } }
+        | { type: 'gateway'; config: { gatewayConnectionId: string | null } }
+        | { type: 'cheapest'; config: { gatewayConnectionIds: string[] } }
+        | { type: 'checkout_default'; config: Record<string, never> }
+        | { type: 'success'; config: Record<string, never> }
+        | { type: 'failed'; config: Record<string, never> }
+        | { type: 'note'; config: { text: string; width?: number; height?: number } }
+        | {
+              type: 'section';
+              config: { title: string; color: SectionColor; width: number; height: number };
+          }
+        | { type: 'event_trigger'; config: { event: FlowEvent } }
+        | { type: 'send_webhook'; config: { webhookEndpointId: string | null } }
+        | {
+              type: 'send_email';
+              config: {
+                  recipients: 'customer' | 'team' | 'custom';
+                  emails: string[];
+                  subject: string;
+                  body: string;
+              };
+          }
+    );
+
+export type SectionColor = 'neutral' | 'lime' | 'blue' | 'violet' | 'orange' | 'pink';
+
+export type FlowEvent =
+    | 'payment.approved.v1'
+    | 'payment.failed.v1'
+    | 'payment.refunded.v1'
+    | 'payment.canceled.v1'
+    | 'order.created.v1'
+    | 'checkout.session.expired.v1';
+
+export interface WebhookEndpointSummary {
+    id: string;
+    name?: string;
+    url: string;
+    status: string;
+}
+
+export type FlowNodeType = FlowNode['type'];
+
+export interface FlowEdge {
+    id: string;
+    source: string;
+    sourceHandle: string;
+    target: string;
+}
+
+export interface FlowGraph {
+    nodes: FlowNode[];
+    edges: FlowEdge[];
+    viewport?: { x: number; y: number; zoom: number };
+}
+
+export interface FlowIssue {
+    nodeId?: string;
+    severity: 'error' | 'warning';
+    message: string;
+}
+
+export interface GatewayFlow {
+    id: string | null;
     name: string;
-    priority: number;
     status: 'active' | 'inactive';
-    strategy: 'priority' | 'lowest_cost';
-    trafficPercentage: number;
-    gatewayConnectionId: string;
-    fallbackGatewayConnectionIds: string[];
-    conditions: GatewayRoutingConditions;
-    createdAt: string;
-    updatedAt: string;
+    draft: FlowGraph;
+    published: FlowGraph | null;
+    publishedAt: string | null;
+    publishedVersion: number;
+    version: number;
+    updatedAt: string | null;
+    issues: FlowIssue[];
+}
+
+export interface FlowSimulation {
+    path: string[];
+    edges: string[];
+    end: 'failed' | 'success' | 'open';
+    attempts: {
+        nodeId: string;
+        gatewayConnectionId: string | null;
+        name: string;
+        skipped?: string;
+    }[];
+    actions: SimulatedAction[];
+    /** Ações depois de "Pagamento aprovado" / "Pagamento recusado" no caminho simulado. */
+    afterSuccess: SimulatedAction[];
+    afterFailure: SimulatedAction[];
+}
+
+export interface SimulatedAction {
+    nodeId: string;
+    kind: 'webhook' | 'email';
+    name: string;
+    skipped?: string;
 }
 
 export interface Refund {

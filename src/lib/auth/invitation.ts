@@ -13,7 +13,10 @@ export async function getInvitationPreview(token: string): Promise<InvitationPre
     try {
         const url = new URL('/api/v1/organization-invitations/preview', astroApiUrl());
         url.searchParams.set('token', token);
-        const response = await fetch(url, { headers: { accept: 'application/json' }, cache: 'no-store' });
+        const response = await fetch(url, {
+            headers: { accept: 'application/json' },
+            cache: 'no-store',
+        });
         if (!response.ok) return undefined;
         return ((await response.json()) as ApiEnvelope<InvitationPreview>).data;
     } catch {
