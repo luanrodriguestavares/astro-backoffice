@@ -5,11 +5,7 @@ import { SummaryCard } from '@/components/ui/resource-table';
 import { Icon } from '@/components/ui/icon';
 import { apiFetch } from '@/lib/api/server';
 import { currentUser as getCurrentUser } from '@/lib/auth/permissions';
-import type {
-    InvitableRole,
-    OrganizationInvitation,
-    OrganizationMember,
-} from '@/lib/api/types';
+import type { InvitableRole, OrganizationInvitation, OrganizationMember } from '@/lib/api/types';
 
 export default async function TeamPage() {
     const [members, invitations, roles, currentUser] = await Promise.all([

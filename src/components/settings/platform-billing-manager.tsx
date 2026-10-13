@@ -215,7 +215,11 @@ export function PlatformBillingManager({
                 <TabButton active={tab === 'usage'} onClick={() => setTab('usage')} icon="chart">
                     Uso e limites
                 </TabButton>
-                <TabButton active={tab === 'history'} onClick={() => setTab('history')} icon="clock">
+                <TabButton
+                    active={tab === 'history'}
+                    onClick={() => setTab('history')}
+                    icon="clock"
+                >
                     Histórico de cobranças
                 </TabButton>
             </nav>
@@ -251,7 +255,9 @@ export function PlatformBillingManager({
                                         )}
                                         <div className="flex items-start justify-between gap-3">
                                             <div>
-                                                <h3 className="text-lg font-semibold">{plan.name}</h3>
+                                                <h3 className="text-lg font-semibold">
+                                                    {plan.name}
+                                                </h3>
                                                 <p className="mt-2 text-[13px] leading-5 text-muted">
                                                     {plan.description}
                                                 </p>
@@ -275,7 +281,9 @@ export function PlatformBillingManager({
                                         <div className="mt-auto pt-7">
                                             <Button
                                                 type="button"
-                                                variant={alreadySubscribed ? 'secondary' : 'primary'}
+                                                variant={
+                                                    alreadySubscribed ? 'secondary' : 'primary'
+                                                }
                                                 disabled={
                                                     !canManage ||
                                                     !summary.billingConfigured ||
@@ -292,9 +300,9 @@ export function PlatformBillingManager({
                                                       ? 'Plano atual'
                                                       : current
                                                         ? 'Cadastrar cartão'
-                                                      : plan.pricingType === 'custom'
-                                                        ? 'Fale com a Astro'
-                                                        : 'Escolher plano'}
+                                                        : plan.pricingType === 'custom'
+                                                          ? 'Fale com a Astro'
+                                                          : 'Escolher plano'}
                                             </Button>
                                         </div>
                                     </article>
@@ -302,7 +310,6 @@ export function PlatformBillingManager({
                             })}
                         </div>
                     </section>
-
                 </div>
             )}
 
@@ -318,7 +325,9 @@ export function PlatformBillingManager({
                     <div className="mt-7 grid gap-6 lg:grid-cols-2">
                         {summary.usage
                             .filter((item) => item.enabled)
-                            .map((item) => <UsageRow key={item.feature} item={item} />)}
+                            .map((item) => (
+                                <UsageRow key={item.feature} item={item} />
+                            ))}
                         {summary.usage.filter((item) => item.enabled).length === 0 && (
                             <p className="text-[13px] text-muted">
                                 Nenhum limite mensurável neste plano.
@@ -330,7 +339,11 @@ export function PlatformBillingManager({
 
             {tab === 'history' && <BillingHistory history={summary.history} />}
 
-            <Modal open={checkout !== null} onClose={closeCheckout} labelledBy="stripe-payment-title">
+            <Modal
+                open={checkout !== null}
+                onClose={closeCheckout}
+                labelledBy="stripe-payment-title"
+            >
                 {checkout && (
                     <>
                         <ModalHeader
@@ -427,7 +440,9 @@ function StripePaymentForm() {
         setError(null);
         const result = await stripe.confirmPayment({
             elements,
-            confirmParams: { return_url: `${window.location.origin}/settings?view=plan&billing=paid` },
+            confirmParams: {
+                return_url: `${window.location.origin}/settings?view=plan&billing=paid`,
+            },
             redirect: 'if_required',
         });
         if (result.error) {
@@ -609,41 +624,50 @@ function StatusBadge({ status }: { status: string }) {
 function money(value: number, currency: string) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value / 100);
 }
+
 function date(value: string | null) {
     return value ? new Intl.DateTimeFormat('pt-BR').format(new Date(value)) : '—';
 }
+
 function dateTime(value: string) {
     return new Intl.DateTimeFormat('pt-BR', {
         dateStyle: 'short',
         timeStyle: 'short',
     }).format(new Date(value));
 }
+
 function paymentMethod(value: string) {
     return value.toLowerCase() === 'card' ? 'cartão' : value.toUpperCase();
 }
+
 function eventLabel(value: string) {
     return (
-        {
-            'invoice.paid': 'Cobrança paga',
-            'invoice.payment_failed': 'Falha na cobrança',
-            'customer.subscription.updated': 'Assinatura atualizada',
-            'customer.subscription.deleted': 'Assinatura encerrada',
-            'subscription.completed': 'Assinatura ativada',
-            'subscription.renewed': 'Renovação',
-            'subscription.payment_failed': 'Falha na cobrança',
-            'subscription.cancelled': 'Cancelamento',
-            'subscription.plan_changed': 'Plano alterado',
-        } as Record<string, string>
-    )[value] ?? value;
+        (
+            {
+                'invoice.paid': 'Cobrança paga',
+                'invoice.payment_failed': 'Falha na cobrança',
+                'customer.subscription.updated': 'Assinatura atualizada',
+                'customer.subscription.deleted': 'Assinatura encerrada',
+                'subscription.completed': 'Assinatura ativada',
+                'subscription.renewed': 'Renovação',
+                'subscription.payment_failed': 'Falha na cobrança',
+                'subscription.cancelled': 'Cancelamento',
+                'subscription.plan_changed': 'Plano alterado',
+            } as Record<string, string>
+        )[value] ?? value
+    );
 }
+
 function featureLabel(value: string) {
     return (
-        {
-            'commerce.orders': 'Pedidos processados',
-            'analytics.events': 'Eventos de analytics',
-            api_keys: 'Chaves de API',
-            'notifications.sale_email': 'E-mail por venda',
-            'checkout.abandoned_recovery': 'Recuperação de carrinho',
-        } as Record<string, string>
-    )[value] ?? value;
+        (
+            {
+                'commerce.orders': 'Pedidos processados',
+                'analytics.events': 'Eventos de analytics',
+                api_keys: 'Chaves de API',
+                'notifications.sale_email': 'E-mail por venda',
+                'checkout.abandoned_recovery': 'Recuperação de carrinho',
+            } as Record<string, string>
+        )[value] ?? value
+    );
 }

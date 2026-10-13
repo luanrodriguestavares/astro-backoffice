@@ -19,7 +19,7 @@ export function AuthFrame({
                 <aside className="relative hidden overflow-hidden border-r border-border bg-[#efefe9] p-10 lg:flex lg:flex-col xl:p-12">
                     <div className="absolute inset-x-0 top-0 h-1 bg-highlight" />
                     <div className="relative">
-                        <Brand />
+                        <Brand tone="dark" />
                     </div>
                     <div className="relative my-auto max-w-md">
                         <span className="grid size-12 place-items-center rounded-2xl border border-highlight bg-highlight text-highlight-contrast">
@@ -85,7 +85,7 @@ export function AuthFrame({
                     <div className={`w-full ${login ? 'max-w-md' : 'max-w-2xl'}`}>
                         <div className="mb-9 flex items-center justify-between lg:justify-end">
                             <div className="lg:hidden">
-                                <Brand />
+                                <Brand tone="dark" />
                             </div>
                             <p className="text-[13px] text-muted">
                                 {login ? 'Ainda não tem uma conta?' : 'Já possui uma conta?'}{' '}

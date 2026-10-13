@@ -12,9 +12,12 @@ export function canAccessNavigationItem(
     item: NavigationAccessRequirement,
     permissions: ReadonlySet<string>,
     billing: BillingNavigationAccess,
+    fullPermissionAccess = false,
 ): boolean {
     return (
-        (item.permission === undefined || permissions.has(item.permission)) &&
+        (fullPermissionAccess ||
+            item.permission === undefined ||
+            permissions.has(item.permission)) &&
         (item.feature === undefined || (billing.active && billing.features.includes(item.feature)))
     );
 }

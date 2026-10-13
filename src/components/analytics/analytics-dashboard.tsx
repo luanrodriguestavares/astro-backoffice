@@ -22,9 +22,13 @@ import { Icon } from '@/components/ui/icon';
 import { orderStatusLabels, paymentStatusLabels } from '@/lib/commerce-status';
 
 type Period = '24h' | '7d' | '30d' | '90d' | '12m';
+
 type Tab = 'overview' | 'performance' | 'customers' | 'reports';
+
 type ChartKind = 'metric' | 'line' | 'bar' | 'funnel' | 'table';
+
 type Row = Record<string, unknown>;
+
 type ReportResult = {
     report: string;
     title: string;
@@ -32,7 +36,9 @@ type ReportResult = {
     rows: Row[];
     meta: { note?: string; trackingEvent?: string };
 };
+
 type ReportDefinition = { slug: string; title: string; kind: ChartKind; tab: Tab; wide?: boolean };
+
 type ReportFilters = { q: string; status: string; gateway: string; product: string };
 
 const reports: ReportDefinition[] = [
@@ -456,9 +462,21 @@ function ReportVisualization({ kind, result }: { kind: ChartKind; result: Report
                     >
                         <defs>
                             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="var(--chart-primary)" stopOpacity={0.24} />
-                                <stop offset="72%" stopColor="var(--chart-primary)" stopOpacity={0.06} />
-                                <stop offset="100%" stopColor="var(--chart-primary)" stopOpacity={0} />
+                                <stop
+                                    offset="0%"
+                                    stopColor="var(--chart-primary)"
+                                    stopOpacity={0.24}
+                                />
+                                <stop
+                                    offset="72%"
+                                    stopColor="var(--chart-primary)"
+                                    stopOpacity={0.06}
+                                />
+                                <stop
+                                    offset="100%"
+                                    stopColor="var(--chart-primary)"
+                                    stopOpacity={0}
+                                />
                             </linearGradient>
                         </defs>
                         <CartesianGrid
@@ -740,7 +758,9 @@ function AnalyticsTooltip({
                         <span className="flex items-center gap-2 text-muted">
                             <span
                                 className="size-1.5 rounded-full"
-                                style={{ background: item.color ?? item.fill ?? 'var(--chart-primary)' }}
+                                style={{
+                                    background: item.color ?? item.fill ?? 'var(--chart-primary)',
+                                }}
                             />
                             {columnLabel(String(item.dataKey ?? 'value'))}
                         </span>
@@ -1070,6 +1090,7 @@ function columnLabel(column: string) {
         column.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase())
     );
 }
+
 function chartColor(index: number) {
     return ['var(--chart-primary)', 'var(--success)', 'var(--warning)', 'var(--danger)'][index % 4];
 }
@@ -1213,9 +1234,11 @@ function localizeLabel(value: string) {
     if (orderStatusLabels[value]) return orderStatusLabels[value];
     return value;
 }
+
 function PanelSkeleton() {
     return <div className="h-[280px] animate-pulse rounded-2xl bg-surface-muted/60" />;
 }
+
 function PanelError({ message }: { message: string }) {
     return (
         <div className="grid h-[180px] place-items-center rounded-2xl border border-danger/15 bg-danger/5 px-5 text-center text-[11px] text-danger">
@@ -1223,6 +1246,7 @@ function PanelError({ message }: { message: string }) {
         </div>
     );
 }
+
 function EmptyState() {
     return (
         <div className="grid h-[180px] place-items-center rounded-2xl border border-dashed border-border text-center">

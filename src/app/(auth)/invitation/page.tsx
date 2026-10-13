@@ -1,3 +1,4 @@
+import { ButtonLink } from '@/components/ui/button';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -20,26 +21,49 @@ export default async function InvitationPage({
         <main className="relative grid min-h-screen place-items-center overflow-hidden bg-background px-4 py-10">
             <div aria-hidden="true" className="pointer-events-none absolute inset-0" />
             <section className="relative w-full max-w-[470px]">
-                <div className="mb-6 flex justify-center"><Brand href="/" /></div>
+                <div className="mb-6 flex justify-center">
+                    <Brand href="/" tone="dark" />
+                </div>
                 <div className="rounded-[30px] border border-border bg-surface p-7 text-center shadow-[0_24px_72px_rgb(16_18_20_/_8%)] sm:p-9">
                     <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-brand-soft text-brand-strong">
                         <Icon name={invitation ? 'users' : 'clock'} className="size-5" />
                     </span>
                     {invitation ? (
                         <>
-                            <p className="mt-5 text-[9px] font-semibold uppercase tracking-[.18em] text-brand-strong">Uma equipe espera por você</p>
-                            <h1 className="mt-2 text-[27px] font-semibold tracking-[-.05em] text-[#111111]">Entre em {invitation.organizationName}</h1>
-                            <p className="mx-auto mt-3 max-w-[350px] text-[12px] leading-5 text-muted">O convite foi enviado para {invitation.email}. Você terá o perfil {invitation.role} nesta workspace.</p>
+                            <p className="mt-5 text-[9px] font-semibold uppercase tracking-[.18em] text-brand-strong">
+                                Uma equipe espera por você
+                            </p>
+                            <h1 className="mt-2 text-[27px] font-semibold tracking-[-.05em] text-[#111111]">
+                                Entre em {invitation.organizationName}
+                            </h1>
+                            <p className="mx-auto mt-3 max-w-[350px] text-[12px] leading-5 text-muted">
+                                O convite foi enviado para {invitation.email}. Você terá o perfil{' '}
+                                {invitation.role} nesta workspace.
+                            </p>
                             <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                                <Link href={`/login${query}`} className="inline-flex h-11 items-center justify-center rounded-full border border-brand/20 bg-white px-5 text-[12px] font-semibold text-brand-strong transition hover:bg-brand-soft">Já tenho conta</Link>
-                                <Link href={`/register${query}`} className="inline-flex h-11 items-center justify-center rounded-full bg-brand px-5 text-[12px] font-semibold text-brand-contrast shadow-sm transition hover:brightness-105">Criar minha conta</Link>
+                                <Link
+                                    href={`/login${query}`}
+                                    className="inline-flex h-11 items-center justify-center rounded-full border border-brand/20 bg-white px-5 text-[12px] font-semibold text-brand-strong transition hover:bg-brand-soft"
+                                >
+                                    Já tenho conta
+                                </Link>
+                                <ButtonLink href={`/register${query}`} className="text-[12px]">
+                                    Criar minha conta
+                                </ButtonLink>
                             </div>
                         </>
                     ) : (
                         <>
-                            <h1 className="mt-5 text-[25px] font-semibold tracking-[-.04em] text-[#111111]">Este convite não está disponível</h1>
-                            <p className="mt-3 text-[12px] leading-5 text-muted">Ele pode ter expirado, já ter sido usado ou ter sido cancelado. Peça um novo convite ao administrador da workspace.</p>
-                            <Link href="/login" className="mt-7 inline-flex h-11 items-center justify-center rounded-full bg-brand px-6 text-[12px] font-semibold text-brand-contrast">Ir para o login</Link>
+                            <h1 className="mt-5 text-[25px] font-semibold tracking-[-.04em] text-[#111111]">
+                                Este convite não está disponível
+                            </h1>
+                            <p className="mt-3 text-[12px] leading-5 text-muted">
+                                Ele pode ter expirado, já ter sido usado ou ter sido cancelado. Peça
+                                um novo convite ao administrador da workspace.
+                            </p>
+                            <ButtonLink href="/login" className="mt-7 px-6 text-[12px]">
+                                Ir para o login
+                            </ButtonLink>
                         </>
                     )}
                 </div>

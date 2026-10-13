@@ -80,7 +80,10 @@ export function OrdersTable({
 
     return (
         <>
-            <section data-tour="page-primary" className="glass-panel overflow-hidden rounded-[28px]">
+            <section
+                data-tour="page-primary"
+                className="glass-panel overflow-hidden rounded-[28px]"
+            >
                 <div className="border-b border-white/65 px-5 py-5 sm:px-6">
                     <h2 className="text-sm font-semibold">Pedidos recentes</h2>
                     <p className="mt-1 text-[12px] text-muted">
@@ -227,54 +230,54 @@ export function OrdersTable({
                             onClose={() => setSelected(undefined)}
                         />
                         <ModalBody>
-                        <div className="flex items-center justify-between rounded-[22px] border border-brand/15 bg-brand-soft/35 p-5">
-                            <div>
-                                <p className="text-[11px] uppercase tracking-[.12em] text-muted">
-                                    Total do pedido
-                                </p>
-                                <p className="mt-1 text-3xl tracking-[-.04em]">
-                                    {money(selected.totalMinor, selected.currency)}
-                                </p>
+                            <div className="flex items-center justify-between rounded-[22px] border border-brand/15 bg-brand-soft/35 p-5">
+                                <div>
+                                    <p className="text-[11px] uppercase tracking-[.12em] text-muted">
+                                        Total do pedido
+                                    </p>
+                                    <p className="mt-1 text-3xl tracking-[-.04em]">
+                                        {money(selected.totalMinor, selected.currency)}
+                                    </p>
+                                </div>
+                                <Status status={selected.status} />
                             </div>
-                            <Status status={selected.status} />
-                        </div>
-                        <Section title="Composição">
-                            <Line
-                                label="Subtotal"
-                                value={money(selected.subtotalMinor, selected.currency)}
-                            />
-                            <Line
-                                label="Desconto"
-                                value={`− ${money(selected.discountMinor, selected.currency)}`}
-                            />
-                            <Line
-                                label="Frete e impostos"
-                                value={money(
-                                    selected.shippingMinor + selected.taxMinor,
-                                    selected.currency,
-                                )}
-                            />
-                            <Line
-                                label="Total"
-                                value={money(selected.totalMinor, selected.currency)}
-                            />
-                        </Section>
-                        <Section title="Cliente e financeiro">
-                            <Line
-                                label="Cliente"
-                                value={customer?.name ?? 'Cliente não identificado'}
-                                detail={customer?.email}
-                            />
-                            <Line
-                                label="Valor pago"
-                                value={money(selected.paidMinor, selected.currency)}
-                            />
-                            <Line
-                                label="Valor reembolsado"
-                                value={money(selected.refundedMinor, selected.currency)}
-                            />
-                            <Line label="Realizado em" value={dateTime(selected.placedAt)} />
-                        </Section>
+                            <Section title="Composição">
+                                <Line
+                                    label="Subtotal"
+                                    value={money(selected.subtotalMinor, selected.currency)}
+                                />
+                                <Line
+                                    label="Desconto"
+                                    value={`− ${money(selected.discountMinor, selected.currency)}`}
+                                />
+                                <Line
+                                    label="Frete e impostos"
+                                    value={money(
+                                        selected.shippingMinor + selected.taxMinor,
+                                        selected.currency,
+                                    )}
+                                />
+                                <Line
+                                    label="Total"
+                                    value={money(selected.totalMinor, selected.currency)}
+                                />
+                            </Section>
+                            <Section title="Cliente e financeiro">
+                                <Line
+                                    label="Cliente"
+                                    value={customer?.name ?? 'Cliente não identificado'}
+                                    detail={customer?.email}
+                                />
+                                <Line
+                                    label="Valor pago"
+                                    value={money(selected.paidMinor, selected.currency)}
+                                />
+                                <Line
+                                    label="Valor reembolsado"
+                                    value={money(selected.refundedMinor, selected.currency)}
+                                />
+                                <Line label="Realizado em" value={dateTime(selected.placedAt)} />
+                            </Section>
                         </ModalBody>
                         <ModalFooter>
                             {payment && (

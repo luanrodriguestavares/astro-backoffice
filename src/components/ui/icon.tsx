@@ -60,7 +60,24 @@ export type IconName =
     | 'shrink'
     | 'clipboard'
     | 'unlink'
-    | 'mail';
+    | 'mail'
+    | 'type'
+    | 'align-left'
+    | 'message'
+    | 'shield'
+    | 'help'
+    | 'grid'
+    | 'table'
+    | 'qr'
+    | 'barcode'
+    | 'percent'
+    | 'star'
+    | 'gift'
+    | 'columns'
+    | 'pointer'
+    | 'panel-bottom'
+    | 'grip'
+    | 'lock';
 
 const paths: Record<IconName, React.ReactNode> = {
     home: (
@@ -433,6 +450,122 @@ const paths: Record<IconName, React.ReactNode> = {
         <>
             <path d="m12 3 9 5-9 5-9-5 9-5Z" />
             <path d="m3 13 9 5 9-5" />
+        </>
+    ),
+    type: (
+        <>
+            <path d="M5 6V4h14v2" />
+            <path d="M12 4v16" />
+            <path d="M9 20h6" />
+        </>
+    ),
+    'align-left': (
+        <>
+            <path d="M4 6h16" />
+            <path d="M4 10h11" />
+            <path d="M4 14h16" />
+            <path d="M4 18h9" />
+        </>
+    ),
+    message: <path d="M20 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2Z" />,
+    shield: (
+        <>
+            <path d="M12 3 5 6v5c0 4.5 2.9 8.3 7 10 4.1-1.7 7-5.5 7-10V6l-7-3Z" />
+            <path d="m9 12 2 2 4-4" />
+        </>
+    ),
+    help: (
+        <>
+            <circle cx="12" cy="12" r="9" />
+            <path d="M9.6 9.2a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6" />
+            <path d="M12 17h.01" />
+        </>
+    ),
+    grid: (
+        <>
+            <rect x="4" y="4" width="7" height="7" rx="1.5" />
+            <rect x="13" y="4" width="7" height="7" rx="1.5" />
+            <rect x="4" y="13" width="7" height="7" rx="1.5" />
+            <rect x="13" y="13" width="7" height="7" rx="1.5" />
+        </>
+    ),
+    table: (
+        <>
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M3 10h18" />
+            <path d="M3 15h18" />
+            <path d="M10 10v10" />
+        </>
+    ),
+    qr: (
+        <>
+            <rect x="4" y="4" width="6" height="6" rx="1" />
+            <rect x="14" y="4" width="6" height="6" rx="1" />
+            <rect x="4" y="14" width="6" height="6" rx="1" />
+            <path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2" />
+        </>
+    ),
+    barcode: (
+        <>
+            <path d="M4 5v14" />
+            <path d="M8 5v14" />
+            <path d="M11 5v14" />
+            <path d="M15 5v14" />
+            <path d="M17 5v14" />
+            <path d="M20 5v14" />
+        </>
+    ),
+    percent: (
+        <>
+            <path d="M19 5 5 19" />
+            <circle cx="7" cy="7" r="2.5" />
+            <circle cx="17" cy="17" r="2.5" />
+        </>
+    ),
+    star: (
+        <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+    ),
+    gift: (
+        <>
+            <rect x="3" y="8" width="18" height="4" rx="1" />
+            <path d="M5 12v8h14v-8" />
+            <path d="M12 8v12" />
+            <path d="M12 8H8.5a2.5 2.5 0 1 1 0-5C11 3 12 8 12 8Zm0 0h3.5a2.5 2.5 0 1 0 0-5C13 3 12 8 12 8Z" />
+        </>
+    ),
+    columns: (
+        <>
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M9 4v16" />
+            <path d="M15 4v16" />
+        </>
+    ),
+    pointer: (
+        <>
+            <path d="m6 3 13 7-6 1.5L10 18 6 3Z" />
+            <path d="m13 13 5 5" />
+        </>
+    ),
+    'panel-bottom': (
+        <>
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M3 15h18" />
+        </>
+    ),
+    grip: (
+        <>
+            <circle cx="9" cy="6" r="1" />
+            <circle cx="15" cy="6" r="1" />
+            <circle cx="9" cy="12" r="1" />
+            <circle cx="15" cy="12" r="1" />
+            <circle cx="9" cy="18" r="1" />
+            <circle cx="15" cy="18" r="1" />
+        </>
+    ),
+    lock: (
+        <>
+            <rect x="5" y="11" width="14" height="10" rx="2" />
+            <path d="M8 11V8a4 4 0 0 1 8 0v3" />
         </>
     ),
     heart: (

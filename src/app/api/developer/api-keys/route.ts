@@ -12,7 +12,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ data });
     } catch (error) {
         if (error instanceof AstroApiError)
-            return NextResponse.json(clientProblem(error.problem), { status: error.problem.status });
+            return NextResponse.json(clientProblem(error.problem), {
+                status: error.problem.status,
+            });
         return NextResponse.json({ detail: 'Não foi possível criar a chave.' }, { status: 500 });
     }
 }

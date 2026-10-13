@@ -23,13 +23,10 @@ export default async function RegisterPage({
     return (
         <div className="relative min-h-screen overflow-x-hidden bg-background px-4 py-5 lg:grid lg:h-screen lg:place-items-center lg:overflow-hidden lg:py-4">
             <AuthToast message={error} />
-            <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0"
-            />
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0" />
             <section className="relative mx-auto w-full max-w-[720px]">
                 <div className="mb-3 flex items-center justify-between px-1 lg:mb-4">
-                    <Brand href="/register" />
+                    <Brand href="/register" tone="dark" />
                     <p className="text-[11px] text-muted">
                         Já tem uma conta?{' '}
                         <Link
@@ -51,15 +48,21 @@ export default async function RegisterPage({
                             </p>
                             <div className="flex flex-wrap items-baseline gap-x-3">
                                 <h1 className="text-[23px] font-semibold tracking-[-.045em] text-[#111111]">
-                                    {invitation ? `Entre em ${invitation.organizationName}` : 'Crie sua conta'}
+                                    {invitation
+                                        ? `Entre em ${invitation.organizationName}`
+                                        : 'Crie sua conta'}
                                 </h1>
                                 <p className="text-[11px] text-muted">
-                                    {invitation ? 'Sua conta não precisa de uma organização própria.' : 'Três passos para preparar sua estação.'}
+                                    {invitation
+                                        ? 'Sua conta não precisa de uma organização própria.'
+                                        : 'Três passos para preparar sua estação.'}
                                 </p>
                             </div>
                         </div>
                     </header>
-                    <RegisterForm invitation={invitation ? { ...invitation, token: invite! } : undefined} />
+                    <RegisterForm
+                        invitation={invitation ? { ...invitation, token: invite! } : undefined}
+                    />
                 </div>
             </section>
         </div>

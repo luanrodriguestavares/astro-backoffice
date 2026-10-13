@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 import { Icon } from '@/components/ui/icon';
@@ -23,6 +23,8 @@ export function CustomSelect({
     onValueChange,
     required,
     disabled,
+    renderOption,
+    renderValue,
 }: {
     name: string;
     value?: string;
@@ -32,6 +34,8 @@ export function CustomSelect({
     onValueChange?: (value: string) => void;
     required?: boolean;
     disabled?: boolean;
+    renderOption?: (option: SelectOption, selected: boolean) => ReactNode;
+    renderValue?: (option: SelectOption) => ReactNode;
 }) {
     const [internal, setInternal] = useState(defaultValue ?? '');
     const [open, setOpen] = useState(false);
@@ -40,7 +44,8 @@ export function CustomSelect({
     const triggerRef = useRef<HTMLButtonElement>(null);
     const [listboxStyle, setListboxStyle] = useState<React.CSSProperties>({});
     const selected = value ?? internal;
-    const label = options.find((option) => option.value === selected)?.label;
+    const selectedOption = options.find((option) => option.value === selected);
+    const label = selectedOption?.label;
     const hasOptions = options.length > 0;
 
     useEffect(() => {
@@ -126,7 +131,9 @@ export function CustomSelect({
                         onClick={() => choose(option.value)}
                         className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] transition ${selected === option.value ? 'bg-brand-soft text-brand-strong' : 'hover:bg-surface-muted'} disabled:cursor-not-allowed disabled:opacity-55`}
                     >
-                        <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                        <span className="min-w-0 flex-1 truncate">
+                            {renderOption?.(option, selected === option.value) ?? option.label}
+                        </span>
                         {option.badge && (
                             <span className="rounded-full bg-brand-soft px-2 py-1 text-[9px] font-semibold uppercase tracking-[.06em] text-brand-strong">
                                 {option.badge}
@@ -156,8 +163,10 @@ export function CustomSelect({
                 onClick={() => setOpen((current) => !current)}
                 className="ui-control custom-select-trigger flex h-11 w-full items-center justify-between gap-3 px-3.5 text-left font-normal disabled:opacity-50"
             >
-                <span className={label ? 'text-foreground' : 'text-muted'}>
-                    {label ?? placeholder}
+                <span className={`min-w-0 flex-1 truncate ${label ? 'text-foreground' : 'text-muted'}`}>
+                    {selectedOption && renderValue
+                        ? renderValue(selectedOption)
+                        : (label ?? placeholder)}
                 </span>
                 <Icon
                     name="arrow-right"

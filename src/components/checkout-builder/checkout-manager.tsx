@@ -17,6 +17,8 @@ import {
     type CheckoutTemplateId,
 } from '@/lib/checkout/templates';
 import { checkoutPublicUrl } from '@/lib/checkout/public-url';
+import { defaultCheckoutAppearance, type CheckoutAppearance } from '@astro/checkout-renderer/theme';
+import { CheckoutAppearanceStudio } from '@/components/checkout-builder/appearance-studio';
 import type { Checkout } from '@/lib/api/types';
 import { useEscapeClose } from '@/hooks/use-escape-close';
 
@@ -48,8 +50,10 @@ export function CheckoutManager({
 }) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
-    const [step, setStep] = useState<'template' | 'details'>('template');
+    const [step, setStep] = useState<'template' | 'details' | 'appearance'>('template');
     const [template, setTemplate] = useState<CheckoutTemplateId>();
+    const [priceId, setPriceId] = useState('');
+    const [appearance, setAppearance] = useState<CheckoutAppearance>(defaultCheckoutAppearance);
     const [name, setName] = useState('');
     const [slug, setSlug] = useState('');
     const [slugTouched, setSlugTouched] = useState(false);
@@ -82,6 +86,8 @@ export function CheckoutManager({
         }
         setStep('template');
         setTemplate(undefined);
+        setPriceId('');
+        setAppearance(defaultCheckoutAppearance);
         setName('');
         setSlug('');
         setSlugTouched(false);
@@ -99,17 +105,26 @@ export function CheckoutManager({
         setOpen(false);
     }
 
-    async function submit(event: FormEvent<HTMLFormElement>) {
+    const selectedPrice = catalog.find((item) => item.priceId === priceId);
+
+    function continueToAppearance(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        setLoading(true);
-        const form = new FormData(event.currentTarget);
-        const selected = catalog.find((item) => item.priceId === form.get('priceId'));
-        if (!selected) {
-            setLoading(false);
+        if (!selectedPrice) {
             showToast({ tone: 'warning', description: 'Selecione um produto e preço.' });
             return;
         }
-        const built = buildCheckoutFromTemplate(template ?? 'blank', selected, catalog);
+        setStep('appearance');
+    }
+
+    async function create() {
+        const selected = selectedPrice;
+        if (!selected) {
+            setStep('details');
+            showToast({ tone: 'warning', description: 'Selecione um produto e preço.' });
+            return;
+        }
+        setLoading(true);
+        const built = buildCheckoutFromTemplate(template ?? 'blank', selected, catalog, appearance);
         const response = await fetch('/api/checkouts', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
@@ -232,23 +247,32 @@ export function CheckoutManager({
                         <div
                             role="dialog"
                             aria-modal="true"
-                            className={`theme-modal modal-surface glass-panel my-6 w-full overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(16,18,20,.18)] sm:p-7 ${step === 'template' ? 'max-w-3xl' : 'max-w-xl'}`}
+                            className={`theme-modal modal-surface glass-panel ${
+                                step === 'appearance'
+                                    ? // Assistente de aparência: ocupa a altura da tela e só os controles rolam.
+                                      'flex h-[min(calc(100dvh-2rem),920px)] w-full max-w-6xl flex-col overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(16,18,20,.18)] sm:p-7'
+                                    : `my-6 w-full overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(16,18,20,.18)] sm:p-7 ${step === 'template' ? 'max-w-3xl' : 'max-w-xl'}`
+                            }`}
                         >
-                            <div className="flex items-start justify-between gap-5">
+                            <div className="flex shrink-0 items-start justify-between gap-5">
                                 <div>
                                     <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-strong">
-                                        Novo checkout ·{' '}
-                                        {step === 'template' ? 'Etapa 1 de 2' : 'Etapa 2 de 2'}
+                                        Novo checkout · Etapa{' '}
+                                        {step === 'template' ? 1 : step === 'details' ? 2 : 3} de 3
                                     </p>
                                     <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
                                         {step === 'template'
                                             ? 'Como você quer começar?'
-                                            : 'Configure seu checkout'}
+                                            : step === 'details'
+                                              ? 'Configure seu checkout'
+                                              : 'Dê a cara da sua marca'}
                                     </h2>
                                     <p className="mt-1.5 text-[13px] leading-5 text-muted">
                                         {step === 'template'
                                             ? 'Escolha um ponto de partida. Você poderá personalizar tudo no editor.'
-                                            : `Modelo: ${checkoutTemplates.find((item) => item.id === template)?.name ?? ''}. Defina o nome e a oferta principal.`}
+                                            : step === 'details'
+                                              ? `Modelo: ${checkoutTemplates.find((item) => item.id === template)?.name ?? ''}. Defina o nome e a oferta principal.`
+                                              : 'Defina a identidade visual básica. Todas as opções podem ser alteradas depois, em Aparência, no editor.'}
                                     </p>
                                 </div>
                                 <Button
@@ -312,9 +336,8 @@ export function CheckoutManager({
                                         })}
                                     </div>
                                     <p className="mt-4 text-[12px] leading-5 text-muted">
-                                        Todos os modelos usam a identidade neutra do Astro. No
-                                        editor, troque a cor, o logo e os textos — ou aplique outra
-                                        identidade visual em um clique.
+                                        Depois do nome e do produto, você define cor, fonte e estilo
+                                        com uma prévia ao vivo.
                                     </p>
                                     <div className="mt-6 flex justify-end gap-2">
                                         <Button
@@ -335,8 +358,45 @@ export function CheckoutManager({
                                         </Button>
                                     </div>
                                 </>
+                            ) : step === 'appearance' ? (
+                                <>
+                                    <div className="mt-5 min-h-0 flex-1 overflow-y-auto lg:overflow-visible">
+                                        <CheckoutAppearanceStudio
+                                            value={appearance}
+                                            onChange={setAppearance}
+                                            product={{
+                                                name: selectedPrice?.productName ?? 'Seu produto',
+                                                price: selectedPrice
+                                                    ? `${money(selectedPrice.amountMinor, selectedPrice.currency)}`
+                                                    : 'R$ 97,00',
+                                                recurringLabel: selectedPrice
+                                                    ? periodLabel(selectedPrice) || undefined
+                                                    : undefined,
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="mt-5 flex shrink-0 flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            disabled={loading}
+                                            onClick={() => setStep('details')}
+                                        >
+                                            Voltar
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="primary"
+                                            disabled={loading}
+                                            onClick={() => void create()}
+                                            className="px-6"
+                                        >
+                                            {loading ? 'Criando...' : 'Criar e abrir editor'}
+                                        </Button>
+                                    </div>
+                                </>
                             ) : (
-                                <form onSubmit={submit}>
+                                <form onSubmit={continueToAppearance}>
                                     <div className="mt-6 grid gap-4">
                                         <label className="text-[13px] font-semibold">
                                             Nome do checkout
@@ -379,6 +439,8 @@ export function CheckoutManager({
                                                 <CustomSelect
                                                     name="priceId"
                                                     required
+                                                    value={priceId}
+                                                    onValueChange={setPriceId}
                                                     placeholder="Selecione um produto e preço"
                                                     options={orderedCatalog(catalog, template).map(
                                                         (item) => ({
@@ -405,12 +467,8 @@ export function CheckoutManager({
                                         >
                                             Voltar
                                         </Button>
-                                        <Button
-                                            variant="primary"
-                                            disabled={loading}
-                                            className="px-6"
-                                        >
-                                            {loading ? 'Criando...' : 'Criar e abrir editor'}
+                                        <Button variant="primary" className="px-6">
+                                            Continuar
                                         </Button>
                                     </div>
                                 </form>
@@ -692,7 +750,7 @@ function TemplateThumb({ id }: { id: CheckoutTemplateId }) {
                             <span className={`${bar} h-1.5 w-8 bg-foreground/35`} />
                         </span>
                         <span className={`${button} mt-1`} />
-                        <span className="mt-0.5 block h-1.5 w-8 rounded-full bg-[#c6f448]" />
+                        <span className="mt-0.5 block h-1.5 w-8 rounded-full bg-[#91cf24]" />
                     </span>
                 </span>
             )}
@@ -717,7 +775,7 @@ function TemplateThumb({ id }: { id: CheckoutTemplateId }) {
                     <span className="grid grid-cols-3 gap-1">
                         {[0, 1, 2].map((index) => (
                             <span key={index} className={`${card} grid gap-1`}>
-                                <span className="block size-2 rounded-[3px] bg-[#c6f448]" />
+                                <span className="block size-2 rounded-[3px] bg-[#91cf24]" />
                                 <span className={`${bar} h-1 w-8`} />
                             </span>
                         ))}
@@ -727,7 +785,7 @@ function TemplateThumb({ id }: { id: CheckoutTemplateId }) {
             {id === 'express' && (
                 <span className="grid h-full content-start gap-1.5">
                     <span className="flex h-3 items-center gap-1 rounded-[5px] border border-border bg-surface px-1.5">
-                        <span className="block size-1.5 rounded-full bg-[#c6f448] ring-2 ring-[#c6f448]/30" />
+                        <span className="block size-1.5 rounded-full bg-[#91cf24] ring-2 ring-[#91cf24]/30" />
                         <span className={`${bar} h-1 w-16`} />
                     </span>
                     <span className="grid grid-cols-[1.25fr_1fr] gap-1.5">

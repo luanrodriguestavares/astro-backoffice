@@ -18,7 +18,12 @@ export async function POST(request: Request) {
         return NextResponse.json({ data: result });
     } catch (error) {
         if (error instanceof AstroApiError)
-            return NextResponse.json(clientProblem(error.problem), { status: error.problem.status });
-        return NextResponse.json({ detail: 'Não foi possível iniciar a assinatura.' }, { status: 500 });
+            return NextResponse.json(clientProblem(error.problem), {
+                status: error.problem.status,
+            });
+        return NextResponse.json(
+            { detail: 'Não foi possível iniciar a assinatura.' },
+            { status: 500 },
+        );
     }
 }

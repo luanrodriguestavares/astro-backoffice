@@ -1,6 +1,11 @@
 import type { BuilderData, BuilderRootProps } from '@/components/checkout-builder/config';
 import type { CheckoutDocument, CheckoutSectionType } from '@/lib/api/types';
-import { checkoutFontPresets } from '@astro/checkout-renderer/theme';
+import { resolveResultScreens } from '@astro/checkout-renderer/result-screens';
+import {
+    checkoutBlockStyle,
+    checkoutFontPresets,
+    checkoutMotion,
+} from '@astro/checkout-renderer/theme';
 
 const supported = new Set<CheckoutSectionType>([
     'hero',
@@ -74,6 +79,11 @@ export function documentToPuck(document: CheckoutDocument): BuilderData {
                 ),
                 componentBorderStyle: componentBorderStyleValue(layout.componentBorderStyle),
                 componentShadowMode: componentShadowModeValue(layout.componentShadowMode),
+                blockStyle: checkoutBlockStyle(theme.blockStyle),
+                motion: checkoutMotion(theme.motion),
+                density: densityValue(layout.density),
+                previewScreen: 'checkout',
+                ...resultScreenProps(document.settings?.resultScreens),
             },
         },
         content: document.sections
@@ -111,9 +121,12 @@ export function puckToDocument(data: BuilderData, previous: CheckoutDocument): C
             accentColor: safeColor(root.accentColor, '#101214'),
             radius: sizeValue(root.radius),
             shadow: shadowValue(root.shadow),
+            blockStyle: checkoutBlockStyle(root.blockStyle),
+            motion: checkoutMotion(root.motion),
         },
         layout: {
             ...previous.layout,
+            density: densityValue(root.density),
             maxWidth: widthValue(root.maxWidth),
             componentGap: sizeValue(root.componentGap),
             pagePadding: sizeValue(root.pagePadding, 'lg'),
@@ -141,9 +154,24 @@ export function puckToDocument(data: BuilderData, previous: CheckoutDocument): C
                 }
                 return { id, type: component.type as CheckoutSectionType, visible: true, props };
             }),
-        settings: previous.settings,
+        settings: {
+            ...previous.settings,
+            resultScreens: resolveResultScreens({
+                success: root.successScreen,
+                failure: root.failureScreen,
+            }),
+        },
         seo: previous.seo,
     };
+}
+
+function resultScreenProps(value: unknown) {
+    const screens = resolveResultScreens(value);
+    return { successScreen: screens.success, failureScreen: screens.failure };
+}
+
+function densityValue(value: unknown): BuilderRootProps['density'] {
+    return value === 'compact' || value === 'spacious' ? value : 'comfortable';
 }
 
 function stringValue(value: unknown, fallback: string) {

@@ -222,11 +222,30 @@ const navigationGroups: { label: string; icon: IconName; items: NavigationItem[]
         icon: 'plug',
         items: [
             {
-                label: 'Gateways',
-                href: '/gateways',
-                icon: 'plug',
-                permission: 'gateway_connections.manage',
-                feature: 'gateways.connected',
+                label: 'Pixels',
+                href: '/pixels',
+                icon: 'chart',
+                permission: 'tracking.manage',
+                feature: 'marketing.pixels',
+            },
+        ],
+    },
+    {
+        label: 'Desenvolvedores',
+        icon: 'code',
+        items: [
+            {
+                label: 'Logs e eventos',
+                href: '/logs',
+                icon: 'pulse',
+                permission: 'developer_logs.read',
+            },
+            {
+                label: 'Chaves de API',
+                href: '/developer',
+                icon: 'code',
+                permission: 'api_keys.manage',
+                feature: 'api',
             },
             {
                 label: 'Webhooks',
@@ -236,18 +255,11 @@ const navigationGroups: { label: string; icon: IconName; items: NavigationItem[]
                 feature: 'webhooks.custom',
             },
             {
-                label: 'Pixels',
-                href: '/pixels',
-                icon: 'chart',
-                permission: 'tracking.manage',
-                feature: 'marketing.pixels',
-            },
-            {
-                label: 'Desenvolvedores',
-                href: '/developer',
-                icon: 'code',
-                permission: 'api_keys.manage',
-                feature: 'api',
+                label: 'Gateways',
+                href: '/gateways',
+                icon: 'plug',
+                permission: 'gateway_connections.manage',
+                feature: 'gateways.connected',
             },
         ],
     },
@@ -306,8 +318,10 @@ export function DashboardShell({
     );
     const organizationName = organization.displayName ?? organization.legalName ?? 'Organização';
     const permissions = new Set(organization.permissions ?? []);
+    const isOwner = organization.role === 'owner';
     const canSee = (item: NavigationItem) =>
-        !isHiddenInV1(item.href) && canAccessNavigationItem(item, permissions, billingAccess);
+        !isHiddenInV1(item.href) &&
+        canAccessNavigationItem(item, permissions, billingAccess, isOwner);
     const visibleNavigationGroups = navigationGroups
         .map((group) => ({
             ...group,
@@ -378,12 +392,6 @@ export function DashboardShell({
         <div
             className={`astro-shell relative min-h-screen transition-[grid-template-columns] duration-200 ease-out lg:grid lg:h-screen lg:overflow-hidden ${dashboardDark ? 'dashboard-dark' : ''} ${collapsed ? 'lg:grid-cols-[76px_1fr]' : 'lg:grid-cols-[248px_1fr]'}`}
         >
-            {/* Estende a faixa verde da logo por trás do canto arredondado do painel. */}
-            <div
-                aria-hidden="true"
-                className={`pointer-events-none absolute left-0 top-0 hidden h-16 bg-[#C6F448] transition-[width] duration-200 ease-out lg:block ${collapsed ? 'w-[100px]' : 'w-[272px]'}`}
-            />
-
             <AppearanceOnboarding
                 open={appearanceOnboarding}
                 organization={organization}
@@ -408,7 +416,7 @@ export function DashboardShell({
                     aria-label={collapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
                     aria-expanded={!collapsed}
                     title={collapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
-                    className="shell-header-control absolute -right-3 top-[50px] z-10 hidden size-7 place-items-center rounded-full text-muted shadow-[0_8px_22px_color-mix(in_srgb,var(--brand)_10%,transparent)] transition hover:scale-105 hover:text-brand lg:grid"
+                    className="sidebar-collapse-control shell-header-control absolute -right-3 top-[50px] z-10 hidden size-7 place-items-center rounded-full text-muted shadow-[0_8px_22px_color-mix(in_srgb,var(--brand)_10%,transparent)] transition hover:scale-105 hover:text-brand lg:grid"
                     onClick={() => setCollapsed((value) => !value)}
                 >
                     <Icon
@@ -418,7 +426,7 @@ export function DashboardShell({
                 </Button>
 
                 <div
-                    className={`relative -mx-4 -mt-5 flex h-16 items-center justify-center bg-[#C6F448] px-5 ${collapsed ? 'lg:-mx-2.5 lg:px-2.5' : ''}`}
+                    className={`relative -mx-4 -mt-5 flex h-16 items-center justify-center px-5 ${collapsed ? 'lg:-mx-2.5 lg:px-2.5' : ''}`}
                 >
                     <span className="lg:hidden">
                         <Brand />
@@ -429,7 +437,7 @@ export function DashboardShell({
                     <Button
                         type="button"
                         aria-label="Fechar menu"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-2 text-muted transition hover:bg-white/70 lg:hidden"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-2 text-muted transition hover:bg-white/10 hover:text-foreground lg:hidden"
                         onClick={() => setOpen(false)}
                     >
                         <Icon name="close" />
@@ -505,7 +513,13 @@ export function DashboardShell({
                         >
                             <Icon name="menu" />
                         </Button>
-                        <Brand />
+                        {/* Topo do celular segue o tema do painel: letras escuras no claro. */}
+                        <span className="brand-on-light">
+                            <Brand tone="dark" />
+                        </span>
+                        <span className="brand-on-dark">
+                            <Brand />
+                        </span>
                     </header>
 
                     <main className="mx-auto w-full max-w-[1540px] px-4 pb-10 pt-3 sm:px-6 sm:pt-5 lg:px-10 lg:pb-14 lg:pt-8">
@@ -517,6 +531,7 @@ export function DashboardShell({
                                             dark={dashboardDark}
                                             permissions={organization.permissions ?? []}
                                             billingAccess={billingAccess}
+                                            fullPermissionAccess={isOwner}
                                         />
                                     </span>
                                     <NotificationCenter

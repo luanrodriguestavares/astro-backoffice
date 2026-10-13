@@ -42,6 +42,7 @@ export function BlockPicker({
         function close(event: PointerEvent) {
             if (!root.current?.contains(event.target as Node)) onClose();
         }
+
         window.addEventListener('pointerdown', close);
         return () => window.removeEventListener('pointerdown', close);
     }, [onClose]);

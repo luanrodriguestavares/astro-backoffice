@@ -19,7 +19,11 @@ function clientHour() {
 
 export function DashboardGreeting({ name, initialHour }: { name: string; initialHour: number }) {
     const hour = useSyncExternalStore(subscribe, clientHour, () => initialHour);
-    return <>{greeting(hour)}, {name}</>;
+    return (
+        <>
+            {greeting(hour)}, {name}
+        </>
+    );
 }
 
 function greeting(hour: number) {

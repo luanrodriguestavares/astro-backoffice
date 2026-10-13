@@ -18,6 +18,7 @@ const methods = [
 ] as const;
 
 type Method = (typeof methods)[number]['value'];
+
 type Draft = Record<Method, { percent: string; fixed: string }>;
 
 /** Venda usada nos exemplos: um valor redondo que qualquer pessoa entende. */

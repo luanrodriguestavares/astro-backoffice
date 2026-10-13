@@ -151,7 +151,7 @@ const destinations: (SearchResult & {
     },
     {
         label: 'Gateways',
-        group: 'Integrações',
+        group: 'Desenvolvedores',
         href: '/gateways',
         icon: 'plug',
         permission: 'gateway_connections.manage',
@@ -159,9 +159,10 @@ const destinations: (SearchResult & {
     },
     {
         label: 'Webhooks',
-        group: 'Integrações',
+        group: 'Desenvolvedores',
         href: '/webhooks',
         icon: 'webhook',
+        keywords: 'endpoint entregas envios recebimentos eventos gateway payload',
         permission: 'webhooks.manage',
         feature: 'webhooks.custom',
     },
@@ -175,13 +176,21 @@ const destinations: (SearchResult & {
         feature: 'marketing.pixels',
     },
     {
-        label: 'Desenvolvedores',
-        group: 'Integrações',
+        label: 'Chaves de API',
+        group: 'Desenvolvedores',
         href: '/developer',
         icon: 'code',
         keywords: 'api chaves integração',
         permission: 'api_keys.manage',
         feature: 'api',
+    },
+    {
+        label: 'Logs e eventos',
+        group: 'Desenvolvedores',
+        href: '/logs',
+        icon: 'pulse',
+        keywords: 'observabilidade timeline pagamentos vendas erros gateway request id',
+        permission: 'developer_logs.read',
     },
     {
         label: 'Biblioteca de mídia',
@@ -243,10 +252,12 @@ export function HeaderSearch({
     dark = false,
     permissions = [],
     billingAccess,
+    fullPermissionAccess = false,
 }: {
     dark?: boolean;
     permissions?: string[];
     billingAccess: { active: boolean; features: string[] };
+    fullPermissionAccess?: boolean;
 }) {
     const shortcutLabel = useSyncExternalStore(
         subscribeNothing,
@@ -278,7 +289,9 @@ export function HeaderSearch({
         const available = destinations.filter(
             (item) =>
                 !isHiddenInV1(item.href) &&
-                (item.permission === undefined || granted.has(item.permission)) &&
+                (fullPermissionAccess ||
+                    item.permission === undefined ||
+                    granted.has(item.permission)) &&
                 (item.feature === undefined ||
                     (billingAccess.active && planFeatures.has(item.feature))),
         );
@@ -287,7 +300,7 @@ export function HeaderSearch({
         return available.filter((item) =>
             normalize(`${item.label} ${item.group} ${item.keywords ?? ''}`).includes(normalized),
         );
-    }, [billingAccess, permissions, query]);
+    }, [billingAccess, fullPermissionAccess, permissions, query]);
 
     const results = useMemo(() => {
         if (!query.trim()) return navigationResults;

@@ -3,11 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import {
-    permissionLabels,
-    roleDescriptions,
-    roleLabel,
-} from '@/components/team/invite-member';
+import { permissionLabels, roleDescriptions, roleLabel } from '@/components/team/invite-member';
 import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
@@ -92,46 +88,46 @@ export function MemberRoleEditor({
                 />
 
                 <ModalBody>
-                <div>
-                    <label className="text-[13px] font-semibold">
-                        Perfil
-                        <div className="mt-2">
-                            <CustomSelect
-                                name="role"
-                                value={selectedRole}
-                                disabled={loading}
-                                onValueChange={(value) =>
-                                    setSelectedRole(value as InvitableRole['code'])
-                                }
-                                options={roles.map((role) => ({
-                                    value: role.code,
-                                    label: roleLabel(role.code),
-                                }))}
-                            />
-                        </div>
-                    </label>
+                    <div>
+                        <label className="text-[13px] font-semibold">
+                            Perfil
+                            <div className="mt-2">
+                                <CustomSelect
+                                    name="role"
+                                    value={selectedRole}
+                                    disabled={loading}
+                                    onValueChange={(value) =>
+                                        setSelectedRole(value as InvitableRole['code'])
+                                    }
+                                    options={roles.map((role) => ({
+                                        value: role.code,
+                                        label: roleLabel(role.code),
+                                    }))}
+                                />
+                            </div>
+                        </label>
 
-                    {selected && (
-                        <div className="mt-4 rounded-2xl border border-brand/12 bg-brand-soft/35 p-4">
-                            <p className="text-[12px] font-semibold text-brand-strong">
-                                {roleDescriptions[selected.code]}
-                            </p>
-                            <p className="mt-3 text-[10px] font-semibold uppercase tracking-[.12em] text-muted">
-                                Permissões deste perfil
-                            </p>
-                            <ul className="mt-2 flex flex-wrap gap-1.5">
-                                {selected.permissions.map((permission) => (
-                                    <li
-                                        key={permission}
-                                        className="rounded-full border border-brand/12 bg-white/60 px-2.5 py-1 text-[10px] text-foreground"
-                                    >
-                                        {permissionLabels[permission] ?? permission}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-                </div>
+                        {selected && (
+                            <div className="mt-4 rounded-2xl border border-brand/12 bg-brand-soft/35 p-4">
+                                <p className="text-[12px] font-semibold text-brand-strong">
+                                    {roleDescriptions[selected.code]}
+                                </p>
+                                <p className="mt-3 text-[10px] font-semibold uppercase tracking-[.12em] text-muted">
+                                    Permissões deste perfil
+                                </p>
+                                <ul className="mt-2 flex flex-wrap gap-1.5">
+                                    {selected.permissions.map((permission) => (
+                                        <li
+                                            key={permission}
+                                            className="rounded-full border border-brand/12 bg-white/60 px-2.5 py-1 text-[10px] text-foreground"
+                                        >
+                                            {permissionLabels[permission] ?? permission}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
                 </ModalBody>
 
                 <ModalFooter>

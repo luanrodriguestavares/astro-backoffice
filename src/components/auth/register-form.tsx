@@ -31,9 +31,10 @@ export function RegisterForm({ invitation }: { invitation?: InvitationContext })
     const [displayName, setDisplayName] = useState('');
     const [slug, setSlug] = useState('');
     const [customSlug, setCustomSlug] = useState(false);
-    const steps = invitation === undefined
-        ? organizationSteps
-        : [{ label: 'Seu acesso', description: `Entrar em ${invitation.organizationName}` }];
+    const steps =
+        invitation === undefined
+            ? organizationSteps
+            : [{ label: 'Seu acesso', description: `Entrar em ${invitation.organizationName}` }];
 
     function updateDisplayName(value: string) {
         setDisplayName(value);
@@ -76,13 +77,20 @@ export function RegisterForm({ invitation }: { invitation?: InvitationContext })
     return (
         <form
             ref={formRef}
-            action={invitation ? `/api/auth/register?invite=${encodeURIComponent(invitation.token)}` : '/api/auth/register'}
+            action={
+                invitation
+                    ? `/api/auth/register?invite=${encodeURIComponent(invitation.token)}`
+                    : '/api/auth/register'
+            }
             method="post"
             className="mt-5"
             onSubmit={submit}
         >
             {invitation && <input type="hidden" name="invitationToken" value={invitation.token} />}
-            <ol className={`grid gap-2 ${invitation ? 'grid-cols-1' : 'grid-cols-3'}`} aria-label="Etapas do cadastro">
+            <ol
+                className={`grid gap-2 ${invitation ? 'grid-cols-1' : 'grid-cols-3'}`}
+                aria-label="Etapas do cadastro"
+            >
                 {steps.map((item, index) => (
                     <li key={item.label} className="min-w-0">
                         <button
@@ -195,99 +203,104 @@ export function RegisterForm({ invitation }: { invitation?: InvitationContext })
                     )}
                 </section>
 
-                {invitation === undefined && <section data-step="1" hidden={step !== 1}>
-                    <StepHeading
-                        icon="box"
-                        title="Agora, o seu negócio"
-                        description="Esses dados identificam a operação que você administrará no Astro."
-                    />
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                        <Field label="Nome da marca">
-                            <input
-                                name="displayName"
-                                value={displayName}
-                                onChange={(event) => updateDisplayName(event.target.value)}
-                                required
-                                minLength={2}
-                                maxLength={160}
-                                placeholder="Astro Store"
-                                className={inputClass}
-                            />
-                        </Field>
-                        <Field label="Razão social">
-                            <input
-                                name="legalName"
-                                required
-                                minLength={2}
-                                maxLength={200}
-                                autoComplete="organization"
-                                placeholder="Empresa LTDA"
-                                className={inputClass}
-                            />
-                        </Field>
-                        <Field label="Tipo de documento">
-                            <CustomSelect
-                                name="documentType"
-                                defaultValue="CNPJ"
-                                options={[
-                                    { value: 'CNPJ', label: 'CNPJ' },
-                                    { value: 'CPF', label: 'CPF' },
-                                    { value: 'OTHER', label: 'Outro' },
-                                ]}
-                            />
-                        </Field>
-                        <Field label="Número do documento">
-                            <input
-                                name="documentNumber"
-                                required
-                                minLength={5}
-                                maxLength={40}
-                                inputMode="numeric"
-                                placeholder="00.000.000/0001-00"
-                                className={inputClass}
-                            />
-                        </Field>
-                    </div>
-                </section>}
-
-                {invitation === undefined && <section data-step="2" hidden={step !== 2}>
-                    <StepHeading
-                        icon="layout"
-                        title="Dê um endereço à sua estação"
-                        description="Você poderá reconhecer e acessar esta workspace por esse identificador."
-                    />
-                    <div className="mt-5">
-                        <Field label="Identificador da organização" hint="URLs e integrações">
-                            <div className="flex h-11 overflow-hidden rounded-xl border border-[#e2e2e2] bg-white/75 transition focus-within:border-brand/70 focus-within:bg-white focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]">
-                                <span className="flex items-center border-r border-[#e2e2e2] bg-[#faf9ff] px-3 text-[10px] text-muted">
-                                    astro.app/
-                                </span>
+                {invitation === undefined && (
+                    <section data-step="1" hidden={step !== 1}>
+                        <StepHeading
+                            icon="box"
+                            title="Agora, o seu negócio"
+                            description="Esses dados identificam a operação que você administrará no Astro."
+                        />
+                        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                            <Field label="Nome da marca">
                                 <input
-                                    name="slug"
-                                    value={slug}
-                                    onChange={(event) => {
-                                        setCustomSlug(true);
-                                        setSlug(slugify(event.target.value));
-                                    }}
+                                    name="displayName"
+                                    value={displayName}
+                                    onChange={(event) => updateDisplayName(event.target.value)}
                                     required
                                     minLength={2}
-                                    maxLength={80}
-                                    placeholder="minha-empresa"
-                                    className="min-w-0 flex-1 bg-transparent px-3 text-[12px] outline-none"
+                                    maxLength={160}
+                                    placeholder="Astro Store"
+                                    className={inputClass}
                                 />
-                            </div>
-                        </Field>
-                        <div className="mt-4 rounded-2xl border border-brand/12 bg-brand-soft/45 px-4 py-3">
-                            <p className="text-[11px] font-semibold text-brand-strong">
-                                {displayName || 'Sua organização'} será sua primeira workspace
-                            </p>
-                            <p className="mt-1 text-[10px] leading-4 text-muted">
-                                Você entrará como administrador e poderá convidar a equipe depois.
-                            </p>
+                            </Field>
+                            <Field label="Razão social">
+                                <input
+                                    name="legalName"
+                                    required
+                                    minLength={2}
+                                    maxLength={200}
+                                    autoComplete="organization"
+                                    placeholder="Empresa LTDA"
+                                    className={inputClass}
+                                />
+                            </Field>
+                            <Field label="Tipo de documento">
+                                <CustomSelect
+                                    name="documentType"
+                                    defaultValue="CNPJ"
+                                    options={[
+                                        { value: 'CNPJ', label: 'CNPJ' },
+                                        { value: 'CPF', label: 'CPF' },
+                                        { value: 'OTHER', label: 'Outro' },
+                                    ]}
+                                />
+                            </Field>
+                            <Field label="Número do documento">
+                                <input
+                                    name="documentNumber"
+                                    required
+                                    minLength={5}
+                                    maxLength={40}
+                                    inputMode="numeric"
+                                    placeholder="00.000.000/0001-00"
+                                    className={inputClass}
+                                />
+                            </Field>
                         </div>
-                        <Terms />
-                    </div>
-                </section>}
+                    </section>
+                )}
+
+                {invitation === undefined && (
+                    <section data-step="2" hidden={step !== 2}>
+                        <StepHeading
+                            icon="layout"
+                            title="Dê um endereço à sua estação"
+                            description="Você poderá reconhecer e acessar esta workspace por esse identificador."
+                        />
+                        <div className="mt-5">
+                            <Field label="Identificador da organização" hint="URLs e integrações">
+                                <div className="flex h-11 overflow-hidden rounded-xl border border-[#e2e2e2] bg-white/75 transition focus-within:border-brand/70 focus-within:bg-white focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]">
+                                    <span className="flex items-center border-r border-[#e2e2e2] bg-[#faf9ff] px-3 text-[10px] text-muted">
+                                        astro.app/
+                                    </span>
+                                    <input
+                                        name="slug"
+                                        value={slug}
+                                        onChange={(event) => {
+                                            setCustomSlug(true);
+                                            setSlug(slugify(event.target.value));
+                                        }}
+                                        required
+                                        minLength={2}
+                                        maxLength={80}
+                                        placeholder="minha-empresa"
+                                        className="min-w-0 flex-1 bg-transparent px-3 text-[12px] outline-none"
+                                    />
+                                </div>
+                            </Field>
+                            <div className="mt-4 rounded-2xl border border-brand/12 bg-brand-soft/45 px-4 py-3">
+                                <p className="text-[11px] font-semibold text-brand-strong">
+                                    {displayName || 'Sua organização'} será sua primeira workspace
+                                </p>
+                                <p className="mt-1 text-[10px] leading-4 text-muted">
+                                    Você entrará como administrador e poderá convidar a equipe
+                                    depois.
+                                </p>
+                            </div>
+                            <Terms />
+                        </div>
+                    </section>
+                )}
             </div>
 
             <div className="mt-4 flex items-center justify-between gap-3">

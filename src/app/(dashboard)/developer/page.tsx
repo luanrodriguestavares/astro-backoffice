@@ -7,8 +7,8 @@ export default async function DeveloperPage() {
     return (
         <>
             <PageHeader
-                eyebrow="Integrações"
-                title="API e desenvolvedores"
+                eyebrow="Desenvolvedores"
+                title="Chaves de API"
                 description="Gerencie chaves, escopos e limites de acesso à API."
             />
             <ApiKeyManager keys={keys} />

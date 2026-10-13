@@ -60,7 +60,10 @@ export async function POST(request: Request) {
     }
 }
 
-async function acceptInvitation(session: SessionData, token: string): Promise<SessionData | undefined> {
+async function acceptInvitation(
+    session: SessionData,
+    token: string,
+): Promise<SessionData | undefined> {
     const accepted = await fetch(`${astroApiUrl()}/api/v1/organization-invitations/accept`, {
         method: 'POST',
         headers: {

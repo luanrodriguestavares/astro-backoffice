@@ -128,10 +128,7 @@ export function TrackingManager({ initialDestinations, deliveries, checkouts, ca
                 </div>
             </section>
 
-            <div
-                data-tour="tracking-tabs"
-                className="ui-tabs w-fit max-w-full"
-            >
+            <div data-tour="tracking-tabs" className="ui-tabs w-fit max-w-full">
                 <Tab active={tab === 'destinations'} onClick={() => setTab('destinations')}>
                     Destinos
                 </Tab>
@@ -459,7 +456,8 @@ function DestinationCard({
                             <Badge tone="neutral">{providerLabel(destination.provider)}</Badge>
                         </div>
                         <p className="mt-1 text-[12px] text-muted">
-                            {destination.externalId} · {destination.browserEnabled ? 'Navegador' : ''}
+                            {destination.externalId} ·{' '}
+                            {destination.browserEnabled ? 'Navegador' : ''}
                             {destination.browserEnabled && destination.serverEnabled ? ' + ' : ''}
                             {destination.serverEnabled ? 'Servidor' : ''}
                         </p>
@@ -586,6 +584,7 @@ function Summary({ label, value, tone }: { label: string; value: number; tone?: 
         </div>
     );
 }
+
 function Tab({
     active,
     onClick,
@@ -606,6 +605,7 @@ function Tab({
         </Button>
     );
 }
+
 function Empty({ title, description }: { title: string; description: string }) {
     return (
         <div className="glass-panel rounded-[24px] px-6 py-12 text-center">
@@ -617,6 +617,7 @@ function Empty({ title, description }: { title: string; description: string }) {
         </div>
     );
 }
+
 function Field({
     label,
     hint,
@@ -634,6 +635,7 @@ function Field({
         </label>
     );
 }
+
 function Input({
     value,
     onChange,
@@ -658,6 +660,7 @@ function Input({
         />
     );
 }
+
 function Check({
     checked,
     onChange,
@@ -686,6 +689,7 @@ function Check({
         </label>
     );
 }
+
 function Badge({
     tone,
     children,
@@ -705,14 +709,17 @@ function Badge({
         </span>
     );
 }
+
 function providerLabel(provider: TrackingProvider) {
     return providers.find((item) => item.value === provider)?.label ?? provider;
 }
+
 function deliveryStatus(status: TrackingDelivery['status']) {
     return { pending: 'Pendente', delivering: 'Enviando', delivered: 'Entregue', failed: 'Falhou' }[
         status
     ];
 }
+
 function message(error: unknown) {
     return error instanceof Error ? error.message : 'Não foi possível concluir a operação.';
 }

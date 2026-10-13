@@ -12,7 +12,12 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
         return NextResponse.json({ data });
     } catch (error) {
         if (error instanceof AstroApiError)
-            return NextResponse.json(clientProblem(error.problem), { status: error.problem.status });
-        return NextResponse.json({ detail: 'Não foi possível rotacionar a chave.' }, { status: 500 });
+            return NextResponse.json(clientProblem(error.problem), {
+                status: error.problem.status,
+            });
+        return NextResponse.json(
+            { detail: 'Não foi possível rotacionar a chave.' },
+            { status: 500 },
+        );
     }
 }

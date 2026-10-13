@@ -18,6 +18,7 @@ type ModalProps = {
     eyebrow: string;
     description: string;
     submitLabel: string;
+    submitDisabled?: boolean;
     close: () => void;
     onSubmit: (event: FormEvent<HTMLFormElement>) => void;
     children: ReactNode;
@@ -50,7 +51,7 @@ function ResourceModal(props: ModalProps) {
                     >
                         Cancelar
                     </Button>
-                    <Button variant="primary" disabled={props.loading}>
+                    <Button variant="primary" disabled={props.loading || props.submitDisabled}>
                         {props.loading ? 'Salvando...' : props.submitLabel}
                     </Button>
                 </ModalFooter>
@@ -89,17 +90,24 @@ function SelectField({
     label,
     options,
     defaultValue,
+    required,
 }: {
     name: string;
     label: string;
     options: SelectOption[];
     defaultValue?: string;
+    required?: boolean;
 }) {
     return (
         <label className="text-[13px] font-semibold">
             {label}
             <div className="mt-2">
-                <CustomSelect name={name} defaultValue={defaultValue} options={options} />
+                <CustomSelect
+                    name={name}
+                    defaultValue={defaultValue}
+                    options={options}
+                    required={required}
+                />
             </div>
         </label>
     );
@@ -683,11 +691,34 @@ export function SubscriptionCreateAction({
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         const form = new FormData(event.currentTarget);
+        const customerId = form.get('customerId');
+        const priceId = form.get('priceId');
+        const gatewayConnectionId = form.get('gatewayConnectionId');
+        const trialDays = Number(form.get('trialDays') ?? 0);
+
+        if (
+            typeof customerId !== 'string' ||
+            !customers.some((option) => option.value === customerId) ||
+            typeof priceId !== 'string' ||
+            !prices.some((option) => option.value === priceId) ||
+            typeof gatewayConnectionId !== 'string' ||
+            !gateways.some((option) => option.value === gatewayConnectionId) ||
+            !Number.isInteger(trialDays) ||
+            trialDays < 0 ||
+            trialDays > 365
+        ) {
+            showToast({
+                tone: 'error',
+                description: 'Selecione cliente, plano e gateway e confira os dias de teste.',
+            });
+            return;
+        }
+
         await action.send({
-            customerId: form.get('customerId'),
-            priceId: form.get('priceId'),
-            gatewayConnectionId: form.get('gatewayConnectionId'),
-            trialDays: Number(form.get('trialDays') || 0),
+            customerId,
+            priceId,
+            gatewayConnectionId,
+            trialDays,
             cancelAtPeriodEnd: false,
         });
     }
@@ -708,11 +739,30 @@ export function SubscriptionCreateAction({
                         : 'Vincule um cliente a um plano recorrente e gateway ativo.'
                 }
                 submitLabel="Criar assinatura"
+                submitDisabled={unavailable}
                 onSubmit={submit}
             >
-                <SelectField name="customerId" label="Cliente" options={customers} />
-                <SelectField name="priceId" label="Plano recorrente" options={prices} />
-                <SelectField name="gatewayConnectionId" label="Gateway" options={gateways} />
+                <SelectField
+                    name="customerId"
+                    label="Cliente"
+                    options={customers}
+                    defaultValue={customers[0]?.value}
+                    required
+                />
+                <SelectField
+                    name="priceId"
+                    label="Plano recorrente"
+                    options={prices}
+                    defaultValue={prices[0]?.value}
+                    required
+                />
+                <SelectField
+                    name="gatewayConnectionId"
+                    label="Gateway"
+                    options={gateways}
+                    defaultValue={gateways[0]?.value}
+                    required
+                />
                 <Field
                     name="trialDays"
                     label="Teste grátis (dias)"

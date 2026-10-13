@@ -12,7 +12,9 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
         return NextResponse.json({ data });
     } catch (error) {
         if (error instanceof AstroApiError)
-            return NextResponse.json(clientProblem(error.problem), { status: error.problem.status });
+            return NextResponse.json(clientProblem(error.problem), {
+                status: error.problem.status,
+            });
         return NextResponse.json({ detail: 'Não foi possível revogar a chave.' }, { status: 500 });
     }
 }

@@ -70,6 +70,7 @@ export const config = {
         '/checkouts/:path*',
         '/coupons/:path*',
         '/developer/:path*',
+        '/logs/:path*',
         '/files/:path*',
         '/inventory/:path*',
         '/invoices/:path*',

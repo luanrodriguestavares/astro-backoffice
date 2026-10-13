@@ -9,10 +9,10 @@ export default async function CheckoutPreviewPage({
     searchParams,
 }: {
     params: Promise<{ id: string }>;
-    searchParams: Promise<{ embed?: string; static?: string }>;
+    searchParams: Promise<{ embed?: string; static?: string; device?: string }>;
 }) {
     const { id } = await params;
-    const { embed, static: staticParam } = await searchParams;
+    const { embed, static: staticParam, device } = await searchParams;
     const result = await loadPreview(id);
     return (
         <CheckoutPreview
@@ -20,6 +20,7 @@ export default async function CheckoutPreviewPage({
             draft={result.draft}
             embedded={embed === '1'}
             staticMode={staticParam === '1'}
+            device={device === 'mobile' || device === 'desktop' ? device : undefined}
         />
     );
 }

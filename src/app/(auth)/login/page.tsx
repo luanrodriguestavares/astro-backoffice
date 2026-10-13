@@ -23,13 +23,10 @@ export default async function LoginPage({
     return (
         <div className="relative grid min-h-screen place-items-center overflow-hidden bg-background px-4 py-10">
             <AuthToast message={feedback} tone={error ? 'error' : 'info'} />
-            <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0"
-            />
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0" />
             <section className="relative w-full max-w-[430px]">
                 <div className="mb-6 flex justify-center">
-                    <Brand href="/login" />
+                    <Brand href="/login" tone="dark" />
                 </div>
                 <div className="rounded-[30px] border border-border bg-surface p-7 shadow-[0_24px_72px_rgb(16_18_20_/_8%)] sm:p-9">
                     <div className="flex items-center gap-3">
@@ -51,7 +48,11 @@ export default async function LoginPage({
                     <p className="text-[12px] leading-5 text-muted">
                         Entre para continuar cuidando da sua operação no Astro.
                     </p>
-                    <form action={`/api/auth/login${inviteQuery}`} method="post" className="mt-7 space-y-4">
+                    <form
+                        action={`/api/auth/login${inviteQuery}`}
+                        method="post"
+                        className="mt-7 space-y-4"
+                    >
                         {invite && <input type="hidden" name="invitationToken" value={invite} />}
                         <Field label="E-mail">
                             <input

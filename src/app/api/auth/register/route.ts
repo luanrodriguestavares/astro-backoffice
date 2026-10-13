@@ -51,8 +51,8 @@ export async function POST(request: Request) {
                 problem.code === 'INVALID_INVITATION'
                     ? 'Este convite expirou, já foi usado ou pertence a outro e-mail.'
                     : response.status === 409
-                    ? 'Já existe uma conta, organização ou documento com esses dados.'
-                    : problem.detail || 'Não foi possível criar sua conta.';
+                      ? 'Já existe uma conta, organização ou documento com esses dados.'
+                      : problem.detail || 'Não foi possível criar sua conta.';
             return registerError(request, message);
         }
         const session = (payload as ApiEnvelope<SessionData>).data;
@@ -95,7 +95,13 @@ async function requestVerificationEmail(email: string) {
 function validate(input: Record<string, string | boolean>) {
     const invitation = String(input.invitationToken).length > 0;
     const alwaysRequired = ['name', 'email', 'password', 'passwordConfirmation'];
-    const organizationRequired = ['legalName', 'displayName', 'slug', 'documentType', 'documentNumber'];
+    const organizationRequired = [
+        'legalName',
+        'displayName',
+        'slug',
+        'documentType',
+        'documentNumber',
+    ];
     if ([...alwaysRequired, ...(invitation ? [] : organizationRequired)].some((key) => !input[key]))
         return 'Preencha todos os campos obrigatórios.';
     if (String(input.password).length < 12) return 'A senha precisa ter pelo menos 12 caracteres.';

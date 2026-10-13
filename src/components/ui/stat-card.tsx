@@ -33,6 +33,7 @@ export function StatCard({
     change,
     chartType = 'line',
     tone = 'brand',
+    featured = false,
 }: {
     label: string;
     value: string;
@@ -43,6 +44,8 @@ export function StatCard({
     change?: number | null;
     chartType?: 'line' | 'bar';
     tone?: Tone;
+    /** Card de destaque (ex.: receita): fundo escuro com brilho verde. */
+    featured?: boolean;
 }) {
     const palette = tones[tone];
     const reduceMotion = useReducedMotion();
@@ -56,7 +59,7 @@ export function StatCard({
         >
             <Link
                 href={href}
-                className="dashboard-stat-card glass-panel group relative block min-h-[142px] transform-gpu rounded-[22px] p-5 transition duration-200 ease-out hover:-translate-y-px"
+                className={`dashboard-stat-card glass-panel group relative block min-h-[142px] transform-gpu rounded-[22px] p-5 transition duration-200 ease-out hover:-translate-y-px ${featured ? 'dashboard-stat-card--featured' : ''}`}
             >
                 <div className="relative flex items-start justify-between gap-4">
                     <div className="min-w-0">
@@ -107,7 +110,11 @@ export function StatCard({
                         </p>
                     </div>
                     {sparkline && sparkline.length > 1 ? (
-                        <MetricChart values={sparkline} color={palette.line} type={chartType} />
+                        <MetricChart
+                            values={sparkline}
+                            color={featured ? 'var(--highlight)' : palette.line}
+                            type={chartType}
+                        />
                     ) : (
                         <span className="dashboard-stat-arrow grid size-7 shrink-0 place-items-center rounded-full bg-white/60 text-muted transition group-hover:text-brand">
                             <Icon name="arrow-right" className="size-3.5" />

@@ -31,10 +31,7 @@ import type {
 const approvedStatuses = new Set(['approved', 'paid', 'captured', 'succeeded']);
 
 export default async function DashboardPage() {
-    const [user, organization] = await Promise.all([
-        currentUser(),
-        currentOrganization(),
-    ]);
+    const [user, organization] = await Promise.all([currentUser(), currentOrganization()]);
     const permissions = new Set(organization.permissions ?? []);
     const canReadPayments = permissions.has('payments.read');
     const canReadSubscriptions = permissions.has('subscriptions.read');
@@ -49,9 +46,7 @@ export default async function DashboardPage() {
         canManageGateways
             ? apiFetch<GatewayConnection[]>('/api/v1/gateway-connections')
             : Promise.resolve([]),
-        canReadProducts
-            ? apiFetch<Product[]>('/api/v1/products?limit=100')
-            : Promise.resolve([]),
+        canReadProducts ? apiFetch<Product[]>('/api/v1/products?limit=100') : Promise.resolve([]),
         canReadProducts ? apiFetch<Checkout[]>('/api/v1/checkouts') : Promise.resolve([]),
         canReadPayments ? apiFetch<Refund[]>('/api/v1/refunds') : Promise.resolve([]),
     ]);
@@ -89,171 +84,198 @@ export default async function DashboardPage() {
 
     return (
         <DashboardPeriodProvider>
-        <div className="dashboard-home" data-tour="dashboard-home">
-            <PageHeader
-                prominentTitle
-                eyebrow={
-                    <DashboardGreeting
-                        name={firstName(user.name)}
-                        initialHour={currentHour('America/Fortaleza')}
-                    />
-                }
-                title={<AnimatedOrbitTitle />}
-                description="Sua operação, sempre ao seu alcance."
-                filters={canReadPayments ? <DashboardPeriodSelect /> : undefined}
-                actions={canWriteProducts ? (
-                    <ButtonLink href="/checkouts" className="gap-3">
-                        <Icon name="plus" className="size-4" />
-                        Criar checkout
-                        <Icon
-                            name="arrow-right"
-                            className="size-3.5 opacity-70 transition-transform group-hover:translate-x-0.5"
+            <div className="dashboard-home" data-tour="dashboard-home">
+                {/* Formas prateadas discretas e a estrela do Astro atrás do cabeçalho. */}
+                <div aria-hidden="true" className="dashboard-home-decor">
+                    <span />
+                    <span />
+                    <span />
+                    {/* eslint-disable-next-line @next/next/no-img-element -- SVG decorativo */}
+                    <img src="/astro-star.svg" alt="" className="dashboard-home-star" />
+                </div>
+                <PageHeader
+                    prominentTitle
+                    eyebrow={
+                        <DashboardGreeting
+                            name={firstName(user.name)}
+                            initialHour={currentHour('America/Fortaleza')}
                         />
-                    </ButtonLink>
-                ) : undefined}
-            />
+                    }
+                    title={<AnimatedOrbitTitle />}
+                    description="Sua operação, sempre ao seu alcance."
+                    filters={canReadPayments ? <DashboardPeriodSelect /> : undefined}
+                    actions={
+                        canWriteProducts ? (
+                            <ButtonLink href="/checkouts" className="gap-3">
+                                <Icon name="plus" className="size-4" />
+                                Criar checkout
+                                <Icon
+                                    name="arrow-right"
+                                    className="size-3.5 opacity-70 transition-transform group-hover:translate-x-0.5"
+                                />
+                            </ButtonLink>
+                        ) : undefined
+                    }
+                />
 
-            {canReadPayments ? <section
-                data-tour="dashboard-metrics"
-                aria-label="Indicadores da operação"
-                className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
-            >
-                <StatCard
-                    label="Receita bruta"
-                    value={money(revenue, currency)}
-                    detail="Vendas aprovadas"
-                    icon="card"
-                    href="/payments"
-                    sparkline={valuesWithActivity(recentTimeline.map((point) => point.value))}
-                    change={variation(currentPeriod.revenue, previousPeriod.revenue)}
-                />
-                <StatCard
-                    label="Pedidos"
-                    value={String(approved.length)}
-                    detail={`${payments.length} tentativas processadas`}
-                    icon="cart"
-                    href="/payments"
-                    tone="success"
-                    sparkline={valuesWithActivity(salesTimeline)}
-                    chartType="bar"
-                    change={variation(currentPeriod.approved, previousPeriod.approved)}
-                />
-                <StatCard
-                    label="Taxa de conversão"
-                    value={percentage(
-                        payments.length ? (approved.length / payments.length) * 100 : 0,
-                    )}
-                    detail="Tentativas convertidas em venda"
-                    icon="chart"
-                    href="/payments"
-                    sparkline={valuesWithActivity(approvalTimeline)}
-                    change={difference(currentPeriod.approvalRate, previousPeriod.approvalRate)}
-                />
-                <StatCard
-                    label="Ticket médio"
-                    value={money(
-                        approved.length ? Math.round(revenue / approved.length) : 0,
-                        currency,
-                    )}
-                    detail={`${activeSubscriptions} assinaturas ativas`}
-                    icon="tag"
-                    href="/subscriptions"
-                    tone="warning"
-                    sparkline={valuesWithActivity(ticketTimeline)}
-                    change={variation(currentPeriod.ticket, previousPeriod.ticket)}
-                />
-            </section> : (
-                <RestrictedOverview />
-            )}
-
-            {canReadPayments && <section
-                data-tour="dashboard-performance"
-                className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,.95fr)]"
-            >
-                <article className="glass-panel min-w-0 rounded-[28px] p-5 sm:p-6">
-                    <div className="flex items-start justify-between gap-4">
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h2 className="text-sm font-semibold tracking-[-0.02em]">
-                                    Receita ao longo do tempo
-                                </h2>
-                                <PageHelp title="Receita ao longo do tempo" trigger="i" compact>
-                                    <p>
-                                        Mostra os valores aprovados e capturados. Clique e arraste
-                                        sobre o gráfico para selecionar um período e comparar o
-                                        total com o intervalo anterior.
-                                    </p>
-                                </PageHelp>
-                            </div>
-                            <p className="mt-1 text-[12px] text-muted">
-                                Valores aprovados e capturados
-                            </p>
-                        </div>
-                        <RevenuePeriodTotal
-                            points={timeline}
-                            hourlyPoints={hourlyTimeline}
-                            currency={currency}
+                {canReadPayments ? (
+                    <section
+                        data-tour="dashboard-metrics"
+                        aria-label="Indicadores da operação"
+                        className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
+                    >
+                        <StatCard
+                            featured
+                            label="Receita bruta"
+                            value={money(revenue, currency)}
+                            detail="Vendas aprovadas"
+                            icon="card"
+                            href="/payments"
+                            sparkline={valuesWithActivity(
+                                recentTimeline.map((point) => point.value),
+                            )}
+                            change={variation(currentPeriod.revenue, previousPeriod.revenue)}
                         />
-                    </div>
-                    <RevenueAreaChart
-                        points={timeline}
-                        hourlyPoints={hourlyTimeline}
-                        currency={currency}
-                    />
-                </article>
-
-                {(canManageGateways || canWriteProducts) && setupDone < 3 ? (
-                    <OnboardingCard
-                        setupDone={setupDone}
-                        hasGateway={hasGateway}
-                        hasProduct={hasProduct}
-                        canManageGateways={canManageGateways}
-                        canWriteProducts={canWriteProducts}
-                    />
+                        <StatCard
+                            label="Pedidos"
+                            value={String(approved.length)}
+                            detail={`${payments.length} tentativas processadas`}
+                            icon="cart"
+                            href="/payments"
+                            tone="success"
+                            sparkline={valuesWithActivity(salesTimeline)}
+                            chartType="bar"
+                            change={variation(currentPeriod.approved, previousPeriod.approved)}
+                        />
+                        <StatCard
+                            label="Taxa de conversão"
+                            value={percentage(
+                                payments.length ? (approved.length / payments.length) * 100 : 0,
+                            )}
+                            detail="Tentativas convertidas em venda"
+                            icon="chart"
+                            href="/payments"
+                            sparkline={valuesWithActivity(approvalTimeline)}
+                            change={difference(
+                                currentPeriod.approvalRate,
+                                previousPeriod.approvalRate,
+                            )}
+                        />
+                        <StatCard
+                            label="Ticket médio"
+                            value={money(
+                                approved.length ? Math.round(revenue / approved.length) : 0,
+                                currency,
+                            )}
+                            detail={`${activeSubscriptions} assinaturas ativas`}
+                            icon="tag"
+                            href="/subscriptions"
+                            tone="warning"
+                            sparkline={valuesWithActivity(ticketTimeline)}
+                            change={variation(currentPeriod.ticket, previousPeriod.ticket)}
+                        />
+                    </section>
                 ) : (
-                    <article className="glass-panel flex min-w-0 flex-col rounded-[28px] p-5 sm:p-6">
-                        <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <h2 className="text-sm font-semibold tracking-[-0.02em]">
-                                        Receita por gateway
-                                    </h2>
-                                    <PageHelp
-                                        title="Receita por gateway"
-                                        trigger="i"
-                                        compact
-                                        align="right"
-                                    >
-                                        <p>
-                                            Distribui a receita aprovada entre os gateways usados
-                                            para processar os pagamentos no período exibido.
-                                        </p>
-                                    </PageHelp>
-                                </div>
-                                <p className="mt-1 text-[12px] text-muted">
-                                    Distribuição das vendas aprovadas
-                                </p>
-                            </div>
-                            {canManageGateways && <Link
-                                href="/gateways"
-                                className="dashboard-details-button rounded-xl border border-white/80 bg-white/40 px-3 py-2 text-[12px] font-semibold text-muted transition hover:text-brand-strong"
-                            >
-                                Ver detalhes
-                            </Link>}
-                        </div>
-                        <GatewayDonut data={gatewayData} currency={currency} />
-                    </article>
+                    <RestrictedOverview />
                 )}
-            </section>}
 
-            <section
-                data-tour="dashboard-recent"
-                className={`mt-4 grid gap-4 ${canReadProducts ? 'xl:grid-cols-2 xl:items-start' : ''}`}
-            >
-                {canReadProducts && <RecentCheckouts checkouts={recentCheckouts.slice(0, 4)} />}
-                <RecentActivities activities={activities.slice(0, 5)} />
-            </section>
-        </div>
+                {canReadPayments && (
+                    <section
+                        data-tour="dashboard-performance"
+                        className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,.95fr)]"
+                    >
+                        <article className="glass-panel min-w-0 rounded-[28px] p-5 sm:p-6">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h2 className="text-sm font-semibold tracking-[-0.02em]">
+                                            Receita ao longo do tempo
+                                        </h2>
+                                        <PageHelp
+                                            title="Receita ao longo do tempo"
+                                            trigger="i"
+                                            compact
+                                        >
+                                            <p>
+                                                Mostra os valores aprovados e capturados. Clique e
+                                                arraste sobre o gráfico para selecionar um período e
+                                                comparar o total com o intervalo anterior.
+                                            </p>
+                                        </PageHelp>
+                                    </div>
+                                    <p className="mt-1 text-[12px] text-muted">
+                                        Valores aprovados e capturados
+                                    </p>
+                                </div>
+                                <RevenuePeriodTotal
+                                    points={timeline}
+                                    hourlyPoints={hourlyTimeline}
+                                    currency={currency}
+                                />
+                            </div>
+                            <RevenueAreaChart
+                                points={timeline}
+                                hourlyPoints={hourlyTimeline}
+                                currency={currency}
+                            />
+                        </article>
+
+                        {(canManageGateways || canWriteProducts) && setupDone < 3 ? (
+                            <OnboardingCard
+                                setupDone={setupDone}
+                                hasGateway={hasGateway}
+                                hasProduct={hasProduct}
+                                canManageGateways={canManageGateways}
+                                canWriteProducts={canWriteProducts}
+                            />
+                        ) : (
+                            <article className="glass-panel flex min-w-0 flex-col rounded-[28px] p-5 sm:p-6">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h2 className="text-sm font-semibold tracking-[-0.02em]">
+                                                Receita por gateway
+                                            </h2>
+                                            <PageHelp
+                                                title="Receita por gateway"
+                                                trigger="i"
+                                                compact
+                                                align="right"
+                                            >
+                                                <p>
+                                                    Distribui a receita aprovada entre os gateways
+                                                    usados para processar os pagamentos no período
+                                                    exibido.
+                                                </p>
+                                            </PageHelp>
+                                        </div>
+                                        <p className="mt-1 text-[12px] text-muted">
+                                            Distribuição das vendas aprovadas
+                                        </p>
+                                    </div>
+                                    {canManageGateways && (
+                                        <Link
+                                            href="/gateways"
+                                            className="dashboard-details-button rounded-xl border border-white/80 bg-white/40 px-3 py-2 text-[12px] font-semibold text-muted transition hover:text-brand-strong"
+                                        >
+                                            Ver detalhes
+                                        </Link>
+                                    )}
+                                </div>
+                                <GatewayDonut data={gatewayData} currency={currency} />
+                            </article>
+                        )}
+                    </section>
+                )}
+
+                <section
+                    data-tour="dashboard-recent"
+                    className={`mt-4 grid gap-4 ${canReadProducts ? 'xl:grid-cols-2 xl:items-start' : ''}`}
+                >
+                    {canReadProducts && <RecentCheckouts checkouts={recentCheckouts.slice(0, 4)} />}
+                    <RecentActivities activities={activities.slice(0, 5)} />
+                </section>
+            </div>
         </DashboardPeriodProvider>
     );
 }
@@ -290,9 +312,10 @@ function OnboardingCard({
     canManageGateways: boolean;
     canWriteProducts: boolean;
 }) {
-    const nextAction = canManageGateways && !hasGateway
-        ? { href: '/gateways', label: 'Conectar gateway' }
-        : { href: '/products', label: 'Cadastrar produto' };
+    const nextAction =
+        canManageGateways && !hasGateway
+            ? { href: '/gateways', label: 'Conectar gateway' }
+            : { href: '/products', label: 'Cadastrar produto' };
     return (
         <article className="glass-panel relative overflow-hidden rounded-[28px] p-5 sm:p-6">
             <div className="relative">

@@ -7,7 +7,7 @@
     --flow-danger: #e0485f;
     --flow-brand: #6366f1;
     --flow-warning: #d97706;
-    --flow-active: #c6f448;
+    --flow-active: #91cf24;
     --flow-card: var(--surface);
     background: color-mix(in srgb, var(--surface-muted) 55%, var(--surface));
 }
@@ -260,8 +260,8 @@
 }
 
 .dashboard-dark .flow-tone-trigger {
-    background: rgb(198 244 72 / 14%);
-    color: #c6f448;
+    background: rgb(145 207 36 / 14%);
+    color: #91cf24;
 }
 
 .dashboard-dark .flow-tone-logic {
@@ -394,19 +394,6 @@
     background: var(--surface-muted);
 }
 
-.flow-highlight-button {
-    background: var(--highlight);
-    color: var(--highlight-contrast);
-}
-
-.flow-highlight-button:hover:not(:disabled) {
-    filter: brightness(0.96);
-}
-
-.flow-highlight-button:disabled {
-    opacity: 0.55;
-}
-
 @media (prefers-reduced-motion: reduce) {
     .flow-canvas .flow-edge-path[data-sim='on'] {
         animation: none;
@@ -464,26 +451,26 @@ html input.flow-title-input:focus {
     transform: none;
     border: 2px dashed #84cc16;
     border-radius: 24px;
-    background: color-mix(in srgb, #c6f448 14%, transparent);
+    background: color-mix(in srgb, #91cf24 14%, transparent);
     color: #4d7c0f;
     animation: flow-drop-pulse 1.1s ease-in-out infinite;
 }
 
 .dashboard-dark .flow-canvas .react-flow__handle.flow-input-handle[data-drop='true'] {
-    border-color: #c6f448;
-    color: #c6f448;
+    border-color: #91cf24;
+    color: #91cf24;
 }
 
 .flow-canvas .react-flow__handle.flow-input-handle[data-drop='true'].connectingto,
 .flow-canvas .react-flow__handle.flow-input-handle[data-drop='true']:hover {
     transform: none;
     border-style: solid;
-    background: color-mix(in srgb, #c6f448 28%, transparent);
+    background: color-mix(in srgb, #91cf24 28%, transparent);
 }
 
 @keyframes flow-drop-pulse {
     50% {
-        background: color-mix(in srgb, #c6f448 24%, transparent);
+        background: color-mix(in srgb, #91cf24 24%, transparent);
     }
 }
 

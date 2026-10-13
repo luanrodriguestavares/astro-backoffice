@@ -13,10 +13,7 @@ export default async function SettingsPage({
     searchParams: Promise<{ view?: string }>;
 }) {
     const { view } = await searchParams;
-    const [organization, user] = await Promise.all([
-        currentOrganization(),
-        currentUser(),
-    ]);
+    const [organization, user] = await Promise.all([currentOrganization(), currentUser()]);
     const canManageOrganization = organization.permissions?.includes('members.manage') ?? false;
     const canManageBilling = organization.permissions?.includes('platform_billing.manage') ?? false;
     if (view === 'plan') {
@@ -42,16 +39,16 @@ export default async function SettingsPage({
                         <span className="mx-auto grid size-11 place-items-center rounded-2xl border border-warning/20 bg-warning/10 text-warning">
                             <Icon name="card" className="size-5" />
                         </span>
-                        <h2 className="mt-4 text-base font-semibold">Cobrança temporariamente indisponível</h2>
+                        <h2 className="mt-4 text-base font-semibold">
+                            Cobrança temporariamente indisponível
+                        </h2>
                         <p className="mx-auto mt-2 max-w-xl text-[12px] leading-5 text-muted">
-                            {billingError} A página continua acessível; confirme que a API foi reiniciada e que as migrations estão aplicadas.
+                            {billingError} A página continua acessível; confirme que a API foi
+                            reiniciada e que as migrations estão aplicadas.
                         </p>
                     </section>
                 ) : (
-                    <PlatformBillingManager
-                        summary={billing}
-                        canManage={canManageBilling}
-                    />
+                    <PlatformBillingManager summary={billing} canManage={canManageBilling} />
                 )}
             </>
         );

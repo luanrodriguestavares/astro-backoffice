@@ -33,7 +33,11 @@ export function ThemeSwitch({ dark, onToggle }: { dark: boolean; onToggle: () =>
             >
                 <motion.span
                     className="dashboard-theme-switch-sun grid place-items-center"
-                    animate={{ rotate: dark ? -70 : 0, scale: dark ? 0.78 : 1, opacity: dark ? 0.55 : 1 }}
+                    animate={{
+                        rotate: dark ? -70 : 0,
+                        scale: dark ? 0.78 : 1,
+                        opacity: dark ? 0.55 : 1,
+                    }}
                     transition={spring}
                 >
                     <Icon name="sun" className="size-3.5" />
@@ -47,7 +51,11 @@ export function ThemeSwitch({ dark, onToggle }: { dark: boolean; onToggle: () =>
                 </span>
                 <motion.span
                     className="dashboard-theme-switch-moon grid place-items-center"
-                    animate={{ rotate: dark ? 0 : 70, scale: dark ? 1 : 0.78, opacity: dark ? 1 : 0.55 }}
+                    animate={{
+                        rotate: dark ? 0 : 70,
+                        scale: dark ? 1 : 0.78,
+                        opacity: dark ? 1 : 0.55,
+                    }}
                     transition={spring}
                 >
                     <Icon name="moon" className="size-3.5" />

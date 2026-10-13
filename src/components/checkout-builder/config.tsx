@@ -5,18 +5,24 @@ import { CustomSelect } from '@/components/ui/custom-select';
 import { MediaPicker } from '@/components/files/media-picker';
 
 import { FieldLabel, type Config, type Data, type Slot } from '@puckeditor/core';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, type CSSProperties } from 'react';
 import type { CheckoutProductPrice, MediaFile } from '@/lib/api/types';
 import {
     checkoutBrandPresets,
     checkoutComponentSurfaceVariables,
     checkoutFontPresets,
     checkoutGoogleFontsUrl,
+    checkoutPageAttributes,
     checkoutThemeVariables,
     fontStack as checkoutFontStack,
     type CheckoutFontPreset,
 } from '@astro/checkout-renderer/theme';
 import { checkoutDesignSystemStyles } from '@astro/checkout-renderer/design-system';
+import {
+    defaultResultScreens,
+    fillResultText,
+    type CheckoutResultScreens,
+} from '@astro/checkout-renderer/result-screens';
 import {
     CheckoutDataTable,
     CheckoutBenefits,
@@ -30,7 +36,9 @@ import {
     CheckoutHero,
     CheckoutCustomerForm,
     CheckoutOrderBump,
+    CheckoutOrderHeader,
     CheckoutPaymentInstruction,
+    CheckoutPaymentResult,
     CheckoutParagraphText,
     CheckoutPaymentMethods,
     CheckoutTestimonials,
@@ -70,6 +78,16 @@ export const CheckoutBuilderStaticContext = createContext(false);
 
 /** Produtos e preços deste checkout, para vincular blocos (ex.: planos) a preços reais. */
 export const CheckoutBuilderProductsContext = createContext<CheckoutProductPrice[]>([]);
+
+/**
+ * Forma de pagamento escolhida na prévia. Liga o bloco "Formas de pagamento" aos blocos de
+ * detalhe (cartão, Pix, boleto), que só aparecem quando o método deles está selecionado,
+ * igual ao checkout publicado.
+ */
+const BuilderPaymentSelectionContext = createContext<{
+    selected?: string;
+    select(id: string | undefined): void;
+} | null>(null);
 
 type BuilderPropsBase = {
     hero: {
@@ -211,7 +229,12 @@ type BuilderPropsBase = {
         buttonUrl: string;
         buttonNewTab: boolean;
     };
-    spacer_divider: { layout: SpacerDividerLayout; size: SizePreset; label: string };
+    spacer_divider: {
+        layout: SpacerDividerLayout;
+        size: SizePreset;
+        height: number;
+        label: string;
+    };
     order_bump: {
         layout: OrderBumpLayout;
         priceId: string;
@@ -230,6 +253,7 @@ type BuilderPropsBase = {
         imageUrl: string;
         badge: string;
         recurringLabel: string;
+        mobileOnly: boolean;
     };
     checkout_form: {
         layout: FormLayout;
@@ -245,6 +269,7 @@ type BuilderPropsBase = {
         showCard: boolean;
         showPix: boolean;
         showBoleto: boolean;
+        showWallets: boolean;
     };
     card_payment: {
         layout: CardPaymentLayout;
@@ -365,7 +390,7 @@ type FaqLayout = 'accordion' | 'cards' | 'split';
 
 type GuaranteeLayout = 'horizontal' | 'seal' | 'banner' | 'boxed' | 'minimal';
 
-type ProductLayout = 'card' | 'compact' | 'detailed';
+type ProductLayout = 'card' | 'compact' | 'detailed' | 'header';
 
 type OrderBumpLayout = 'highlight' | 'card' | 'minimal';
 
@@ -406,6 +431,13 @@ export type BuilderRootProps = {
     componentBackgroundStyle: ComponentBackgroundStyle;
     componentBorderStyle: ComponentBorderStyle;
     componentShadowMode: ComponentShadowMode;
+    blockStyle: 'compact' | 'rich';
+    motion: 'full' | 'subtle' | 'none';
+    density: 'compact' | 'comfortable' | 'spacious';
+    /** Só do editor: qual tela a prévia mostra. Não é salvo no documento. */
+    previewScreen: 'checkout' | 'success' | 'failure';
+    successScreen: CheckoutResultScreens['success'];
+    failureScreen: CheckoutResultScreens['failure'];
 };
 
 export type BuilderData = Data<BuilderProps, BuilderRootProps>;
@@ -425,6 +457,86 @@ const sizeOptions = [
     { label: 'LG', value: 'lg' },
     { label: 'XL', value: 'xl' },
 ] as const;
+
+type SliderOption = { label: string; value: string };
+
+function SizeSliderControl({
+    label,
+    value,
+    onChange,
+    options,
+}: {
+    label: string;
+    value?: string;
+    onChange(value: string): void;
+    options: readonly SliderOption[];
+}) {
+    const selectedIndex = Math.max(
+        0,
+        options.findIndex((option) => option.value === value),
+    );
+    const progress = options.length > 1 ? (selectedIndex / (options.length - 1)) * 100 : 0;
+    const selected = options[selectedIndex] ?? options[0];
+    const legend = (option: SliderOption) =>
+        option.value === 'none'
+            ? '0'
+            : option.value === 'full'
+              ? 'MAX'
+              : option.value.toUpperCase();
+
+    return (
+        <FieldLabel label={label}>
+            <div
+                className="checkout-size-slider"
+                style={
+                    {
+                        '--slider-progress': `${progress}%`,
+                        '--slider-steps': options.length,
+                    } as CSSProperties
+                }
+            >
+                <div className="checkout-size-slider-value">
+                    <span>Tamanho</span>
+                    <strong>{selected?.label}</strong>
+                </div>
+                <input
+                    type="range"
+                    min={0}
+                    max={Math.max(0, options.length - 1)}
+                    step={1}
+                    value={selectedIndex}
+                    aria-label={label}
+                    aria-valuetext={selected?.label}
+                    onChange={(event) =>
+                        onChange(
+                            options[Number(event.currentTarget.value)]?.value ??
+                                options[0]?.value ??
+                                '',
+                        )
+                    }
+                />
+                <div className="checkout-size-slider-labels" aria-hidden="true">
+                    {options.map((option, index) => (
+                        <span key={option.value} data-active={index === selectedIndex}>
+                            {legend(option)}
+                        </span>
+                    ))}
+                </div>
+            </div>
+        </FieldLabel>
+    );
+}
+
+function sizeSliderField(label: string, options: readonly SliderOption[] = sizeOptions) {
+    return {
+        type: 'custom' as const,
+        label,
+        render: ({ value, onChange }: { value?: string; onChange(value: string): void }) => (
+            <SizeSliderControl label={label} value={value} onChange={onChange} options={options} />
+        ),
+    };
+}
+
 const shadowOptions = [{ label: 'Sem sombra', value: 'none' }, ...sizeOptions.slice(0, 4)] as const;
 const fontWeightOptions = [
     { label: 'Regular', value: '400' },
@@ -724,6 +836,11 @@ const productLayoutField = templateField<ProductLayout>('Organização interna d
     { value: 'card', label: 'Completa', description: 'Produto, detalhes e valores completos.' },
     { value: 'compact', label: 'Compacto', description: 'Produto e preço em uma linha.' },
     { value: 'detailed', label: 'Detalhado', description: 'Visual de recibo com quantidade.' },
+    {
+        value: 'header',
+        label: 'Faixa do produto',
+        description: 'Só o produto e o preço, sem botão. Para o topo da página.',
+    },
 ]);
 const orderBumpLayoutField = templateField<OrderBumpLayout>('Template da oferta', [
     {
@@ -865,7 +982,7 @@ const checkoutPageStyles = `
   [data-checkout-page] [data-puck-overlay] {
     --puck-color-selection-border: var(--checkout-accent);
   }
-  .checkout-page-content > * {
+  .checkout-page-content {
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
@@ -874,12 +991,20 @@ const checkoutPageStyles = `
     column-gap: var(--checkout-component-gap);
     row-gap: var(--checkout-component-gap);
   }
-  .checkout-page-content > * > [data-puck-component],
+  /*
+   * O Puck envolve os componentes da raiz em uma dropzone no modo de edição e em
+   * um contêiner simples no preview. O espaçamento precisa viver nesse contêiner;
+   * aplicá-lo apenas no <main> deixa todos os componentes dentro de um único item do grid.
+   */
+  [data-checkout-sections] > [data-puck-dropzone],
+  [data-checkout-sections] > :not([data-puck-dropzone]),
   [data-checkout-grid-column] > * {
+    width: 100%;
     min-width: 0;
     display: grid;
     align-content: start;
     align-items: stretch;
+    column-gap: var(--checkout-component-gap);
     row-gap: var(--checkout-component-gap);
   }
   [data-checkout-grid-column] > * {
@@ -891,6 +1016,17 @@ const checkoutPageStyles = `
     }
     [data-checkout-page] .checkout-page-content {
       gap: clamp(14px, 4vw, 22px) !important;
+    }
+    [data-checkout-page] [data-checkout-sections] > [data-puck-dropzone],
+    [data-checkout-page] [data-checkout-sections] > :not([data-puck-dropzone]) {
+      gap: clamp(14px, 4vw, 22px) !important;
+    }
+    [data-checkout-page] [data-checkout-grid] {
+      row-gap: min(var(--checkout-grid-column-gap), 16px) !important;
+    }
+    [data-checkout-page] [data-checkout-grid-column],
+    [data-checkout-page] [data-checkout-grid-column] > * {
+      row-gap: min(var(--checkout-grid-item-gap, var(--checkout-component-gap)), 16px) !important;
     }
     [data-checkout-page] section,
     [data-checkout-page] article,
@@ -913,7 +1049,7 @@ const checkoutPageStyles = `
       padding-left: clamp(14px, 4vw, 18px) !important;
       padding-right: clamp(14px, 4vw, 18px) !important;
     }
-    [data-checkout-page] [style*="grid-template-columns"] {
+    [data-checkout-page] [style*="grid-template-columns"]:not([data-checkout-keep-columns]):not([data-checkout-mobile-product]) {
       grid-template-columns: minmax(0, 1fr) !important;
     }
     [data-checkout-page] [style*="min-width: 220px"],
@@ -960,6 +1096,10 @@ const checkoutPageStyles = `
   [data-checkout-page][data-checkout-width="sm"] .checkout-page-content {
     gap: clamp(14px, 4vw, 22px) !important;
   }
+  [data-checkout-page][data-checkout-width="sm"] [data-checkout-sections] > [data-puck-dropzone],
+  [data-checkout-page][data-checkout-width="sm"] [data-checkout-sections] > :not([data-puck-dropzone]) {
+    gap: clamp(14px, 4vw, 22px) !important;
+  }
   [data-checkout-page][data-checkout-width="sm"] section,
   [data-checkout-page][data-checkout-width="sm"] article,
   [data-checkout-page][data-checkout-width="sm"] aside,
@@ -981,7 +1121,7 @@ const checkoutPageStyles = `
     padding-left: clamp(14px, 4vw, 18px) !important;
     padding-right: clamp(14px, 4vw, 18px) !important;
   }
-  [data-checkout-page][data-checkout-width="sm"] [style*="grid-template-columns"] {
+  [data-checkout-page][data-checkout-width="sm"] [style*="grid-template-columns"]:not([data-checkout-keep-columns]):not([data-checkout-mobile-product]) {
     grid-template-columns: minmax(0, 1fr) !important;
   }
   [data-checkout-page][data-checkout-width="sm"] [style*="min-width: 220px"],
@@ -1024,7 +1164,7 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 'guarantee',
                 'countdown',
             ],
-            defaultExpanded: false,
+            defaultExpanded: true,
         },
         conversion: {
             title: 'Conversão',
@@ -1035,7 +1175,6 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 'before_after',
                 'client_logos',
                 'floating_cta',
-                'spacer_divider',
             ],
             defaultExpanded: false,
         },
@@ -1057,7 +1196,11 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             visible: false,
         },
         trust: { title: 'Confiança', components: ['security_badges'], defaultExpanded: false },
-        structure: { title: 'Estrutura', components: ['grid', 'footer'], defaultExpanded: false },
+        structure: {
+            title: 'Estrutura',
+            components: ['grid', 'spacer_divider', 'footer'],
+            defaultExpanded: false,
+        },
     },
     root: {
         label: 'Página',
@@ -1068,6 +1211,41 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 render: ({ value, onChange }) => (
                     <BrandPresetPicker value={value ?? ''} onChange={onChange} />
                 ),
+            },
+            previewScreen: {
+                type: 'select',
+                label: 'Tela em edição',
+                options: [
+                    { label: 'Checkout', value: 'checkout' },
+                    { label: 'Pagamento aprovado', value: 'success' },
+                    { label: 'Pagamento recusado', value: 'failure' },
+                ],
+            },
+            blockStyle: {
+                type: 'select',
+                label: 'Estilo dos blocos',
+                options: [
+                    { label: 'Compacto', value: 'compact' },
+                    { label: 'Completo', value: 'rich' },
+                ],
+            },
+            density: {
+                type: 'select',
+                label: 'Altura dos campos',
+                options: [
+                    { label: 'Compacta (42 px)', value: 'compact' },
+                    { label: 'Confortável (48 px)', value: 'comfortable' },
+                    { label: 'Espaçosa (54 px)', value: 'spacious' },
+                ],
+            },
+            motion: {
+                type: 'select',
+                label: 'Animações',
+                options: [
+                    { label: 'Completas', value: 'full' },
+                    { label: 'Sutis', value: 'subtle' },
+                    { label: 'Nenhuma', value: 'none' },
+                ],
             },
             themeMode: {
                 type: 'select',
@@ -1140,43 +1318,23 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             surfaceColor: colorField('Cor de fundo dos cartões, blocos e campos'),
             textColor: colorField('Cor do texto'),
             accentColor: colorField('Cor principal'),
-            radius: {
-                type: 'select',
-                label: 'Arredondamento de cartões, botões e campos',
-                options: [
-                    { label: 'Quase reto', value: 'xs' },
-                    { label: 'Pequeno', value: 'sm' },
-                    { label: 'Médio', value: 'md' },
-                    { label: 'Grande', value: 'lg' },
-                    { label: 'Muito arredondado', value: 'xl' },
-                ],
-            },
-            shadow: {
-                type: 'select',
-                label: 'Intensidade padrão da sombra',
-                options: shadowOptions,
-            },
-            maxWidth: {
-                type: 'select',
-                label: 'Largura',
-                options: [
-                    { label: 'SM', value: 'sm' },
-                    { label: 'MD', value: 'md' },
-                    { label: 'LG', value: 'lg' },
-                    { label: 'XL', value: 'xl' },
-                    { label: 'Total', value: 'full' },
-                ],
-            },
-            componentGap: {
-                type: 'select',
-                label: 'Espaçamento entre componentes',
-                options: sizeOptions,
-            },
-            pagePadding: {
-                type: 'select',
-                label: 'Margem interna da página',
-                options: sizeOptions,
-            },
+            radius: sizeSliderField('Arredondamento de cartões, botões e campos', [
+                { label: 'Quase reto', value: 'xs' },
+                { label: 'Pequeno', value: 'sm' },
+                { label: 'Médio', value: 'md' },
+                { label: 'Grande', value: 'lg' },
+                { label: 'Muito arredondado', value: 'xl' },
+            ]),
+            shadow: sizeSliderField('Intensidade padrão da sombra', shadowOptions),
+            maxWidth: sizeSliderField('Largura', [
+                { label: 'SM', value: 'sm' },
+                { label: 'MD', value: 'md' },
+                { label: 'LG', value: 'lg' },
+                { label: 'XL', value: 'xl' },
+                { label: 'Total', value: 'full' },
+            ]),
+            componentGap: sizeSliderField('Espaçamento entre componentes'),
+            pagePadding: sizeSliderField('Margem interna da página'),
             inputGroupStyle: {
                 type: 'select',
                 label: 'Estilo interno dos blocos de checkout',
@@ -1211,6 +1369,37 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                     { label: 'Ocultar', value: 'hidden' },
                 ],
             },
+            successScreen: {
+                type: 'object',
+                label: 'Tela de pagamento aprovado',
+                objectFields: {
+                    title: { type: 'text', label: 'Título' },
+                    message: {
+                        type: 'textarea',
+                        label: 'Mensagem (use {nome}, {email} e {produto})',
+                    },
+                    footnote: { type: 'textarea', label: 'Nota de rodapé' },
+                    buttonLabel: {
+                        type: 'text',
+                        label: 'Texto do botão (opcional)',
+                        placeholder: 'Ex.: Acessar a área de membros',
+                    },
+                    buttonUrl: {
+                        type: 'text',
+                        label: 'Link do botão (https://)',
+                        placeholder: 'https://',
+                    },
+                },
+            },
+            failureScreen: {
+                type: 'object',
+                label: 'Tela de pagamento recusado',
+                objectFields: {
+                    title: { type: 'text', label: 'Título' },
+                    message: { type: 'textarea', label: 'Mensagem' },
+                    buttonLabel: { type: 'text', label: 'Texto do botão de nova tentativa' },
+                },
+            },
         },
         defaultProps: {
             brandPreset: '',
@@ -1235,6 +1424,12 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             componentBackgroundStyle: 'filled',
             componentBorderStyle: 'visible',
             componentShadowMode: 'auto',
+            blockStyle: 'rich',
+            motion: 'full',
+            density: 'comfortable',
+            previewScreen: 'checkout',
+            successScreen: defaultResultScreens.success,
+            failureScreen: defaultResultScreens.failure,
         },
         // Escolher um preset preenche tipografia, cores, formas e botão de uma vez.
         resolveData: (data, { changed, lastData, trigger }) => {
@@ -1266,11 +1461,14 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
         },
         render: function CheckoutRootRender({ children, ...theme }) {
             const isStaticPreview = useContext(CheckoutBuilderStaticContext);
+            const [selectedPayment, setSelectedPayment] = useState<string>();
             const palette = resolvePalette(theme);
             const colorScheme = theme.themeMode === 'system' ? 'light dark' : theme.themeMode;
+            const screen = isStaticPreview ? 'checkout' : (theme.previewScreen ?? 'checkout');
             return (
                 <div
                     data-checkout-page
+                    {...checkoutPageAttributes(theme)}
                     data-checkout-static={isStaticPreview || undefined}
                     data-checkout-width={theme.maxWidth ?? 'lg'}
                     style={{
@@ -1315,7 +1513,25 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                             rowGap: spacingValue(theme.componentGap),
                         }}
                     >
-                        {children}
+                        {screen !== 'checkout' && (
+                            <ResultScreenPreview
+                                status={screen === 'success' ? 'approved' : 'failed'}
+                                success={theme.successScreen ?? defaultResultScreens.success}
+                                failure={theme.failureScreen ?? defaultResultScreens.failure}
+                            />
+                        )}
+                        {/* As seções continuam montadas para o editor; só somem da vista. */}
+                        <div
+                            data-checkout-sections
+                            hidden={screen !== 'checkout'}
+                            style={{ display: screen === 'checkout' ? 'contents' : 'none' }}
+                        >
+                            <BuilderPaymentSelectionContext.Provider
+                                value={{ selected: selectedPayment, select: setSelectedPayment }}
+                            >
+                                {children}
+                            </BuilderPaymentSelectionContext.Provider>
+                        </div>
                     </main>
                 </div>
             );
@@ -1426,18 +1642,14 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                         { label: 'Direita', value: 'right' },
                     ],
                 },
-                size: { type: 'select', label: 'Tamanho', options: sizeOptions },
-                radius: {
-                    type: 'select',
-                    label: 'Arredondamento',
-                    options: [
-                        { label: 'Sem arredondamento', value: 'none' },
-                        { label: 'Suave', value: 'sm' },
-                        { label: 'Médio', value: 'md' },
-                        { label: 'Grande', value: 'lg' },
-                        { label: 'Totalmente redondo', value: 'full' },
-                    ],
-                },
+                size: sizeSliderField('Tamanho'),
+                radius: sizeSliderField('Arredondamento', [
+                    { label: 'Sem arredondamento', value: 'none' },
+                    { label: 'Suave', value: 'sm' },
+                    { label: 'Médio', value: 'md' },
+                    { label: 'Grande', value: 'lg' },
+                    { label: 'Totalmente redondo', value: 'full' },
+                ]),
                 overlapBanner: {
                     type: 'radio',
                     label: 'Posição',
@@ -1522,13 +1734,9 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                         { label: '3 colunas', value: '3' },
                     ],
                 },
-                columnGap: {
-                    type: 'select',
-                    label: 'Espaçamento entre colunas',
-                    options: sizeOptions,
-                },
-                itemGap: { type: 'select', label: 'Espaçamento entre itens', options: sizeOptions },
-                padding: { type: 'select', label: 'Espaçamento vertical', options: sizeOptions },
+                columnGap: sizeSliderField('Espaçamento entre colunas'),
+                itemGap: sizeSliderField('Espaçamento entre itens'),
+                padding: sizeSliderField('Espaçamento vertical'),
                 column1: { type: 'slot' },
                 column2: { type: 'slot' },
                 column3: { type: 'slot' },
@@ -1578,7 +1786,7 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                         { label: 'Direita', value: 'right' },
                     ],
                 },
-                size: { type: 'select', label: 'Tamanho', options: textSizeOptions },
+                size: sizeSliderField('Tamanho', textSizeOptions),
             },
             defaultProps: {
                 text: 'Uma oferta pensada para o seu proximo passo',
@@ -1602,7 +1810,7 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                         { label: 'Direita', value: 'right' },
                     ],
                 },
-                size: { type: 'select', label: 'Tamanho', options: textSizeOptions },
+                size: sizeSliderField('Tamanho', textSizeOptions),
             },
             defaultProps: {
                 content:
@@ -1665,16 +1873,12 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                         { label: 'Pill', value: 'pill' },
                     ],
                 },
-                size: {
-                    type: 'select',
-                    label: 'Tamanho',
-                    options: [
-                        { label: 'Pequeno', value: 'sm' },
-                        { label: 'Médio', value: 'md' },
-                        { label: 'Grande', value: 'lg' },
-                        { label: 'Largura total', value: 'full' },
-                    ],
-                },
+                size: sizeSliderField('Tamanho', [
+                    { label: 'Pequeno', value: 'sm' },
+                    { label: 'Médio', value: 'md' },
+                    { label: 'Grande', value: 'lg' },
+                    { label: 'Largura total', value: 'full' },
+                ]),
                 fit: {
                     type: 'select',
                     label: 'Ajuste',
@@ -2013,6 +2217,14 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                     label: 'Texto do botão de finalizar compra',
                     placeholder: 'Ex.: Finalizar compra',
                 },
+                mobileOnly: {
+                    type: 'radio',
+                    label: 'Faixa do produto: onde aparece',
+                    options: [
+                        { label: 'Só no celular', value: true },
+                        { label: 'Sempre', value: false },
+                    ],
+                },
             },
             defaultProps: {
                 layout: 'card',
@@ -2022,36 +2234,20 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 badge: 'OFERTA ESPECIAL',
                 recurringLabel: 'ou 12x de R$ 15,81',
                 buttonLabel: 'Finalizar compra',
+                mobileOnly: true,
             },
-            render: ({
-                layout,
-                title,
-                description,
-                buttonLabel,
-                imageUrl,
-                badge,
-                recurringLabel,
-            }) => (
-                <CheckoutCartSummary
-                    layout={layout ?? 'card'}
-                    title={title}
-                    description={description}
-                    product={{
-                        name: 'Produto publicado',
-                        description: 'Os dados reais vêm do catálogo',
-                        quantity: '1 unidade',
-                        imageUrl,
-                        imageAlt: 'Produto',
-                        badge,
-                        price: 'Preço do produto',
-                        recurringLabel,
-                    }}
-                    lines={[{ label: 'Subtotal', value: 'Valor real do produto' }]}
-                    total="Valor real"
-                    buttonLabel={buttonLabel}
-                    onSubmit={() => undefined}
-                />
-            ),
+            resolveFields: (data, { fields }) => {
+                const header = data.props.layout === 'header';
+                // A faixa do produto não tem título, descrição nem botão.
+                return Object.fromEntries(
+                    Object.entries(fields).filter(([name]) =>
+                        header
+                            ? !['title', 'description', 'buttonLabel'].includes(name)
+                            : name !== 'mobileOnly',
+                    ),
+                ) as typeof fields;
+            },
+            render: (props) => <ProductSummaryPreview {...props} />,
         },
         checkout_form: {
             label: 'Dados pessoais',
@@ -2093,6 +2289,11 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 showCard: { type: 'radio', label: 'Cartão', options: booleanOptions },
                 showPix: { type: 'radio', label: 'Pix', options: booleanOptions },
                 showBoleto: { type: 'radio', label: 'Boleto', options: booleanOptions },
+                showWallets: {
+                    type: 'radio',
+                    label: 'Apple Pay e Google Pay no topo (quando o gateway oferecer)',
+                    options: booleanOptions,
+                },
             },
             defaultProps: {
                 layout: 'cards',
@@ -2101,8 +2302,17 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 showCard: true,
                 showPix: true,
                 showBoleto: true,
+                showWallets: true,
             },
-            render: ({ layout, title, description, showCard, showPix, showBoleto }) => (
+            render: ({
+                layout,
+                title,
+                description,
+                showCard,
+                showPix,
+                showBoleto,
+                showWallets,
+            }) => (
                 <PaymentMethodsPreview
                     layout={layout ?? 'cards'}
                     title={title}
@@ -2110,6 +2320,7 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                     showCard={showCard}
                     showPix={showPix}
                     showBoleto={showBoleto}
+                    showWallets={showWallets ?? false}
                 />
             ),
         },
@@ -2128,17 +2339,19 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 showInstallments: true,
             },
             render: ({ layout, title, description, showInstallments }) => (
-                <CheckoutCardPayment
-                    layout={layout ?? 'standard'}
-                    title={title}
-                    description={description}
-                    secureElement={
-                        <CardPaymentFields
-                            compact={layout === 'compact'}
-                            showInstallments={showInstallments}
-                        />
-                    }
-                />
+                <ConditionalPaymentBlock method="card" label={title || 'Dados do cartão'}>
+                    <CheckoutCardPayment
+                        layout={layout ?? 'standard'}
+                        title={title}
+                        description={description}
+                        secureElement={
+                            <CardPaymentFields
+                                compact={layout === 'compact'}
+                                showInstallments={showInstallments}
+                            />
+                        }
+                    />
+                </ConditionalPaymentBlock>
             ),
         },
         pix_payment: {
@@ -2156,15 +2369,19 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 expiresIn: '30 minutos',
             },
             render: ({ layout, title, description, expiresIn }) => (
-                <CheckoutPaymentInstruction
-                    kind="pix"
-                    layout={layout ?? 'split'}
-                    title={title}
-                    description={description}
-                    code="00020126••••••••••••••••"
-                    codeLabel="Código Pix copia e cola"
-                    footer={<p style={{ fontSize: 12, opacity: 0.62 }}>Expira em {expiresIn}.</p>}
-                />
+                <ConditionalPaymentBlock method="pix" label={title || 'Pagamento via Pix'}>
+                    <CheckoutPaymentInstruction
+                        kind="pix"
+                        layout={layout ?? 'split'}
+                        title={title}
+                        description={description}
+                        code="00020126••••••••••••••••"
+                        codeLabel="Código Pix copia e cola"
+                        footer={
+                            <p style={{ fontSize: 12, opacity: 0.62 }}>Expira em {expiresIn}.</p>
+                        }
+                    />
+                </ConditionalPaymentBlock>
             ),
         },
         boleto_payment: {
@@ -2182,19 +2399,21 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 dueInDays: 3,
             },
             render: ({ layout, title, description, dueInDays }) => (
-                <CheckoutPaymentInstruction
-                    kind="boleto"
-                    layout={layout ?? 'split'}
-                    title={title}
-                    description={description}
-                    code="00190.00009 01234.567890 12345.678901 1 00000000000000"
-                    codeLabel="Código de barras"
-                    footer={
-                        <p style={{ fontSize: 12, opacity: 0.62 }}>
-                            Vencimento em {dueInDays} dias.
-                        </p>
-                    }
-                />
+                <ConditionalPaymentBlock method="boleto" label={title || 'Pagamento via boleto'}>
+                    <CheckoutPaymentInstruction
+                        kind="boleto"
+                        layout={layout ?? 'split'}
+                        title={title}
+                        description={description}
+                        code="00190.00009 01234.567890 12345.678901 1 00000000000000"
+                        codeLabel="Código de barras"
+                        footer={
+                            <p style={{ fontSize: 12, opacity: 0.62 }}>
+                                Vencimento em {dueInDays} dias.
+                            </p>
+                        }
+                    />
+                </ConditionalPaymentBlock>
             ),
         },
         shipping_address: {
@@ -2652,15 +2871,37 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             },
         },
         spacer_divider: {
-            label: 'Espaçador e divisor',
+            label: 'Espaço personalizável',
             fields: {
                 layout: spacerDividerLayoutField,
-                size: { type: 'select', label: 'Tamanho', options: sizeOptions },
+                size: sizeSliderField('Tamanho'),
+                height: {
+                    type: 'number',
+                    label: 'Altura do espaço (px)',
+                    min: 8,
+                    max: 480,
+                },
                 label: { type: 'text', label: 'Texto' },
             },
-            defaultProps: { layout: 'line', size: 'md', label: 'Continuar' },
-            render: ({ layout, size, label }) => (
-                <CheckoutDivider layout={layout ?? 'line'} size={size ?? 'md'} label={label} />
+            defaultProps: {
+                layout: 'space',
+                size: 'md',
+                height: 40,
+                label: 'Continuar',
+            },
+            resolveFields: (data, { fields }) => ({
+                ...fields,
+                size: { ...fields.size, visible: data.props.layout !== 'space' },
+                height: { ...fields.height, visible: data.props.layout === 'space' },
+                label: { ...fields.label, visible: data.props.layout === 'label' },
+            }),
+            render: ({ layout, size, height, label }) => (
+                <CheckoutDivider
+                    layout={layout ?? 'space'}
+                    size={size ?? 'md'}
+                    height={height}
+                    label={label}
+                />
             ),
         },
         footer: {
@@ -2742,10 +2983,11 @@ function withComponentSurfaceControls(
 
 /** Miniaturas dos presets: fundo, cartão, destaque e texto de cada identidade. */
 function BrandPresetPicker({ value, onChange }: { value: string; onChange(value: string): void }) {
+    const selected = checkoutBrandPresets.find((preset) => preset.value === value);
     return (
-        <FieldLabel label="Identidade visual">
-            <div className="grid gap-1.5">
-                <div className="grid grid-cols-2 gap-2">
+        <FieldLabel label="Tema da página">
+            <div className="checkout-preset-picker">
+                <div className="checkout-preset-grid">
                     {checkoutBrandPresets.map((preset) => {
                         const [background, surface, accent, text] = preset.swatch;
                         const active = preset.value === value;
@@ -2755,29 +2997,20 @@ function BrandPresetPicker({ value, onChange }: { value: string; onChange(value:
                                 type="button"
                                 onClick={() => onChange(preset.value)}
                                 aria-pressed={active}
-                                className={`grid gap-1.5 rounded-lg border p-1.5 text-left transition ${
-                                    active
-                                        ? 'border-primary ring-2 ring-primary/20'
-                                        : 'border-border hover:border-primary/50'
-                                }`}
+                                data-active={active}
+                                className="checkout-preset"
                             >
-                                <span
-                                    className="relative block h-12 overflow-hidden rounded-md"
-                                    style={{ background }}
-                                >
+                                <span className="checkout-preset-swatch" style={{ background }}>
                                     <span
-                                        className="absolute inset-x-2 top-2 bottom-0 rounded-t-md p-1.5"
-                                        style={{
-                                            background: surface,
-                                            boxShadow: '0 1px 3px rgb(0 0 0 / 12%)',
-                                        }}
+                                        className="checkout-preset-surface"
+                                        style={{ background: surface }}
                                     >
                                         <span
-                                            className="block h-1.5 w-3/5 rounded-full"
-                                            style={{ background: text, opacity: 0.85 }}
+                                            className="checkout-preset-line"
+                                            style={{ background: text }}
                                         />
                                         <span
-                                            className="mt-1.5 block h-3 w-2/5 rounded"
+                                            className="checkout-preset-button"
                                             style={{
                                                 background: accent,
                                                 borderRadius:
@@ -2790,15 +3023,13 @@ function BrandPresetPicker({ value, onChange }: { value: string; onChange(value:
                                         />
                                     </span>
                                 </span>
-                                <span className="px-0.5 text-[12px] font-semibold leading-4">
-                                    {preset.label}
-                                </span>
+                                <span className="checkout-preset-name">{preset.label}</span>
                             </button>
                         );
                     })}
                 </div>
-                <p className="text-[11px] leading-4 text-muted">
-                    {checkoutBrandPresets.find((preset) => preset.value === value)?.description ??
+                <p className="checkout-preset-description">
+                    {selected?.description ??
                         'Escolha um ponto de partida e depois ajuste cores e fontes da sua marca.'}
                 </p>
             </div>
@@ -4047,7 +4278,10 @@ function PaymentMethodsPreview({
     showCard,
     showPix,
     showBoleto,
+    showWallets,
 }: BuilderProps['payment_methods']) {
+    const selection = useContext(BuilderPaymentSelectionContext);
+    const [localSelected, setLocalSelected] = useState<string>();
     const options = [
         ...(showCard
             ? [
@@ -4080,19 +4314,169 @@ function PaymentMethodsPreview({
               ]
             : []),
     ];
-    const [selectedId, setSelectedId] = useState(options[0]?.id);
+    const selectedId = selection ? selection.selected : localSelected;
     const effectiveSelectedId = options.some((option) => option.id === selectedId)
         ? selectedId
         : options[0]?.id;
+    const select = selection?.select;
+    // Mantém a seleção compartilhada coerente quando um método é desligado no painel.
+    useEffect(() => {
+        if (select && effectiveSelectedId !== selectedId) select(effectiveSelectedId);
+    }, [select, effectiveSelectedId, selectedId]);
     return (
-        <CheckoutPaymentMethods
-            layout={layout}
+        <div>
+            <CheckoutPaymentMethods
+                layout={layout}
+                title={title}
+                description={description}
+                options={options}
+                selectedId={effectiveSelectedId}
+                onSelect={(id) => (select ? select(id) : setLocalSelected(id))}
+                wallets={
+                    showWallets
+                        ? [
+                              { id: 'applepay', brand: 'applepay' },
+                              { id: 'googlepay', brand: 'googlepay' },
+                          ]
+                        : []
+                }
+            />
+        </div>
+    );
+}
+
+/**
+ * Detalhe de uma forma de pagamento: aparece só com o método selecionado, igual ao checkout
+ * publicado. Para editar o bloco, selecione o método correspondente na prévia.
+ */
+function ConditionalPaymentBlock({
+    method,
+    children,
+}: {
+    method: 'card' | 'pix' | 'boleto';
+    label?: string;
+    children: React.ReactNode;
+}) {
+    const selection = useContext(BuilderPaymentSelectionContext);
+    // Sem bloco de formas de pagamento na página, não há o que condicionar.
+    if (selection && selection.selected !== undefined && selection.selected !== method) return null;
+    return (
+        <div data-checkout-swap key={method}>
+            {children}
+        </div>
+    );
+}
+
+/** Resumo com o produto real deste checkout (nome e preço), não um texto de exemplo. */
+function ProductSummaryPreview({
+    layout,
+    title,
+    description,
+    buttonLabel,
+    imageUrl,
+    badge,
+    recurringLabel,
+    mobileOnly,
+}: BuilderProps['product_summary']) {
+    const isStatic = useContext(CheckoutBuilderStaticContext);
+    const products = useContext(CheckoutBuilderProductsContext);
+    const main = products.find((item) => item.isDefault) ?? products[0];
+    const price = main ? formatMinor(main.amountMinor, main.currency) : 'R$ 97,00';
+    const product = {
+        name: main?.productName ?? 'Seu produto',
+        description: main?.priceName,
+        quantity: 'Qtd: 1',
+        imageUrl,
+        imageAlt: main?.productName ?? 'Produto',
+        badge,
+        price,
+        recurringLabel,
+    };
+    if (layout === 'header')
+        return (
+            <CheckoutOrderHeader
+                product={{ ...product, badge: undefined }}
+                mobileOnly={mobileOnly !== false}
+                editing={!isStatic}
+            />
+        );
+    return (
+        <CheckoutCartSummary
+            layout={layout ?? 'card'}
             title={title}
             description={description}
-            options={options}
-            selectedId={effectiveSelectedId}
-            onSelect={setSelectedId}
+            product={product}
+            lines={[{ label: 'Subtotal', value: price }]}
+            total={price}
+            buttonLabel={buttonLabel}
+            onSubmit={() => undefined}
         />
+    );
+}
+
+/** Prévia das telas depois do pagamento, com os textos editados no painel Página. */
+function ResultScreenPreview({
+    status,
+    success,
+    failure,
+}: {
+    status: 'approved' | 'failed';
+    success: CheckoutResultScreens['success'];
+    failure: CheckoutResultScreens['failure'];
+}) {
+    const products = useContext(CheckoutBuilderProductsContext);
+    const main = products.find((item) => item.isDefault) ?? products[0];
+    const sample = {
+        name: 'Maria Souza',
+        email: 'maria@exemplo.com',
+        product: main?.productName ?? 'Seu produto',
+    };
+    const details = [
+        { label: 'Produto', value: sample.product },
+        ...(main ? [{ label: 'Total', value: formatMinor(main.amountMinor, main.currency) }] : []),
+        { label: 'Pagamento', value: 'Cartão de crédito' },
+    ];
+    const screen = status === 'approved' ? success : failure;
+    const buttonLabel =
+        status === 'approved' ? success.buttonLabel?.trim() : failure.buttonLabel?.trim();
+    return (
+        <div
+            // Remonta ao trocar de tela para a animação de entrada tocar de novo.
+            key={status}
+            style={{ display: 'grid', placeItems: 'center', padding: '48px 0 64px' }}
+        >
+            <div style={{ width: '100%', maxWidth: 480 }}>
+                <CheckoutPaymentResult
+                    status={status}
+                    title={fillResultText(screen.title ?? '', sample)}
+                    description={fillResultText(screen.message ?? '', sample)}
+                    details={details}
+                    footnote={
+                        status === 'approved'
+                            ? fillResultText(success.footnote ?? '', sample)
+                            : undefined
+                    }
+                    action={
+                        buttonLabel ? (
+                            <button
+                                type="button"
+                                data-checkout-button-primary
+                                style={{
+                                    display: 'flex',
+                                    width: '100%',
+                                    minHeight: 50,
+                                    padding: '0 22px',
+                                    fontSize: 15,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                {buttonLabel}
+                            </button>
+                        ) : undefined
+                    }
+                />
+            </div>
+        </div>
     );
 }
 
@@ -4121,6 +4505,7 @@ function CardPaymentFields({
                 placeholder="Como está no cartão"
             />
             <div
+                data-checkout-keep-columns
                 style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',

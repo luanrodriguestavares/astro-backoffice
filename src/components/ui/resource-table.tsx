@@ -17,6 +17,7 @@ export function ResourceTable<T>({
     title,
     description,
     searchable = true,
+    embedded = false,
     initialQuery = '',
     focusId,
 }: {
@@ -26,6 +27,7 @@ export function ResourceTable<T>({
     title?: string;
     description?: string;
     searchable?: boolean;
+    embedded?: boolean;
     initialQuery?: string;
     focusId?: string;
 }) {
@@ -34,7 +36,7 @@ export function ResourceTable<T>({
     return (
         <section
             data-tour="page-primary"
-            className="resource-table glass-panel overflow-hidden rounded-[28px]"
+            className={`resource-table overflow-hidden ${embedded ? '' : 'glass-panel rounded-[28px]'}`}
         >
             {(title || description) && (
                 <div className="flex items-center justify-between gap-4 border-b border-white/65 px-5 py-5 sm:px-6">
@@ -85,32 +87,32 @@ export function ResourceTable<T>({
                                 const rowId = String((row as { id?: string }).id ?? index);
                                 const focused = focusId === rowId;
                                 return (
-                                <tr
-                                    id={`resource-row-${rowId}`}
-                                    key={rowId}
-                                    data-resource-row
-                                    data-resource-id={rowId}
-                                    data-global-focus={focused || undefined}
-                                    data-search={columns
-                                        .map((column) => String(column.value(row) ?? ''))
-                                        .concat(rowId)
-                                        .join(' ')
-                                        .normalize('NFD')
-                                        .replace(/[\u0300-\u036f]/g, '')
-                                        .toLocaleLowerCase('pt-BR')}
-                                    className={`text-[13px] transition hover:bg-white/34 ${focused ? 'bg-brand-soft/70 ring-1 ring-inset ring-brand/30' : ''}`}
-                                >
-                                    {columns.map((column) => (
-                                        <td
-                                            key={column.label}
-                                            className={`px-6 py-4 ${column.mono ? 'font-mono text-xs' : ''}`}
-                                        >
-                                            {column.render
-                                                ? column.render(row)
-                                                : formatResourceValue(column.value(row))}
-                                        </td>
-                                    ))}
-                                </tr>
+                                    <tr
+                                        id={`resource-row-${rowId}`}
+                                        key={rowId}
+                                        data-resource-row
+                                        data-resource-id={rowId}
+                                        data-global-focus={focused || undefined}
+                                        data-search={columns
+                                            .map((column) => String(column.value(row) ?? ''))
+                                            .concat(rowId)
+                                            .join(' ')
+                                            .normalize('NFD')
+                                            .replace(/[\u0300-\u036f]/g, '')
+                                            .toLocaleLowerCase('pt-BR')}
+                                        className={`text-[13px] transition hover:bg-white/34 ${focused ? 'bg-brand-soft/70 ring-1 ring-inset ring-brand/30' : ''}`}
+                                    >
+                                        {columns.map((column) => (
+                                            <td
+                                                key={column.label}
+                                                className={`px-6 py-4 ${column.mono ? 'font-mono text-xs' : ''}`}
+                                            >
+                                                {column.render
+                                                    ? column.render(row)
+                                                    : formatResourceValue(column.value(row))}
+                                            </td>
+                                        ))}
+                                    </tr>
                                 );
                             })}
                         </tbody>
@@ -156,6 +158,39 @@ export function SummaryCard({
             </div>
             <p className="mt-3 truncate text-[12px] text-muted">{detail}</p>
         </article>
+    );
+}
+
+export function ResourceStatus({ value }: { value: string }) {
+    const positive = new Set(['active', 'approved', 'paid', 'delivered', 'completed', 'succeeded']);
+    const negative = new Set(['disabled', 'failed', 'dead_letter', 'canceled', 'expired']);
+    const tone = positive.has(value)
+        ? 'border-emerald-100 bg-[#e8f7f1] text-success'
+        : negative.has(value)
+          ? 'border-red-100 bg-red-50 text-danger'
+          : 'border-amber-100 bg-[#fff3e5] text-warning';
+    const labels: Record<string, string> = {
+        active: 'Ativo',
+        disabled: 'Desativado',
+        pending: 'Pendente',
+        processing: 'Processando',
+        delivering: 'Enviando',
+        approved: 'Aprovado',
+        paid: 'Pago',
+        delivered: 'Entregue',
+        failed: 'Falhou',
+        dead_letter: 'Falha definitiva',
+        canceled: 'Cancelado',
+        expired: 'Expirado',
+        completed: 'Concluído',
+        succeeded: 'Concluído',
+    };
+    return (
+        <span
+            className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-[11px] font-medium ${tone}`}
+        >
+            {labels[value] ?? value.replaceAll('_', ' ')}
+        </span>
     );
 }
 

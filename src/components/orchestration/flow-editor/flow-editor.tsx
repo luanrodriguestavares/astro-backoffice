@@ -238,6 +238,7 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
         function warn(event: BeforeUnloadEvent) {
             if (latest.current.key !== savedKey.current) event.preventDefault();
         }
+
         window.addEventListener('beforeunload', warn);
         return () => window.removeEventListener('beforeunload', warn);
     }, []);
@@ -560,6 +561,7 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
             fullscreenRef.current = false;
             setFullscreen(false);
         }
+
         document.addEventListener('fullscreenchange', sync);
         return () => document.removeEventListener('fullscreenchange', sync);
     }, []);
@@ -628,6 +630,7 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
                 duplicate(selectedId);
             }
         }
+
         window.addEventListener('keydown', handle);
         return () => window.removeEventListener('keydown', handle);
     }, [
@@ -654,6 +657,7 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
             (target as HTMLElement | null)?.closest(
                 'input, textarea, select, [contenteditable="true"]',
             ) != null;
+
         function down(event: KeyboardEvent) {
             if (event.code !== 'Space' || typing(event.target)) return;
             const element = event.target as HTMLElement | null;
@@ -667,9 +671,11 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
                 document.activeElement.blur();
             setSpaceHeld(true);
         }
+
         function up(event: KeyboardEvent) {
             if (event.code === 'Space') setSpaceHeld(false);
         }
+
         const release = () => setSpaceHeld(false);
         window.addEventListener('keydown', down);
         window.addEventListener('keyup', up);
@@ -775,6 +781,7 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
         );
         const snap = (value: number) => Math.round(value / 10) * 10;
         let moved = false;
+
         function move(pointer: PointerEvent) {
             const dx = snap((pointer.clientX - origin.x) / zoom);
             const dy = snap((pointer.clientY - origin.y) / zoom);
@@ -788,6 +795,7 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
                 }),
             );
         }
+
         function stop() {
             window.removeEventListener('pointermove', move);
             window.removeEventListener('pointerup', stop);
@@ -809,6 +817,7 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
                 );
             });
         }
+
         document.body.classList.add('flow-moving-section');
         window.addEventListener('pointermove', move);
         window.addEventListener('pointerup', stop);
@@ -1603,15 +1612,20 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
                                 <Icon name="play" className="size-3.5" />
                                 Simular
                             </Button>
-                            <button
+                            <Button
                                 type="button"
+                                variant="primary"
                                 disabled={publishing || saveState === 'conflict'}
                                 onClick={() => void publish()}
-                                className="flow-highlight-button inline-flex h-11 items-center gap-2 rounded-xl px-5 text-[13px] font-semibold transition"
+                                className="gap-2.5 disabled:opacity-55"
                             >
+                                <Icon name="bolt" className="size-4" />
                                 {publishing ? 'Publicando…' : 'Publicar fluxo'}
-                                <Icon name="arrow-right" className="size-3.5" />
-                            </button>
+                                <Icon
+                                    name="arrow-right"
+                                    className="size-3.5 opacity-70 transition-transform group-hover:translate-x-0.5"
+                                />
+                            </Button>
                             <FlowMenu
                                 status={meta.status}
                                 published={meta.published !== null}
@@ -2046,9 +2060,11 @@ function IssuesButton({
     const root = useRef<HTMLDivElement>(null);
     useEffect(() => {
         if (!open) return;
+
         function close(event: PointerEvent) {
             if (!root.current?.contains(event.target as Node)) setOpen(false);
         }
+
         window.addEventListener('pointerdown', close);
         return () => window.removeEventListener('pointerdown', close);
     }, [open]);
@@ -2135,9 +2151,11 @@ function FlowMenu({
     const root = useRef<HTMLDivElement>(null);
     useEffect(() => {
         if (!open) return;
+
         function close(event: PointerEvent) {
             if (!root.current?.contains(event.target as Node)) setOpen(false);
         }
+
         window.addEventListener('pointerdown', close);
         return () => window.removeEventListener('pointerdown', close);
     }, [open]);

@@ -49,9 +49,7 @@ export function ResourceTableControls({
         if (initialization.current === signature) return;
         initialization.current = signature;
         const query = normalize(initialQuery);
-        const matching = rows(tableId).filter((row) =>
-            (row.dataset.search ?? '').includes(query),
-        );
+        const matching = rows(tableId).filter((row) => (row.dataset.search ?? '').includes(query));
         const focusIndex = focusId
             ? matching.findIndex((row) => row.dataset.resourceId === focusId)
             : -1;

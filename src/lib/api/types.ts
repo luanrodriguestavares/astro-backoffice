@@ -157,6 +157,7 @@ export interface CustomDomain {
 }
 
 export type TrackingProvider = 'meta' | 'google' | 'tiktok';
+
 export type TrackingEventName =
     'checkout.viewed' | 'checkout.started' | 'payment.info_added' | 'purchase.completed';
 
@@ -223,6 +224,7 @@ export interface Organization {
     locale?: string;
     accentTheme?: 'astro' | 'blue' | 'violet' | 'orange' | 'green' | 'rose';
     canManageAppearance?: boolean;
+    role?: string;
     permissions?: string[];
     version?: number;
 }

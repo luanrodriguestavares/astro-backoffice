@@ -46,6 +46,7 @@ export function TemplateGallery({
         function escape(event: KeyboardEvent) {
             if (event.key === 'Escape') onClose();
         }
+
         window.addEventListener('keydown', escape);
         return () => window.removeEventListener('keydown', escape);
     }, [onClose]);

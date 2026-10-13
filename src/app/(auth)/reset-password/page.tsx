@@ -20,7 +20,7 @@ export default async function ResetPasswordPage({
             <AuthToast message={error ?? message} tone={error ? 'error' : 'info'} />
             <section className="relative w-full max-w-[430px]">
                 <div className="mb-6 flex justify-center">
-                    <Brand href="/login" />
+                    <Brand href="/login" tone="dark" />
                 </div>
                 <div className="rounded-[30px] border border-border bg-surface p-7 shadow-[0_24px_72px_rgb(16_18_20_/_8%)] sm:p-9">
                     <span className="grid size-10 place-items-center rounded-2xl bg-brand-soft text-brand-strong">

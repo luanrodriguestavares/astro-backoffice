@@ -230,15 +230,16 @@ export function SimulationPanel({
                 )}
 
                 <div className="flex gap-2">
-                    <button
+                    <Button
                         type="button"
+                        variant="primary"
                         disabled={running}
                         onClick={() => run(input)}
-                        className="flow-highlight-button inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl text-[13px] font-semibold transition"
+                        className="h-10 flex-1 px-4 disabled:opacity-55"
                     >
                         <Icon name="play" className="size-3.5" />
                         {running ? 'Simulando…' : 'Rodar simulação'}
-                    </button>
+                    </Button>
                     <Button
                         type="button"
                         variant="secondary"
@@ -330,7 +331,7 @@ function SimulationResult({
                             className="flex items-start gap-2.5"
                         >
                             <span
-                                className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${attempt.skipped ? 'bg-surface-muted text-muted' : 'bg-[#c6f448] text-[#101214]'}`}
+                                className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${attempt.skipped ? 'bg-surface-muted text-muted' : 'bg-[#91cf24] text-[#101214]'}`}
                             >
                                 {attempt.skipped ? '–' : usable.indexOf(attempt) + 1}
                             </span>
@@ -435,7 +436,7 @@ function ActionsResult({
                     {result.actions.map((action, index) => (
                         <li key={action.nodeId} className="flex items-start gap-2.5">
                             <span
-                                className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${action.skipped ? 'bg-surface-muted text-muted' : 'bg-[#c6f448] text-[#101214]'}`}
+                                className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${action.skipped ? 'bg-surface-muted text-muted' : 'bg-[#91cf24] text-[#101214]'}`}
                             >
                                 {action.skipped ? '–' : index + 1}
                             </span>

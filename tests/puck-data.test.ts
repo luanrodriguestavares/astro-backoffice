@@ -73,4 +73,25 @@ describe('checkout document migration', () => {
         const published = puckToDocument(documentToPuck(document), document);
         assert.deepEqual(published.sections[0]?.props, { buttonLabel: 'Finalizar compra' });
     });
+
+    it('preserves the custom spacer height when publishing', () => {
+        const document: CheckoutDocument = {
+            schemaVersion: 1,
+            theme: {},
+            layout: {},
+            sections: [
+                {
+                    id: 'breathing-room',
+                    type: 'spacer_divider',
+                    visible: true,
+                    props: { layout: 'space', height: 137 },
+                },
+            ],
+            settings: {},
+            seo: {},
+        };
+
+        const published = puckToDocument(documentToPuck(document), document);
+        assert.deepEqual(published.sections[0]?.props, { layout: 'space', height: 137 });
+    });
 });

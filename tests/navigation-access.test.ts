@@ -49,4 +49,26 @@ describe('dashboard navigation access', () => {
             false,
         );
     });
+
+    it('gives owners every organizational permission without bypassing plan features', () => {
+        const essential = { active: true, features: ['gateways.connected'] };
+        assert.equal(
+            canAccessNavigationItem(
+                { permission: 'developer_logs.read' },
+                new Set(),
+                essential,
+                true,
+            ),
+            true,
+        );
+        assert.equal(
+            canAccessNavigationItem(
+                { permission: 'api_keys.manage', feature: 'api' },
+                new Set(),
+                essential,
+                true,
+            ),
+            false,
+        );
+    });
 });

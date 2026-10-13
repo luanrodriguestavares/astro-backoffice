@@ -47,9 +47,11 @@ export function ContextMenu({
                 return;
             onClose();
         }
+
         function escape(event: KeyboardEvent) {
             if (event.key === 'Escape') onClose();
         }
+
         window.addEventListener('pointerdown', close);
         window.addEventListener('wheel', close, { passive: true });
         window.addEventListener('resize', close);

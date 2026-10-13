@@ -82,7 +82,7 @@ export function AdminShell({ user, children }: { user: CurrentUser; children: Re
                     mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
                 }`}
             >
-                <div className="relative -mx-4 -mt-5 flex h-16 items-center justify-center bg-[#C6F448] px-5">
+                <div className="relative -mx-4 -mt-5 flex h-16 items-center justify-center px-5">
                     <Brand href="/admin" />
                     <Button
                         aria-label="Fechar menu"
@@ -181,7 +181,10 @@ export function AdminShell({ user, children }: { user: CurrentUser; children: Re
 
 function AmbientBackground() {
     return (
-        <div className="astro-ambient pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <div
+            className="astro-ambient pointer-events-none fixed inset-0 z-0 overflow-hidden"
+            aria-hidden="true"
+        >
             <div className="absolute -right-48 -top-56 size-[620px] rounded-full bg-brand opacity-[0.055] blur-[90px]" />
             <div className="absolute -bottom-52 left-[24%] size-[520px] rounded-full bg-brand opacity-[0.035] blur-[100px]" />
         </div>

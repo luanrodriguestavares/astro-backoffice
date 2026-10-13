@@ -41,34 +41,34 @@ export function MediaPicker({
         >
             <section className="modal-surface glass-panel flex max-h-[min(720px,calc(100dvh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-[24px]">
                 <div className="shrink-0 border-b border-border/70 px-5 py-4 sm:px-6">
-                <div className="flex shrink-0 items-start justify-between gap-5">
-                    <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-strong">
-                            Biblioteca de mídia
-                        </p>
-                        <h2 className="mt-2 text-xl font-semibold">Escolher imagem</h2>
-                        <p className="mt-1.5 text-[13px] text-muted">
-                            Reutilize uma imagem que já foi enviada para o Astro.
-                        </p>
+                    <div className="flex shrink-0 items-start justify-between gap-5">
+                        <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-strong">
+                                Biblioteca de mídia
+                            </p>
+                            <h2 className="mt-2 text-xl font-semibold">Escolher imagem</h2>
+                            <p className="mt-1.5 text-[13px] text-muted">
+                                Reutilize uma imagem que já foi enviada para o Astro.
+                            </p>
+                        </div>
+                        <Button type="button" variant="icon" onClick={onClose} aria-label="Fechar">
+                            <Icon name="close" className="size-4" />
+                        </Button>
                     </div>
-                    <Button type="button" variant="icon" onClick={onClose} aria-label="Fechar">
-                        <Icon name="close" className="size-4" />
-                    </Button>
-                </div>
 
-                <label className="relative mt-4 block shrink-0">
-                    <Icon
-                        name="search"
-                        className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted"
-                    />
-                    <input
-                        value={query}
-                        onChange={(event) => setQuery(event.target.value)}
-                        placeholder="Buscar imagem..."
-                        autoFocus
-                        className="ui-control h-11 w-full pl-10 pr-4"
-                    />
-                </label>
+                    <label className="relative mt-4 block shrink-0">
+                        <Icon
+                            name="search"
+                            className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted"
+                        />
+                        <input
+                            value={query}
+                            onChange={(event) => setQuery(event.target.value)}
+                            placeholder="Buscar imagem..."
+                            autoFocus
+                            className="ui-control h-11 w-full pl-10 pr-4"
+                        />
+                    </label>
                 </div>
 
                 <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">

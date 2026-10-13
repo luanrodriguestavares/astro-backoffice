@@ -40,7 +40,11 @@ export function CheckoutVersionHistory({
             })
             .catch((reason: unknown) => {
                 if (reason instanceof DOMException && reason.name === 'AbortError') return;
-                setError(reason instanceof Error ? reason.message : 'Não foi possível carregar o histórico.');
+                setError(
+                    reason instanceof Error
+                        ? reason.message
+                        : 'Não foi possível carregar o histórico.',
+                );
             })
             .finally(() => {
                 if (!controller.signal.aborted) setLoading(false);
@@ -87,7 +91,10 @@ export function CheckoutVersionHistory({
                     </div>
                 )}
                 {error && (
-                    <div role="alert" className="rounded-2xl border border-danger/20 bg-danger/10 px-4 py-3 text-[12px] text-danger">
+                    <div
+                        role="alert"
+                        className="rounded-2xl border border-danger/20 bg-danger/10 px-4 py-3 text-[12px] text-danger"
+                    >
                         {error}
                     </div>
                 )}
@@ -118,7 +125,9 @@ export function CheckoutVersionHistory({
                                     onClick={() => setSelected(version)}
                                     className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition ${active ? 'border-brand/45 bg-brand-soft/70 shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_8%,transparent)]' : 'border-border bg-[var(--control-bg)] hover:border-brand/25 hover:bg-surface-muted/55'}`}
                                 >
-                                    <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${active ? 'bg-brand text-brand-contrast' : 'bg-brand-soft text-brand'}`}>
+                                    <span
+                                        className={`grid size-10 shrink-0 place-items-center rounded-xl ${active ? 'bg-brand text-brand-contrast' : 'bg-brand-soft text-brand'}`}
+                                    >
                                         {active ? (
                                             <Icon name="check" className="size-4" />
                                         ) : (

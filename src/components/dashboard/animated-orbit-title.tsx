@@ -8,21 +8,23 @@ export function AnimatedOrbitTitle() {
     if (reduceMotion) {
         return (
             <>
-                Suas vendas em{' '}
-                <span className="astro-title-highlight">órbita.</span>
+                Suas vendas <span className="astro-title-highlight">sob controle.</span>
             </>
         );
     }
 
     return (
-        <span className="inline-flex flex-wrap items-baseline" aria-label="Suas vendas em órbita.">
+        <span
+            className="inline-flex flex-wrap items-baseline"
+            aria-label="Suas vendas sob controle."
+        >
             <motion.span
                 aria-hidden="true"
                 initial={{ opacity: 0, y: 7 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
             >
-                Suas vendas em&nbsp;
+                Suas vendas&nbsp;
             </motion.span>
             <motion.span
                 aria-hidden="true"
@@ -37,7 +39,7 @@ export function AnimatedOrbitTitle() {
                     animate={{ scaleX: 1 }}
                     transition={{ delay: 0.12, duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
                 />
-                <span className="relative text-highlight-contrast">órbita.</span>
+                <span className="relative text-highlight-contrast">sob controle.</span>
             </motion.span>
         </span>
     );

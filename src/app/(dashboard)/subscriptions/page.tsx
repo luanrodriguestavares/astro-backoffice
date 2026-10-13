@@ -20,9 +20,7 @@ export default async function SubscriptionsPage({
     const [subscriptions, customers, products, gateways] = await Promise.all([
         apiFetch<Subscription[]>('/api/v1/subscriptions'),
         canReadProducts ? apiFetch<Customer[]>('/api/v1/customers') : Promise.resolve([]),
-        canReadProducts
-            ? apiFetch<Product[]>('/api/v1/products?limit=100')
-            : Promise.resolve([]),
+        canReadProducts ? apiFetch<Product[]>('/api/v1/products?limit=100') : Promise.resolve([]),
         canManageGateways
             ? apiFetch<GatewayConnection[]>('/api/v1/gateway-connections')
             : Promise.resolve([]),

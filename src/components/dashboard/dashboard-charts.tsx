@@ -89,8 +89,16 @@ export function RevenueAreaChart({
                     >
                         <defs>
                             <linearGradient id="revenueArea" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="var(--chart-primary)" stopOpacity={0.24} />
-                                <stop offset="72%" stopColor="var(--chart-primary)" stopOpacity={0.06} />
+                                <stop
+                                    offset="0%"
+                                    stopColor="var(--chart-primary)"
+                                    stopOpacity={0.24}
+                                />
+                                <stop
+                                    offset="72%"
+                                    stopColor="var(--chart-primary)"
+                                    stopOpacity={0.06}
+                                />
                                 <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
                             </linearGradient>
                         </defs>
@@ -319,6 +327,39 @@ export type GatewayDatum = {
 
 const gatewayColors = ['var(--chart-primary)', '#2bb5a0', '#b9b3f5', '#c9c9c9', '#e2e2e2'];
 
+/** Raios do anel, em fração do raio máximo do gráfico (os mesmos do <Pie>). */
+const ring = { inner: 0.64, outer: 0.88 };
+const ringGradientId = 'gateway-ring-gradient';
+
+/** Preenchimento do primeiro gateway: lima com variação tonal suave e sem relevo. */
+const primaryRingFill = `url(#${ringGradientId})`;
+
+/**
+ * Um único gradiente plano atravessa a rosca inteira. A transição clara e larga do lado
+ * direito reproduz a referência sem criar bordas sombreadas, reflexo, blur ou efeito tubular.
+ */
+function RingGradient() {
+    return (
+        <defs>
+            <linearGradient id={ringGradientId} x1="0%" y1="20%" x2="100%" y2="80%">
+                <stop
+                    offset="0%"
+                    style={{ stopColor: 'color-mix(in srgb, var(--chart-primary) 76%, #dfff72)' }}
+                />
+                <stop offset="48%" style={{ stopColor: 'var(--chart-primary)' }} />
+                <stop
+                    offset="72%"
+                    style={{ stopColor: 'color-mix(in srgb, var(--chart-primary) 72%, #dfff72)' }}
+                />
+                <stop
+                    offset="100%"
+                    style={{ stopColor: 'color-mix(in srgb, var(--chart-primary) 42%, #ffffff)' }}
+                />
+            </linearGradient>
+        </defs>
+    );
+}
+
 export function GatewayDonut({ data, currency }: { data: GatewayDatum[]; currency: string }) {
     const total = data.reduce((sum, item) => sum + item.value, 0);
     const chartData = data.length
@@ -330,24 +371,28 @@ export function GatewayDonut({ data, currency }: { data: GatewayDatum[]; currenc
             <div className="dashboard-chart relative z-10 mx-auto h-[230px] w-full max-w-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
+                        {data.length > 0 && <RingGradient />}
                         <Pie
                             data={chartData}
                             dataKey="value"
                             nameKey="name"
-                            innerRadius="64%"
-                            outerRadius="88%"
+                            innerRadius={`${ring.inner * 100}%`}
+                            outerRadius={`${ring.outer * 100}%`}
                             paddingAngle={data.length > 1 ? 2 : 0}
                             stroke="var(--dashboard-chart-surface, rgba(255,255,255,.75))"
-                            strokeWidth={2}
+                            // Com uma fatia só, a borda vira um risco no início do anel.
+                            strokeWidth={data.length > 1 ? 2 : 0}
                             animationDuration={900}
                         >
                             {chartData.map((item, index) => (
                                 <Cell
                                     key={item.id}
                                     fill={
-                                        data.length
-                                            ? gatewayColors[index % gatewayColors.length]
-                                            : 'var(--dashboard-chart-empty, #e7e7ef)'
+                                        !data.length
+                                            ? 'var(--dashboard-chart-empty, #e7e7ef)'
+                                            : index === 0
+                                              ? primaryRingFill
+                                              : gatewayColors[index % gatewayColors.length]
                                     }
                                 />
                             ))}

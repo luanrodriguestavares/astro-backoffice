@@ -283,22 +283,24 @@ export function FileLibrary({
                             ]}
                         />
                     </div>
-                    {canWrite && <div className="flex gap-2">
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={() =>
-                                setFolderDialog({
-                                    mode: 'create',
-                                    parentId: currentFolderId,
-                                })
-                            }
-                        >
-                            <Icon name="plus" className="size-3.5" />
-                            Nova pasta
-                        </Button>
-                        <FileUploadAction folderId={currentFolderId} />
-                    </div>}
+                    {canWrite && (
+                        <div className="flex gap-2">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() =>
+                                    setFolderDialog({
+                                        mode: 'create',
+                                        parentId: currentFolderId,
+                                    })
+                                }
+                            >
+                                <Icon name="plus" className="size-3.5" />
+                                Nova pasta
+                            </Button>
+                            <FileUploadAction folderId={currentFolderId} />
+                        </div>
+                    )}
                 </div>
 
                 <div className="mt-4 grid gap-2 border-t border-border pt-4 sm:grid-cols-[1fr_auto] sm:items-center">

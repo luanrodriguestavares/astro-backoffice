@@ -33,6 +33,33 @@ export function ColorPickerField({
     value?: string;
     onChange: (value: string) => void;
 }) {
+    return (
+        <FieldLabel label={label ?? 'Cor'}>
+            <ColorPickerControl label={label} name={name} value={value} onChange={onChange} />
+        </FieldLabel>
+    );
+}
+
+/**
+ * Seletor de cor (saturação, matiz e hexadecimal) sem o rótulo do Puck, para uso fora do
+ * editor. `variant="swatch"` troca o campo por uma bolinha de "cor personalizada".
+ */
+export function ColorPickerControl({
+    label,
+    name,
+    value,
+    onChange,
+    variant = 'field',
+    active = false,
+}: {
+    label?: string;
+    name: string;
+    value?: string;
+    onChange: (value: string) => void;
+    variant?: 'field' | 'swatch';
+    /** Na variante bolinha: a cor atual não é uma das cores prontas. */
+    active?: boolean;
+}) {
     const selected = normalizeColor(value);
     const [open, setOpen] = useState(false);
     const [draft, setDraft] = useState<Hsv>(() => hexToHsv(selected));
@@ -217,37 +244,69 @@ export function ColorPickerField({
         </div>
     );
 
-    return (
-        <FieldLabel label={label ?? 'Cor'}>
-            <div ref={root}>
-                <input type="hidden" name={name} value={selected} />
-                <Button
+    if (variant === 'swatch')
+        return (
+            <div ref={root} className="contents">
+                <button
                     ref={trigger}
                     type="button"
                     aria-haspopup="dialog"
                     aria-expanded={open}
+                    aria-label="Escolher cor personalizada"
+                    title="Cor personalizada"
                     onClick={openPicker}
-                    className={`checkout-color-trigger flex h-11 w-full items-center gap-2.5 rounded-xl border bg-[var(--control-bg)] px-2.5 text-left outline-none transition ${open ? 'border-brand shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)]' : 'border-border hover:border-brand/40'}`}
+                    className="checkout-color-swatch relative grid size-9 place-items-center rounded-full transition hover:scale-[1.06]"
+                    style={{
+                        background:
+                            'conic-gradient(from 180deg, #ef4444, #f59e0b, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444)',
+                        outline: active ? `2px solid ${selected}` : undefined,
+                        outlineOffset: 2,
+                    }}
                 >
                     <span
-                        className="size-7 shrink-0 rounded-lg border border-border shadow-inner"
-                        style={{ background: selected }}
-                    />
-                    <span className="min-w-0 flex-1">
-                        <span className="block text-[9px] font-semibold uppercase tracking-[.08em] text-muted">
-                            Cor atual
-                        </span>
-                        <span className="block font-mono text-[12px] uppercase text-foreground">
-                            {selected}
-                        </span>
+                        className="grid size-[22px] place-items-center rounded-full border-2 border-white"
+                        style={{ background: active ? selected : '#ffffff' }}
+                    >
+                        {active ? (
+                            <Icon name="check" className="size-3 text-white" />
+                        ) : (
+                            <Icon name="plus" className="size-3 text-[#3b3b45]" />
+                        )}
                     </span>
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-brand">
-                        Editar <Icon name="edit" className="size-3" />
-                    </span>
-                </Button>
+                </button>
                 {picker && createPortal(picker, document.body)}
             </div>
-        </FieldLabel>
+        );
+
+    return (
+        <div ref={root}>
+            <input type="hidden" name={name} value={selected} />
+            <Button
+                ref={trigger}
+                type="button"
+                aria-haspopup="dialog"
+                aria-expanded={open}
+                onClick={openPicker}
+                className={`checkout-color-trigger flex h-11 w-full items-center gap-2.5 rounded-xl border bg-[var(--control-bg)] px-2.5 text-left outline-none transition ${open ? 'border-brand shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)]' : 'border-border hover:border-brand/40'}`}
+            >
+                <span
+                    className="size-7 shrink-0 rounded-lg border border-border shadow-inner"
+                    style={{ background: selected }}
+                />
+                <span className="min-w-0 flex-1">
+                    <span className="block text-[9px] font-semibold uppercase tracking-[.08em] text-muted">
+                        Cor atual
+                    </span>
+                    <span className="block font-mono text-[12px] uppercase text-foreground">
+                        {selected}
+                    </span>
+                </span>
+                <span className="flex items-center gap-1 text-[10px] font-semibold text-brand">
+                    Editar <Icon name="edit" className="size-3" />
+                </span>
+            </Button>
+            {picker && createPortal(picker, document.body)}
+        </div>
     );
 }
 

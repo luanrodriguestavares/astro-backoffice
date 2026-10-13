@@ -1,6 +1,10 @@
-import { checkoutBrandPresets } from '@astro/checkout-renderer/theme';
+import { defaultResultScreens } from '@astro/checkout-renderer/result-screens';
+import {
+    appearanceToTheme,
+    defaultCheckoutAppearance,
+    type CheckoutAppearance,
+} from '@astro/checkout-renderer/theme';
 
-import { blankCheckoutDocument } from '@/lib/checkout/document';
 import type { CheckoutDocument } from '@/lib/api/types';
 
 /** Preço do catálogo usado para montar o modelo. */
@@ -31,6 +35,14 @@ export type CheckoutTemplate = {
 
 export const checkoutTemplates: CheckoutTemplate[] = [
     {
+        id: 'express',
+        name: 'Checkout direto',
+        description:
+            'Banner, produto no topo e pagamento em uma tela. Ideal para tráfego pago no celular.',
+        audience: 'Conversão rápida',
+        highlights: ['Tela única', 'Produto no topo', 'CTA com selo'],
+    },
+    {
         id: 'subscription',
         name: 'Assinatura e SaaS',
         description:
@@ -44,30 +56,26 @@ export const checkoutTemplates: CheckoutTemplate[] = [
         name: 'Produto digital',
         description: 'Página de venda completa para cursos, ebooks, mentorias e comunidades.',
         audience: 'Infoproduto',
-        highlights: ['Urgência', 'Prova social', 'Garantia com selo'],
-    },
-    {
-        id: 'express',
-        name: 'Checkout direto',
-        description:
-            'Uma tela, poucas distrações e pagamento em segundos. Ideal para tráfego pago.',
-        audience: 'Conversão rápida',
-        highlights: ['Tela única', 'Pix em destaque', 'Resumo compacto'],
+        highlights: ['Apresentação', 'Prova social', 'Garantia com selo'],
     },
     {
         id: 'blank',
-        name: 'Em branco',
-        description: 'Só a estrutura essencial de pagamento para você montar do seu jeito.',
+        name: 'Essencial',
+        description: 'Só o necessário para vender: produto, dados, pagamento e resumo.',
         audience: 'Do zero',
         highlights: ['Dados', 'Pagamento', 'Resumo'],
     },
 ];
 
-/** Monta o documento e os produtos do checkout a partir do modelo e do preço escolhido. */
+/**
+ * Monta o documento e os produtos do checkout a partir do modelo, do preço escolhido e da
+ * aparência definida no assistente de criação.
+ */
 export function buildCheckoutFromTemplate(
     id: CheckoutTemplateId,
     selected: TemplatePrice,
     catalog: TemplatePrice[],
+    appearance: CheckoutAppearance = defaultCheckoutAppearance,
 ): {
     document: CheckoutDocument;
     products: {
@@ -99,34 +107,37 @@ export function buildCheckoutFromTemplate(
             .slice(0, 4)
             .sort((a, b) => intervalWeight(a) - intervalWeight(b));
         return {
-            document: subscriptionDocument(selected, plans),
+            document: subscriptionDocument(selected, plans, appearance),
             products: plans.map((price) => product(price, price.priceId === selected.priceId)),
         };
     }
     const document =
         id === 'digital-product'
-            ? digitalProductDocument(selected)
+            ? digitalProductDocument(selected, appearance)
             : id === 'express'
-              ? expressDocument()
-              : blankCheckoutDocument;
+              ? expressDocument(selected, appearance)
+              : essentialDocument(selected, appearance);
     return { document, products: [product(selected, true)] };
 }
 
-const astro = checkoutBrandPresets.find((preset) => preset.value === 'astro')!;
-
-function base(sections: CheckoutDocument['sections'], seoTitle: string): CheckoutDocument {
+function base(
+    sections: CheckoutDocument['sections'],
+    seoTitle: string,
+    appearance: CheckoutAppearance,
+    maxWidth: 'md' | 'lg' = 'lg',
+): CheckoutDocument {
+    const { theme, layout } = appearanceToTheme(appearance);
     return {
         schemaVersion: 1,
-        theme: { ...astro.theme, brandPreset: 'astro' },
+        theme,
         layout: {
-            maxWidth: 'lg',
-            componentGap: 'sm',
+            maxWidth,
             pagePadding: 'lg',
             inputGroupStyle: 'filled',
-            ...astro.layout,
+            ...layout,
         },
         sections,
-        settings: {},
+        settings: { resultScreens: defaultResultScreens },
         seo: { title: seoTitle, description: 'Finalize sua compra com segurança.' },
     };
 }
@@ -153,36 +164,181 @@ function grid(id: string, column1: Block[], column2: Block[]) {
     });
 }
 
-const logo = (alignment: 'left' | 'center') =>
+/*
+ * Peças comuns. Todo modelo segue a mesma ordem de leitura do celular: o que estou comprando
+ * (banner e faixa do produto), quem sou eu (dados), como pago (formas e detalhes) e o
+ * fechamento (resumo, CTA e selo). Os textos são curtos de propósito: no estilo compacto o
+ * bloco mostra só o título; as descrições aparecem apenas no estilo completo.
+ */
+const logo = (alignment: 'left' | 'center', overlapBanner = false) =>
     section('logo-template', 'logo', {
         url: '',
         alt: 'Logo da marca',
         alignment,
         size: 'sm',
         radius: 'md',
-        overlapBanner: false,
+        overlapBanner,
     });
 
-const customerForm = (layout: 'card' | 'compact' = 'card') =>
+const banner = () =>
+    section('banner-template', 'banner', {
+        imageUrl: '',
+        mobileImageUrl: '',
+        alt: 'Banner da oferta',
+        aspectRatio: '3/1',
+        mobileAspectRatio: '16/9',
+        fit: 'cover',
+    });
+
+const productHeader = (selected: TemplatePrice) =>
+    nested('product-header', 'product_summary', {
+        layout: 'header',
+        mobileOnly: true,
+        title: '',
+        description: '',
+        buttonLabel: '',
+        imageUrl: '',
+        badge: '',
+        recurringLabel: recurringText(selected),
+    });
+
+const customerForm = () =>
     nested('form-required', 'checkout_form', {
-        layout,
-        title: 'Seus dados',
-        description: 'Usamos para enviar o acesso e o comprovante.',
+        layout: 'card',
+        title: 'Dados pessoais',
+        description: 'Para enviar o acesso e o comprovante.',
         showPhone: false,
         showDocument: false,
     });
 
-const trust = (layout: 'pills' | 'strip' | 'cards') =>
-    nested('trust-template', 'security_badges', {
+const paymentMethods = (
+    layout: 'cards' | 'list' | 'segmented',
+    description = 'Escolha como prefere pagar.',
+) =>
+    nested('payment-required', 'payment_methods', {
         layout,
+        title: 'Pagamento',
+        description,
+        showCard: true,
+        showPix: true,
+        showBoleto: false,
+        showWallets: true,
+    });
+
+const cardPayment = (showInstallments: boolean) =>
+    nested('card-template', 'card_payment', {
+        layout: 'compact',
+        title: 'Dados do cartão',
+        description: 'Criptografados e enviados direto ao processador.',
+        showInstallments,
+    });
+
+const pixPayment = () =>
+    nested('pix-template', 'pix_payment', {
+        layout: 'compact',
+        title: 'Pagamento via Pix',
+        description: 'O QR Code aparece logo depois de confirmar.',
+        expiresIn: '30 minutos',
+    });
+
+const summary = (props: {
+    title?: string;
+    buttonLabel: string;
+    badge?: string;
+    recurringLabel?: string;
+    layout?: 'card' | 'compact';
+}) =>
+    nested('product-required', 'product_summary', {
+        layout: props.layout ?? 'compact',
+        title: props.title ?? 'Resumo do pedido',
+        description: '',
+        buttonLabel: props.buttonLabel,
+        badge: props.badge ?? '',
+        recurringLabel: props.recurringLabel ?? '',
+        imageUrl: '',
+    });
+
+const trust = () =>
+    nested('trust-template', 'security_badges', {
+        layout: 'strip',
         title: 'Compra protegida',
         showEncryption: true,
         showGuarantee: true,
         showPrivacy: true,
     });
 
-function subscriptionDocument(selected: TemplatePrice, plans: TemplatePrice[]) {
-    const left: Block[] = [];
+const footer = (text = 'Compra 100% segura · Dados protegidos') =>
+    section('footer-template', 'footer', { layout: 'minimal', text, showSecurity: true });
+
+function expressDocument(selected: TemplatePrice, appearance: CheckoutAppearance) {
+    return base(
+        [
+            banner(),
+            logo('left', true),
+            grid(
+                'grid-template',
+                [
+                    productHeader(selected),
+                    customerForm(),
+                    paymentMethods('list', 'Pix aprova na hora.'),
+                    cardPayment(true),
+                    pixPayment(),
+                ],
+                [
+                    summary({
+                        buttonLabel: 'Pagar agora',
+                        recurringLabel: recurringText(selected),
+                    }),
+                    nested('guarantee-template', 'guarantee', {
+                        layout: 'minimal',
+                        title: 'Garantia de 7 dias',
+                        description: 'Não gostou? Devolvemos seu dinheiro.',
+                        days: 7,
+                    }),
+                    trust(),
+                ],
+            ),
+            footer(),
+        ],
+        'Finalize sua compra',
+        appearance,
+    );
+}
+
+function essentialDocument(selected: TemplatePrice, appearance: CheckoutAppearance) {
+    return base(
+        [
+            logo('center'),
+            grid(
+                'grid-template',
+                [
+                    productHeader(selected),
+                    customerForm(),
+                    paymentMethods('list'),
+                    cardPayment(true),
+                    pixPayment(),
+                ],
+                [
+                    summary({
+                        buttonLabel: 'Finalizar compra',
+                        recurringLabel: recurringText(selected),
+                    }),
+                ],
+            ),
+            footer(),
+        ],
+        'Finalize sua compra',
+        appearance,
+        'md',
+    );
+}
+
+function subscriptionDocument(
+    selected: TemplatePrice,
+    plans: TemplatePrice[],
+    appearance: CheckoutAppearance,
+) {
+    const left: Block[] = [productHeader(selected)];
     if (plans.length > 1)
         left.push(
             nested('plans-template', 'plan_comparison', {
@@ -202,31 +358,16 @@ function subscriptionDocument(selected: TemplatePrice, plans: TemplatePrice[]) {
             }),
         );
     left.push(
-        customerForm('compact'),
-        nested('payment-required', 'payment_methods', {
-            layout: 'list',
-            title: 'Forma de pagamento',
-            description: 'A cobrança se renova automaticamente no cartão.',
-            showCard: true,
-            showPix: true,
-            showBoleto: false,
-        }),
-        nested('card-template', 'card_payment', {
-            layout: 'standard',
-            title: 'Dados do cartão',
-            description: 'Processados com criptografia pelo gateway de pagamento.',
-            showInstallments: false,
-        }),
+        customerForm(),
+        paymentMethods('list', 'A cobrança se renova automaticamente.'),
+        cardPayment(false),
+        pixPayment(),
     );
     const right: Block[] = [
-        nested('product-required', 'product_summary', {
-            layout: 'card',
+        summary({
             title: 'Sua assinatura',
-            description: 'Você só será cobrado depois de confirmar.',
             buttonLabel: 'Assinar agora',
             recurringLabel: recurringText(selected),
-            badge: '',
-            imageUrl: '',
         }),
         nested('benefits-template', 'benefits', {
             layout: 'checklist',
@@ -240,15 +381,15 @@ function subscriptionDocument(selected: TemplatePrice, plans: TemplatePrice[]) {
         nested('guarantee-template', 'guarantee', {
             layout: 'minimal',
             title: 'Cancele quando quiser',
-            description:
-                'Sem fidelidade e sem multa. Você mantém o acesso até o fim do período pago.',
+            description: 'Sem fidelidade e sem multa.',
             days: 7,
         }),
-        trust('strip'),
+        trust(),
     ];
     return base(
         [
-            logo('center'),
+            banner(),
+            logo('center', true),
             grid('grid-template', left, right),
             section('faq-template', 'faq', {
                 layout: 'accordion',
@@ -266,31 +407,20 @@ function subscriptionDocument(selected: TemplatePrice, plans: TemplatePrice[]) {
                         question: 'Posso trocar de plano depois?',
                         answer: 'Sim. A mudança vale a partir do próximo ciclo de cobrança.',
                     },
-                    {
-                        question: 'Recebo nota ou comprovante?',
-                        answer: 'Sim. Cada cobrança gera um comprovante enviado para o seu e-mail.',
-                    },
                 ],
             }),
-            section('footer-template', 'footer', {
-                layout: 'minimal',
-                text: 'Pagamento recorrente processado com segurança.',
-                showSecurity: true,
-            }),
+            footer('Pagamento recorrente processado com segurança.'),
         ],
         'Assine agora',
+        appearance,
     );
 }
 
-function digitalProductDocument(selected: TemplatePrice) {
+function digitalProductDocument(selected: TemplatePrice, appearance: CheckoutAppearance) {
     return base(
         [
-            section('countdown-template', 'countdown', {
-                layout: 'banner',
-                title: 'Condição especial por tempo limitado',
-                deadline: inDays(3),
-            }),
-            logo('center'),
+            banner(),
+            logo('center', true),
             section('hero-template', 'hero', {
                 layout: 'centered',
                 eyebrow: 'Acesso imediato',
@@ -326,31 +456,17 @@ function digitalProductDocument(selected: TemplatePrice) {
             grid(
                 'grid-template',
                 [
-                    customerForm('card'),
-                    nested('payment-required', 'payment_methods', {
-                        layout: 'cards',
-                        title: 'Como você quer pagar?',
-                        description: 'Escolha uma forma de pagamento segura.',
-                        showCard: true,
-                        showPix: true,
-                        showBoleto: true,
-                    }),
-                    nested('card-template', 'card_payment', {
-                        layout: 'visual',
-                        title: 'Dados do cartão',
-                        description: 'Criptografados de ponta a ponta.',
-                        showInstallments: true,
-                    }),
+                    productHeader(selected),
+                    customerForm(),
+                    paymentMethods('list'),
+                    cardPayment(true),
+                    pixPayment(),
                 ],
                 [
-                    nested('product-required', 'product_summary', {
+                    summary({
+                        buttonLabel: 'Quero meu acesso',
+                        badge: 'Acesso imediato',
                         layout: 'card',
-                        title: 'Resumo do pedido',
-                        description: 'Confira antes de finalizar.',
-                        buttonLabel: 'Finalizar compra',
-                        badge: 'Acesso vitalício',
-                        recurringLabel: '',
-                        imageUrl: '',
                     }),
                     nested('guarantee-template', 'guarantee', {
                         layout: 'horizontal',
@@ -359,7 +475,7 @@ function digitalProductDocument(selected: TemplatePrice) {
                             'Se não fizer sentido, peça o reembolso integral dentro do prazo.',
                         days: 7,
                     }),
-                    trust('pills'),
+                    trust(),
                 ],
             ),
             section('testimonials-template', 'testimonials', {
@@ -393,7 +509,7 @@ function digitalProductDocument(selected: TemplatePrice) {
                 ],
             }),
             section('faq-template', 'faq', {
-                layout: 'split',
+                layout: 'accordion',
                 title: 'Perguntas frequentes',
                 items: [
                     {
@@ -410,75 +526,11 @@ function digitalProductDocument(selected: TemplatePrice) {
                     },
                 ],
             }),
-            section('footer-template', 'footer', {
-                layout: 'centered',
-                text: 'Pagamento processado com segurança.',
-                showSecurity: true,
-            }),
+            footer(),
         ],
         selected.productName,
+        appearance,
     );
-}
-
-function expressDocument() {
-    return base(
-        [
-            section('countdown-template', 'countdown', {
-                layout: 'minimal',
-                title: 'Preço promocional válido por pouco tempo',
-                deadline: inDays(1),
-            }),
-            logo('left'),
-            grid(
-                'grid-template',
-                [
-                    customerForm('compact'),
-                    nested('payment-required', 'payment_methods', {
-                        layout: 'segmented',
-                        title: 'Pagamento',
-                        description: 'Pix aprova na hora.',
-                        showCard: true,
-                        showPix: true,
-                        showBoleto: false,
-                    }),
-                    nested('card-template', 'card_payment', {
-                        layout: 'compact',
-                        title: 'Dados do cartão',
-                        description: 'Ambiente criptografado.',
-                        showInstallments: true,
-                    }),
-                ],
-                [
-                    nested('product-required', 'product_summary', {
-                        layout: 'compact',
-                        title: 'Seu pedido',
-                        description: '',
-                        buttonLabel: 'Pagar agora',
-                        badge: '',
-                        recurringLabel: '',
-                        imageUrl: '',
-                    }),
-                    nested('guarantee-template', 'guarantee', {
-                        layout: 'minimal',
-                        title: 'Garantia de 7 dias',
-                        description: 'Não gostou? Devolvemos seu dinheiro.',
-                        days: 7,
-                    }),
-                    trust('strip'),
-                ],
-            ),
-            section('footer-template', 'footer', {
-                layout: 'minimal',
-                text: 'Pagamento processado com segurança.',
-                showSecurity: false,
-            }),
-        ],
-        'Finalize sua compra',
-    );
-}
-
-function inDays(days: number) {
-    return new Date(Date.now() + days * 86_400_000).toISOString();
 }
 
 function money(amountMinor: number, currency: string) {

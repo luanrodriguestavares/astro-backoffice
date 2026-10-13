@@ -18,6 +18,9 @@ type DashboardTheme = 'light' | 'dark';
 const themeStorageKey = 'astro-dashboard-theme';
 const themeChangeEvent = 'astro-dashboard-theme-change';
 
+// Seletor de cor do tema temporariamente desativado.
+const showAccentThemeSelector = false;
+
 const themeOptions = [
     {
         value: 'light' as const,
@@ -150,50 +153,52 @@ export function AppearancePreferences({ organization }: { organization: Organiza
                         </div>
                     </div>
 
-                    <div>
-                        <p className="text-[12px] font-semibold">Cor de destaque</p>
-                        <p className="mt-1 text-[11px] leading-4 text-muted">
-                            {organization.canManageAppearance
-                                ? 'Administradores definem esta identidade para toda a equipe.'
-                                : 'Definida pelos administradores desta workspace.'}
-                        </p>
-                        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                            {accentThemes.map((option) => (
-                                <Button
-                                    key={option.value}
-                                    type="button"
-                                    aria-label={`Usar cor ${option.label}`}
-                                    aria-pressed={accent === option.value}
-                                    disabled={!organization.canManageAppearance}
-                                    onClick={() => void chooseAccent(option.value)}
-                                    className={`flex min-h-[74px] items-center gap-3 rounded-2xl border p-3 text-left transition ${
-                                        accent === option.value
-                                            ? 'border-[color-mix(in_srgb,var(--foreground)_18%,var(--border))] bg-surface-muted/55 shadow-[0_8px_24px_rgb(16_18_20_/_6%)]'
-                                            : `border-border bg-[var(--control-bg)] ${organization.canManageAppearance ? 'hover:border-brand/24 hover:bg-surface-muted/55' : 'cursor-not-allowed opacity-65'}`
-                                    }`}
-                                >
-                                    <span
-                                        className="relative grid size-10 shrink-0 place-items-center rounded-2xl shadow-[inset_0_0_0_1px_rgb(255_255_255_/_25%),0_8px_18px_rgb(35_31_68_/_10%)]"
-                                        style={{ backgroundColor: option.color }}
+                    {showAccentThemeSelector && (
+                        <div>
+                            <p className="text-[12px] font-semibold">Cor de destaque</p>
+                            <p className="mt-1 text-[11px] leading-4 text-muted">
+                                {organization.canManageAppearance
+                                    ? 'Administradores definem esta identidade para toda a equipe.'
+                                    : 'Definida pelos administradores desta workspace.'}
+                            </p>
+                            <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                                {accentThemes.map((option) => (
+                                    <Button
+                                        key={option.value}
+                                        type="button"
+                                        aria-label={`Usar cor ${option.label}`}
+                                        aria-pressed={accent === option.value}
+                                        disabled={!organization.canManageAppearance}
+                                        onClick={() => void chooseAccent(option.value)}
+                                        className={`flex min-h-[74px] items-center gap-3 rounded-2xl border p-3 text-left transition ${
+                                            accent === option.value
+                                                ? 'border-[color-mix(in_srgb,var(--foreground)_18%,var(--border))] bg-surface-muted/55 shadow-[0_8px_24px_rgb(16_18_20_/_6%)]'
+                                                : `border-border bg-[var(--control-bg)] ${organization.canManageAppearance ? 'hover:border-brand/24 hover:bg-surface-muted/55' : 'cursor-not-allowed opacity-65'}`
+                                        }`}
                                     >
-                                        {accent === option.value && (
-                                            <span className="grid size-5 place-items-center rounded-full bg-white text-[var(--brand)] shadow-sm">
-                                                <Icon name="check" className="size-3" />
+                                        <span
+                                            className="relative grid size-10 shrink-0 place-items-center rounded-2xl shadow-[inset_0_0_0_1px_rgb(255_255_255_/_25%),0_8px_18px_rgb(35_31_68_/_10%)]"
+                                            style={{ backgroundColor: option.color }}
+                                        >
+                                            {accent === option.value && (
+                                                <span className="grid size-5 place-items-center rounded-full bg-white text-[var(--brand)] shadow-sm">
+                                                    <Icon name="check" className="size-3" />
+                                                </span>
+                                            )}
+                                        </span>
+                                        <span className="min-w-0">
+                                            <span className="block text-[12px] font-semibold">
+                                                {option.label}
                                             </span>
-                                        )}
-                                    </span>
-                                    <span className="min-w-0">
-                                        <span className="block text-[12px] font-semibold">
-                                            {option.label}
+                                            <span className="mt-0.5 block truncate text-[10px] text-muted">
+                                                {option.description}
+                                            </span>
                                         </span>
-                                        <span className="mt-0.5 block truncate text-[10px] text-muted">
-                                            {option.description}
-                                        </span>
-                                    </span>
-                                </Button>
-                            ))}
+                                    </Button>
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
         </section>

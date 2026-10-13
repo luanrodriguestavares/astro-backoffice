@@ -39,6 +39,7 @@ export function CouponCreate({
         setLoading(true);
         const form = new FormData(event.currentTarget);
         const shownValue = Number(String(form.get('discountValue') ?? '0').replace(',', '.'));
+        const expiresOn = String(form.get('expiresAt') ?? '').trim();
         if (!scopeId) {
             setLoading(false);
             showToast({ tone: 'error', description: 'Selecione onde o cupom será aceito.' });
@@ -54,6 +55,9 @@ export function CouponCreate({
                 discountValue: Math.round(shownValue * 100),
                 ...(discountType === 'fixed' ? { currency: 'BRL' } : {}),
                 status: 'active',
+                ...(expiresOn
+                    ? { expiresAt: new Date(`${expiresOn}T23:59:59.999`).toISOString() }
+                    : {}),
                 metadata: {},
                 scope: { type: scopeType, id: scopeId },
             }),
@@ -166,6 +170,7 @@ export function CouponCreate({
                                     placeholder={discountType === 'percentage' ? '10' : '25,00'}
                                     required
                                 />
+                                <Field name="expiresAt" label="Expira em (opcional)" type="date" />
                                 <label className="text-[13px] font-semibold">
                                     Aplicar cupom por
                                     <div className="mt-2">

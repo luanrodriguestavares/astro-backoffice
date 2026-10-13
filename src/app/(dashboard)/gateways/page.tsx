@@ -63,7 +63,7 @@ export default async function GatewaysPage() {
     return (
         <>
             <PageHeader
-                eyebrow="Pagamentos"
+                eyebrow="Desenvolvedores"
                 title="Gateways"
                 description="Conecte e gerencie seus provedores de pagamento em um só lugar."
             />

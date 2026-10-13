@@ -68,9 +68,11 @@ export function NotificationCenter({ storageScope }: { storageScope: string }) {
     useEffect(() => {
         const initialLoad = window.setTimeout(() => void loadNotifications(), 0);
         const interval = window.setInterval(() => void loadNotifications(), 30_000);
+
         function refreshWhenVisible() {
             if (document.visibilityState === 'visible') void loadNotifications();
         }
+
         document.addEventListener('visibilitychange', refreshWhenVisible);
         window.addEventListener('focus', refreshWhenVisible);
         return () => {

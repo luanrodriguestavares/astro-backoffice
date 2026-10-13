@@ -14,7 +14,7 @@ export const accentThemes: {
         value: 'astro',
         label: 'Astro',
         description: 'Preto com destaque lima',
-        color: '#c6f448',
+        color: '#91cf24',
     },
     { value: 'blue', label: 'Azul', description: 'Limpo e objetivo', color: '#286dcc' },
     { value: 'violet', label: 'Roxo', description: 'Criativo e profundo', color: '#7651d1' },

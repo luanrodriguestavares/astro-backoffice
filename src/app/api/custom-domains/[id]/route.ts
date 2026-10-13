@@ -15,7 +15,12 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
         return NextResponse.json({ data: result });
     } catch (error) {
         if (error instanceof AstroApiError)
-            return NextResponse.json(clientProblem(error.problem), { status: error.problem.status });
-        return NextResponse.json({ detail: 'Não foi possível remover o domínio.' }, { status: 500 });
+            return NextResponse.json(clientProblem(error.problem), {
+                status: error.problem.status,
+            });
+        return NextResponse.json(
+            { detail: 'Não foi possível remover o domínio.' },
+            { status: 500 },
+        );
     }
 }
