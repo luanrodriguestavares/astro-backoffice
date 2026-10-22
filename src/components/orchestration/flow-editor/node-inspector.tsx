@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 import type {
-    Checkout,
     FlowCondition,
     FlowConditionField,
     FlowConditionGroup,
@@ -35,6 +34,8 @@ import {
     toMinor,
 } from '@/lib/orchestration/flow';
 
+import { connectionSupports } from '@/lib/checkout/gateway-bindings';
+
 import { useFlowEditor } from './flow-context';
 import { nodeTitle } from './flow-node';
 
@@ -43,7 +44,6 @@ type Tab = 'config' | 'data' | 'settings';
 export function NodeInspector({
     node,
     connections,
-    checkouts,
     products,
     issues,
     webhooks,
@@ -57,7 +57,6 @@ export function NodeInspector({
     initialTab?: 'config' | 'settings';
     node: FlowNode;
     connections: GatewayConnection[];
-    checkouts: Checkout[];
     products: Product[];
     issues: FlowIssue[];
     onChange(node: FlowNode): void;
@@ -141,7 +140,6 @@ export function NodeInspector({
                         node={node}
                         webhooks={webhooks}
                         connections={connections}
-                        checkouts={checkouts}
                         products={products}
                         onChange={onChange}
                     />
@@ -198,14 +196,12 @@ function ConfigTab({
     node,
     webhooks,
     connections,
-    checkouts,
     products,
     onChange,
 }: {
     node: FlowNode;
     webhooks: WebhookEndpointSummary[];
     connections: GatewayConnection[];
-    checkouts: Checkout[];
     products: Product[];
     onChange(node: FlowNode): void;
 }) {
@@ -288,21 +284,13 @@ function ConfigTab({
                     </Explain>
                     <ConditionGroupEditor
                         group={node.config}
-                        checkouts={checkouts}
                         products={products}
                         onChange={(config) => onChange({ ...node, config })}
                     />
                 </div>
             );
         case 'switch':
-            return (
-                <SwitchEditor
-                    node={node}
-                    checkouts={checkouts}
-                    products={products}
-                    onChange={onChange}
-                />
-            );
+            return <SwitchEditor node={node} products={products} onChange={onChange} />;
         case 'split':
             return (
                 <div className="space-y-4">
@@ -349,15 +337,72 @@ function ConfigTab({
                             placeholder="Escolha o gateway"
                             options={usable.map(connectionOption)}
                             onValueChange={(value) =>
-                                onChange({ ...node, config: { gatewayConnectionId: value } })
+                                onChange({
+                                    ...node,
+                                    config: { ...node.config, gatewayConnectionId: value },
+                                })
                             }
                         />
                     </Field>
                     {selected && <ConnectionFacts connection={selected} />}
+                    <Field label="Formas que este gateway cobra">
+                        <div className="space-y-2">
+                            {paymentMethodOrder.map((method) => {
+                                const on = node.config.methods?.includes(method) ?? true;
+                                const supported = !selected || connectionSupports(selected, method);
+                                const toggle = (enabled: boolean) => {
+                                    const current = node.config.methods ?? [...paymentMethodOrder];
+                                    const next = paymentMethodOrder.filter((item) =>
+                                        item === method ? enabled : current.includes(item),
+                                    );
+                                    // Todas ligadas: guarda sem lista (o gateway cobra tudo).
+                                    const { methods: _previous, ...rest } = node.config;
+                                    void _previous;
+                                    onChange({
+                                        ...node,
+                                        config:
+                                            next.length === paymentMethodOrder.length
+                                                ? rest
+                                                : { ...rest, methods: next },
+                                    });
+                                };
+                                return (
+                                    <div
+                                        key={method}
+                                        className="flex items-center justify-between gap-3"
+                                    >
+                                        <span className="min-w-0 text-[12px] font-medium">
+                                            {paymentMethodLabels[method]}
+                                            {!supported && (
+                                                <span className="block text-[10.5px] font-normal text-muted">
+                                                    A conta não oferece esta forma
+                                                </span>
+                                            )}
+                                        </span>
+                                        <div className="ui-tabs shrink-0">
+                                            {[true, false].map((value) => (
+                                                <button
+                                                    key={String(value)}
+                                                    type="button"
+                                                    data-active={on === value}
+                                                    aria-pressed={on === value}
+                                                    onClick={() => toggle(value)}
+                                                    className="ui-tab px-3 py-1 text-[12px] font-semibold"
+                                                >
+                                                    {value ? 'Habilitar' : 'Desabilitar'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </Field>
                     <Explain>
                         Se a cobrança falhar por instabilidade ou recusa recuperável, a venda segue
                         pela saída <b>falhou</b> para o próximo gateway, sem o comprador perceber.
-                        Fraude e dados inválidos encerram a cascata.
+                        Uma forma desabilitada aqui faz a venda pular este gateway. Fraude e dados
+                        inválidos encerram a cascata.
                     </Explain>
                     {usable.length === 0 && (
                         <Link href="/gateways" className="text-[12px] font-semibold underline">
@@ -409,13 +454,6 @@ function ConfigTab({
                 </div>
             );
         }
-        case 'checkout_default':
-            return (
-                <Explain>
-                    Usa o gateway principal e as reservas configurados no próprio checkout, em
-                    Prontidão. Bom como caminho padrão para as vendas que nenhuma condição separou.
-                </Explain>
-            );
         case 'success':
             return (
                 <Explain>
@@ -632,12 +670,10 @@ function EmailEditor({
 
 function SwitchEditor({
     node,
-    checkouts,
     products,
     onChange,
 }: {
     node: Extract<FlowNode, { type: 'switch' }>;
-    checkouts: Checkout[];
     products: Product[];
     onChange(node: FlowNode): void;
 }) {
@@ -705,7 +741,6 @@ function SwitchEditor({
                             </Field>
                             <ConditionGroupEditor
                                 group={item}
-                                checkouts={checkouts}
                                 products={products}
                                 onChange={(group) =>
                                     setCases(
@@ -746,12 +781,10 @@ function SwitchEditor({
 /** Lista de condições unidas por E ou OU; cada condição tem campo, operador e valor. */
 function ConditionGroupEditor({
     group,
-    checkouts,
     products,
     onChange,
 }: {
     group: FlowConditionGroup;
-    checkouts: Checkout[];
     products: Product[];
     onChange(group: FlowConditionGroup): void;
 }) {
@@ -800,7 +833,6 @@ function ConditionGroupEditor({
                     )}
                     <ConditionRow
                         condition={condition}
-                        checkouts={checkouts}
                         products={products}
                         onChange={(next) => update(index, next)}
                         onRemove={() =>
@@ -831,13 +863,11 @@ function ConditionGroupEditor({
 
 function ConditionRow({
     condition,
-    checkouts,
     products,
     onChange,
     onRemove,
 }: {
     condition: FlowCondition;
-    checkouts: Checkout[];
     products: Product[];
     onChange(condition: FlowCondition): void;
     onRemove(): void;
@@ -870,24 +900,17 @@ function ConditionRow({
                 }))}
                 onValueChange={(operator) => onChange({ ...condition, operator } as FlowCondition)}
             />
-            <ConditionValue
-                condition={condition}
-                checkouts={checkouts}
-                products={products}
-                onChange={onChange}
-            />
+            <ConditionValue condition={condition} products={products} onChange={onChange} />
         </div>
     );
 }
 
 function ConditionValue({
     condition,
-    checkouts,
     products,
     onChange,
 }: {
     condition: FlowCondition;
-    checkouts: Checkout[];
     products: Product[];
     onChange(condition: FlowCondition): void;
 }) {
@@ -939,16 +962,6 @@ function ConditionValue({
                         })
                     }
                     className={inputClass}
-                />
-            );
-        case 'checkout':
-            return (
-                <ChipPicker
-                    searchable
-                    emptyText="Nenhum checkout criado ainda."
-                    options={checkouts.map(({ id, name }) => ({ value: id, label: name }))}
-                    selected={condition.values}
-                    onChange={(values) => onChange({ ...condition, values })}
                 />
             );
         case 'product':
@@ -1163,6 +1176,13 @@ function DataTab({
         </div>
     );
 }
+
+const paymentMethodOrder = ['card', 'pix', 'boleto'] as const;
+const paymentMethodLabels: Record<(typeof paymentMethodOrder)[number], string> = {
+    card: 'Cartão',
+    pix: 'Pix',
+    boleto: 'Boleto',
+};
 
 function ConnectionFacts({ connection }: { connection: GatewayConnection }) {
     const fees = Object.keys(connection.feeSchedule ?? {}).length > 0;

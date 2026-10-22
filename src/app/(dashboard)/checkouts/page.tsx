@@ -7,13 +7,18 @@ import { SummaryCard } from '@/components/ui/resource-table';
 import { apiFetch } from '@/lib/api/server';
 import { currentPermissions } from '@/lib/auth/permissions';
 import type { Checkout, Price, Product } from '@/lib/api/types';
+import { checkoutTemplates, type CheckoutTemplateId } from '@/lib/checkout/templates';
+import { CheckoutAreaNav } from '@/components/checkout-builder/checkout-area-nav';
 
 export default async function CheckoutsPage({
     searchParams,
 }: {
-    searchParams: Promise<{ q?: string; focus?: string }>;
+    searchParams: Promise<{ q?: string; focus?: string; template?: string }>;
 }) {
-    const { q = '', focus } = await searchParams;
+    const { q = '', focus, template } = await searchParams;
+    const initialTemplate = checkoutTemplates.some((item) => item.id === template)
+        ? (template as CheckoutTemplateId)
+        : undefined;
     const permissions = await currentPermissions();
     const [checkouts, products] = await Promise.all([
         apiFetch<Checkout[]>('/api/v1/checkouts'),
@@ -51,6 +56,10 @@ export default async function CheckoutsPage({
                 title="Checkouts"
                 description="Crie páginas de venda com componentes visuais e pagamento protegido pelo Astro."
             />
+            <CheckoutAreaNav
+                active="checkouts"
+                canReadAnalytics={permissions.has('analytics.read')}
+            />
             <section data-tour="page-summary" className="mb-4 grid gap-3 sm:grid-cols-3">
                 <SummaryCard
                     label="Checkouts criados"
@@ -78,6 +87,7 @@ export default async function CheckoutsPage({
                     catalog={catalog}
                     canWrite={permissions.has('products.write')}
                     initialQuery={q}
+                    initialTemplate={initialTemplate}
                     focusId={focus}
                 />
             </div>

@@ -50,19 +50,22 @@ describe('gateway bindings', () => {
             'card',
             'production',
         );
-        assert.deepEqual(result.map(({ id }) => id), ['gwc_test']);
+        assert.deepEqual(
+            result.map(({ id }) => id),
+            ['gwc_test'],
+        );
     });
 
-    it('derives enabled methods from combined and dedicated payment components', () => {
+    it('derives enabled methods only from the payment selector', () => {
         assert.deepEqual(
             enabledPaymentMethods([
                 {
                     type: 'payment_methods',
                     props: { showCard: true, showPix: false, showBoleto: true },
                 },
-                { type: 'pix_payment', props: {} },
+                { type: 'image', props: {} },
             ]),
-            ['card', 'boleto', 'pix'],
+            ['card', 'boleto'],
         );
     });
 
@@ -90,6 +93,26 @@ describe('gateway bindings', () => {
         );
     });
 
+    it('requires a compatible gateway in the payment flow for production', () => {
+        const content = [
+            {
+                type: 'payment_methods',
+                props: { showCard: true, showPix: false, showBoleto: false },
+            },
+            { type: 'product_summary', props: {} },
+            { type: 'checkout_form', props: {} },
+        ];
+        assert.deepEqual(
+            checkoutReadinessIssues({
+                content,
+                environment: 'production',
+                flowGatewayIds: { card: ['gwc_test'] },
+                connections: [connection()],
+            }),
+            [],
+        );
+    });
+
     it('explains missing components and production bindings before publication', () => {
         const issues = checkoutReadinessIssues({
             content: [
@@ -99,7 +122,7 @@ describe('gateway bindings', () => {
                 },
             ],
             environment: 'production',
-            bindings: {},
+            flowGatewayIds: {},
             connections: [connection()],
         });
         assert.deepEqual(issues, [
@@ -107,5 +130,28 @@ describe('gateway bindings', () => {
             'component:checkout_form',
             'payment:card:binding',
         ]);
+    });
+
+    it('no longer requires separate detail blocks: details live inside the selector', () => {
+        const issues = checkoutReadinessIssues({
+            content: [
+                {
+                    type: 'payment_methods',
+                    props: { showCard: false, showPix: true, showBoleto: true },
+                },
+                { type: 'product_summary', props: {} },
+                { type: 'checkout_form', props: {} },
+            ],
+            environment: 'sandbox',
+            flowGatewayIds: {},
+            connections: [
+                connection({
+                    environment: 'sandbox',
+                    capabilities: { payments: { methods: { pix: {}, boleto: {} } } },
+                }),
+            ],
+        });
+
+        assert.deepEqual(issues, []);
     });
 });

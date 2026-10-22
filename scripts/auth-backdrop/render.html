@@ -1,0 +1,327 @@
+<!doctype html>
+<!--
+    Gerador do fundo das telas de login e cadastro (public/images/auth-backdrop.webp).
+
+    Renderiza faixas de vidro verde em 3D com three.js (MeshPhysicalMaterial com
+    transmissão, clearcoat e reflexo de ambiente) sobre o fundo claro da página.
+    O resultado é uma imagem estática: a página não carrega three.js.
+
+    Para regenerar: abra este arquivo num navegador (via servidor local, por causa
+    dos módulos) e clique em "Baixar WebP", ou rode-o headless e leia
+    `window.__backdrop` (data URL) quando `window.__done` for true.
+-->
+<html lang="pt-BR">
+    <head>
+        <meta charset="utf-8" />
+        <title>Fundo de vidro do login</title>
+        <style>
+            html,
+            body {
+                margin: 0;
+                background: #222;
+            }
+            canvas {
+                display: block;
+                width: 100vw;
+                height: auto;
+            }
+            button {
+                position: fixed;
+                top: 12px;
+                right: 12px;
+                padding: 8px 14px;
+            }
+        </style>
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+                    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <button id="download" type="button">Baixar WebP</button>
+        <script type="module">
+            import * as THREE from 'three';
+            import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+            import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+            import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+            import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+            import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+            const WIDTH = 2560;
+            const HEIGHT = 1440;
+            // O plano z = 0 enquadra 16 x 9 unidades: as coordenadas abaixo seguem a tela.
+            const VIEW_W = 16;
+            const VIEW_H = 9;
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+            renderer.setPixelRatio(1);
+            renderer.setSize(WIDTH, HEIGHT, false);
+            renderer.toneMapping = THREE.NeutralToneMapping;
+            renderer.toneMappingExposure = 1.0;
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.VSMShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            const scene = new THREE.Scene();
+            const pmrem = new THREE.PMREMGenerator(renderer);
+            // Ambiente de estúdio: a sala padrão + faixas de luz longas, que viram reflexos suaves no vidro.
+            const studio = new RoomEnvironment();
+            for (const [x, y, z, w, h] of [
+                [-6, 6, 4, 14, 0.6],
+                [5, 3, 6, 10, 0.4],
+                [0, -5, 6, 16, 0.5],
+            ]) {
+                const strip = new THREE.Mesh(
+                    new THREE.PlaneGeometry(w, h),
+                    new THREE.MeshBasicMaterial({ color: new THREE.Color(3, 3, 3), side: THREE.DoubleSide }),
+                );
+                strip.position.set(x, y, z);
+                strip.lookAt(0, 0, 0);
+                studio.add(strip);
+            }
+            scene.environment = pmrem.fromScene(studio, 0.02).texture;
+            scene.environmentIntensity = 1.3;
+
+            const fov = 30;
+            const distance = VIEW_H / 2 / Math.tan(THREE.MathUtils.degToRad(fov / 2));
+            const camera = new THREE.PerspectiveCamera(fov, WIDTH / HEIGHT, 0.1, 100);
+            camera.position.set(0, 0, distance);
+
+            // Fundo claro com leve vinheta, igual ao da página (#f4f5f4 → #eceeec).
+            const backdropCanvas = document.createElement('canvas');
+            backdropCanvas.width = 1024;
+            backdropCanvas.height = 576;
+            const ctx = backdropCanvas.getContext('2d');
+            const base = ctx.createLinearGradient(0, 0, 1024, 576);
+            base.addColorStop(0, '#f7f8f7');
+            base.addColorStop(0.55, '#eff1ef');
+            base.addColorStop(1, '#f3f4f3');
+            ctx.fillStyle = base;
+            ctx.fillRect(0, 0, 1024, 576);
+            for (const [x, y, r, a] of [
+                [180, 90, 420, 0.5],
+                [700, 470, 380, 0.55],
+                [560, 250, 260, 0.35],
+            ]) {
+                const glow = ctx.createRadialGradient(x, y, 0, x, y, r);
+                glow.addColorStop(0, `rgba(255,255,255,${a})`);
+                glow.addColorStop(1, 'rgba(255,255,255,0)');
+                ctx.fillStyle = glow;
+                ctx.fillRect(0, 0, 1024, 576);
+            }
+            const backdropTexture = new THREE.CanvasTexture(backdropCanvas);
+            backdropTexture.colorSpace = THREE.SRGBColorSpace;
+            const backdropDepth = -2.2;
+            const scale = (distance - backdropDepth) / distance;
+            const backdrop = new THREE.Mesh(
+                new THREE.PlaneGeometry(VIEW_W * scale * 1.05, VIEW_H * scale * 1.05),
+                new THREE.MeshBasicMaterial({ map: backdropTexture, toneMapped: false }),
+            );
+            backdrop.position.z = backdropDepth;
+            scene.add(backdrop);
+
+            // Sombra suave das faixas sobre o fundo.
+            const shadowCatcher = new THREE.Mesh(
+                new THREE.PlaneGeometry(VIEW_W * scale * 1.05, VIEW_H * scale * 1.05),
+                new THREE.ShadowMaterial({ color: '#4d6b1c', opacity: 0.06 }),
+            );
+            shadowCatcher.position.z = backdropDepth + 0.01;
+            shadowCatcher.receiveShadow = true;
+            scene.add(shadowCatcher);
+
+            const key = new THREE.DirectionalLight('#ffffff', 3.2);
+            key.position.set(-6, 7, 9);
+            key.castShadow = true;
+            key.shadow.mapSize.set(2048, 2048);
+            key.shadow.radius = 18;
+            key.shadow.blurSamples = 24;
+            Object.assign(key.shadow.camera, { left: -12, right: 12, top: 8, bottom: -8, near: 1, far: 40 });
+            scene.add(key);
+            const rim = new THREE.DirectionalLight('#eaffc4', 1.6);
+            rim.position.set(7, -4, 6);
+            scene.add(rim);
+            const glint = new THREE.DirectionalLight('#ffffff', 2.2);
+            glint.position.set(4, 8, 4);
+            scene.add(glint);
+            scene.add(new THREE.HemisphereLight('#ffffff', '#dfe8d2', 0.6));
+
+            const glass = new THREE.MeshPhysicalMaterial({
+                color: '#ffffff',
+                vertexColors: true,
+                transmission: 1,
+                thickness: 0.5,
+                roughness: 0.04,
+                ior: 1.5,
+                dispersion: 0.6,
+                attenuationColor: '#d6f286',
+                attenuationDistance: 2.6,
+                sheen: 0.6,
+                sheenColor: '#eaffb8',
+                sheenRoughness: 0.35,
+                clearcoat: 1,
+                clearcoatRoughness: 0.03,
+                specularIntensity: 1,
+                specularColor: '#ffffff',
+                iridescence: 0.18,
+                iridescenceIOR: 1.25,
+                envMapIntensity: 1.5,
+                side: THREE.DoubleSide,
+            });
+
+            /**
+             * Faixa de vidro achatada ao longo de uma curva. A largura fica de frente para a
+             * câmera e gira em torno da curva conforme `twist(t)` (radianos), para que a fita
+             * alterne entre faces largas translúcidas e bordas finas brilhantes.
+             */
+            function ribbon(points, width, thickness, twist = () => 0) {
+                const curve = new THREE.CatmullRomCurve3(
+                    points.map(([x, y, z]) => new THREE.Vector3(x, y, z)),
+                    false,
+                    'centripetal',
+                );
+                const steps = 700;
+                const section = [];
+                const w = width / 2;
+                const t = thickness / 2;
+                const segments = 6;
+                // Seção: retângulo com as pontas arredondadas (meia-cápsula em cada lado).
+                for (let i = 0; i <= segments; i++) {
+                    const a = -Math.PI / 2 + (Math.PI * i) / segments;
+                    section.push([w - t + Math.cos(a) * t, Math.sin(a) * t]);
+                }
+                for (let i = 0; i <= segments; i++) {
+                    const a = Math.PI / 2 + (Math.PI * i) / segments;
+                    section.push([-w + t + Math.cos(a) * t, Math.sin(a) * t]);
+                }
+                const ring = section.length;
+                const positions = [];
+                const colors = [];
+                const indices = [];
+                // Centro da fita mais claro, bordas em verde-limão saturado (como vidro espesso).
+                const core = new THREE.Color('#fbfff2');
+                const rimColor = new THREE.Color('#bce452');
+                const tint = new THREE.Color();
+                const sectionColors = section.map(([x]) => {
+                    const edge = THREE.MathUtils.smoothstep(Math.abs(x) / w, 0.35, 1);
+                    tint.copy(core).lerp(rimColor, edge);
+                    return [tint.r, tint.g, tint.b];
+                });
+                const facing = new THREE.Vector3(0, 0, 1);
+                const tangent = new THREE.Vector3();
+                const across = new THREE.Vector3();
+                const depth = new THREE.Vector3();
+                for (let i = 0; i <= steps; i++) {
+                    const u = i / steps;
+                    const p = curve.getPointAt(u);
+                    curve.getTangentAt(u, tangent);
+                    across.crossVectors(tangent, facing).normalize();
+                    across.applyAxisAngle(tangent, twist(u));
+                    depth.crossVectors(across, tangent).normalize();
+                    for (const rgb of sectionColors) colors.push(...rgb);
+                    for (const [x, y] of section) {
+                        positions.push(
+                            p.x + across.x * x + depth.x * y,
+                            p.y + across.y * x + depth.y * y,
+                            p.z + across.z * x + depth.z * y,
+                        );
+                    }
+                    if (i < steps) {
+                        for (let j = 0; j < ring; j++) {
+                            const a = i * ring + j;
+                            const b = i * ring + ((j + 1) % ring);
+                            const c = a + ring;
+                            const d = b + ring;
+                            indices.push(a, c, b, b, c, d);
+                        }
+                    }
+                }
+                const geometry = new THREE.BufferGeometry();
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+                geometry.setIndex(indices);
+                geometry.computeVertexNormals();
+                const mesh = new THREE.Mesh(geometry, glass);
+                mesh.castShadow = true;
+                scene.add(mesh);
+                return mesh;
+            }
+
+            const wave = (from, to) => (u) => from + (to - from) * (0.5 - 0.5 * Math.cos(Math.PI * u));
+
+            // Arco superior: desce do topo atrás da prévia do painel e volta a subir.
+            ribbon(
+                [
+                    [-3.4, 6.2, -0.8],
+                    [-2.7, 3.2, -0.3],
+                    [-1.3, 1.4, 0.2],
+                    [0.6, 1.1, 0.1],
+                    [1.7, 2.8, -0.4],
+                    [2.0, 6.0, -0.9],
+                ],
+                1.25,
+                0.12,
+                wave(0.2, 1.35),
+            );
+            // Grande curva inferior esquerda, a mais próxima da câmera.
+            ribbon(
+                [
+                    [-9.8, -2.0, 0.2],
+                    [-7.2, -1.8, 0.9],
+                    [-4.6, -2.6, 1.1],
+                    [-2.9, -4.0, 0.6],
+                    [-2.1, -5.8, 0.2],
+                ],
+                1.7,
+                0.16,
+                wave(-0.35, 0.55),
+            );
+            // Fio secundário logo abaixo, mais fino.
+            ribbon(
+                [
+                    [-9.8, -3.5, -0.4],
+                    [-6.6, -3.3, 0.2],
+                    [-4.2, -4.1, 0.3],
+                    [-3.2, -5.8, 0.0],
+                ],
+                0.5,
+                0.08,
+                wave(0.9, 0.2),
+            );
+            // Curva direita, atravessando por trás do card.
+            ribbon(
+                [
+                    [0.6, -5.8, -0.8],
+                    [2.2, -3.0, -0.3],
+                    [4.6, -1.4, -0.5],
+                    [7.2, -0.7, -0.8],
+                    [9.8, -1.0, -1.0],
+                ],
+                0.8,
+                0.1,
+                wave(1.2, 0.3),
+            );
+
+            // Bloom leve só nos reflexos mais fortes: dá o brilho difuso do vidro.
+            const composer = new EffectComposer(renderer);
+            composer.setPixelRatio(1);
+            composer.setSize(WIDTH, HEIGHT);
+            composer.addPass(new RenderPass(scene, camera));
+            composer.addPass(new UnrealBloomPass(new THREE.Vector2(WIDTH, HEIGHT), 0.5, 0.85, 0.92));
+            composer.addPass(new OutputPass());
+            composer.render();
+            window.__backdrop = renderer.domElement.toDataURL('image/webp', 0.9);
+            window.__done = true;
+
+            document.getElementById('download').addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.href = window.__backdrop;
+                link.download = 'auth-backdrop.webp';
+                link.click();
+            });
+        </script>
+    </body>
+</html>

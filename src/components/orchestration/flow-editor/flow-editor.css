@@ -749,3 +749,70 @@ body.flow-moving-section * {
 .flow-canvas .react-flow__nodesselection {
     display: none;
 }
+
+/* A biblioteca permanece montada para o canvas ganhar e perder espaço sem saltos. */
+.flow-palette-shell {
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateX(-12px);
+    transition:
+        width 220ms cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 160ms ease,
+        transform 220ms cubic-bezier(0.4, 0, 0.2, 1),
+        visibility 0s linear 220ms;
+}
+
+.flow-palette-shell[data-open] {
+    width: 248px;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(0);
+    transition:
+        width 220ms cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 180ms ease,
+        transform 220ms cubic-bezier(0.4, 0, 0.2, 1),
+        visibility 0s linear 0s;
+}
+
+.flow-palette-shell > aside {
+    width: 248px;
+    min-width: 248px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .flow-palette-shell {
+        transition: none;
+    }
+}
+
+/* Embutido no workspace do checkout: sem moldura de página, ocupa o palco da aba. */
+.flow-embedded-toolbar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    padding: 10px 16px 10px 20px;
+}
+
+.flow-embedded-toolbar > div:first-child {
+    display: grid;
+    gap: 2px;
+}
+
+.flow-embedded-toolbar strong {
+    font-size: 14px;
+    letter-spacing: -0.01em;
+}
+
+.flow-embedded-toolbar span {
+    color: var(--muted);
+    font-size: 12px;
+}

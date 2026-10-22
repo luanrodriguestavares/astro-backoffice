@@ -14,6 +14,7 @@ import {
 
 import { CheckoutAppearanceStudio } from '@/components/checkout-builder/appearance-studio';
 import {
+    captureCheckoutCustomPreset,
     CheckoutBuilderProductsContext,
     type BuilderRootProps,
     type checkoutBuilderConfig,
@@ -45,16 +46,20 @@ export function EditorAppearanceButton() {
     function apply() {
         if (!draft) return;
         const { theme, layout } = appearanceToTheme(draft);
+        const customized = {
+            ...(root.props ?? {}),
+            ...theme,
+            ...layout,
+        } as Partial<BuilderRootProps>;
         dispatch({
             type: 'replaceRoot',
             root: {
                 ...root,
                 props: {
-                    ...(root.props ?? {}),
-                    ...theme,
-                    ...layout,
-                    // A aparência sob medida substitui qualquer identidade pronta escolhida antes.
-                    brandPreset: '',
+                    ...customized,
+                    // A aparência sob medida vira uma identidade recuperável deste checkout.
+                    brandPreset: 'custom',
+                    customPreset: captureCheckoutCustomPreset(customized),
                 },
             } as never,
         });

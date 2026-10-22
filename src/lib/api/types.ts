@@ -349,6 +349,7 @@ export interface Price {
     recurringInterval: string | null;
     recurringIntervalCount: number | null;
     status: string;
+    version?: number;
 }
 
 export interface Customer {
@@ -425,9 +426,9 @@ export interface GatewayInsights {
 }
 
 export interface PaymentRoutingDecision {
-    source?: 'flow' | 'checkout' | 'default';
-    /** Versão publicada do fluxo que decidiu e os nós percorridos. */
-    flowVersion?: number;
+    /** `checkout_flow`: fluxo de nós publicado com o próprio checkout. */
+    source?: 'checkout_flow' | 'checkout' | 'default';
+    /** Nós percorridos no fluxo que decidiu. */
     path?: string[];
     candidates?: string[];
     failovers?: { from: string; to: string; code: string; category?: string; at: string }[];
@@ -436,7 +437,7 @@ export interface PaymentRoutingDecision {
 export type RoutingPaymentMethod = 'card' | 'pix' | 'boleto' | 'bank_transfer';
 
 export type FlowConditionField =
-    'paymentMethod' | 'amount' | 'currency' | 'environment' | 'checkout' | 'product';
+    'paymentMethod' | 'amount' | 'currency' | 'environment' | 'product';
 
 export type FlowCondition =
     | {
@@ -459,7 +460,6 @@ export type FlowCondition =
           operator: 'in' | 'not_in';
           values: ('sandbox' | 'production')[];
       }
-    | { id: string; field: 'checkout'; operator: 'in' | 'not_in'; values: string[] }
     | { id: string; field: 'product'; operator: 'any_in' | 'all_in' | 'none_in'; values: string[] };
 
 export interface FlowConditionGroup {
@@ -485,9 +485,15 @@ export type FlowNode = FlowNodeBase &
               config: { cases: (FlowConditionGroup & { id: string; label: string })[] };
           }
         | { type: 'split'; config: { percentage: number } }
-        | { type: 'gateway'; config: { gatewayConnectionId: string | null } }
+        | {
+              type: 'gateway';
+              config: {
+                  gatewayConnectionId: string | null;
+                  /** Formas que este gateway cobra; ausente, todas. */
+                  methods?: CheckoutPaymentMethod[];
+              };
+          }
         | { type: 'cheapest'; config: { gatewayConnectionIds: string[] } }
-        | { type: 'checkout_default'; config: Record<string, never> }
         | { type: 'success'; config: Record<string, never> }
         | { type: 'failed'; config: Record<string, never> }
         | { type: 'note'; config: { text: string; width?: number; height?: number } }
@@ -544,19 +550,6 @@ export interface FlowIssue {
     nodeId?: string;
     severity: 'error' | 'warning';
     message: string;
-}
-
-export interface GatewayFlow {
-    id: string | null;
-    name: string;
-    status: 'active' | 'inactive';
-    draft: FlowGraph;
-    published: FlowGraph | null;
-    publishedAt: string | null;
-    publishedVersion: number;
-    version: number;
-    updatedAt: string | null;
-    issues: FlowIssue[];
 }
 
 export interface FlowSimulation {
@@ -657,15 +650,13 @@ export type CheckoutSectionType =
     | 'before_after'
     | 'client_logos'
     | 'floating_cta'
+    | 'cta_button'
     | 'spacer_divider'
     | 'order_bump'
     | 'product_summary'
     | 'checkout_form'
-    | 'order_summary'
     | 'payment_methods'
-    | 'card_payment'
-    | 'pix_payment'
-    | 'boleto_payment'
+    | 'payment_status'
     | 'shipping_address'
     | 'shipping_methods'
     | 'coupon_field'
@@ -673,16 +664,27 @@ export type CheckoutSectionType =
     | 'custom_fields'
     | 'footer';
 
+export interface CheckoutDocumentSection {
+    id: string;
+    type: CheckoutSectionType;
+    visible: boolean;
+    props: Record<string, unknown>;
+}
+
+export interface CheckoutDocumentPage {
+    id: string;
+    kind: 'content' | 'pix' | 'boleto' | 'success' | 'failure';
+    name: string;
+    next?: string | null;
+    sections: CheckoutDocumentSection[];
+}
+
 export interface CheckoutDocument {
     schemaVersion: 1;
     theme: Record<string, unknown>;
     layout: Record<string, unknown>;
-    sections: {
-        id: string;
-        type: CheckoutSectionType;
-        visible: boolean;
-        props: Record<string, unknown>;
-    }[];
+    sections: CheckoutDocumentSection[];
+    pages?: CheckoutDocumentPage[];
     settings: CheckoutSettings;
     seo: Record<string, unknown>;
 }
@@ -691,12 +693,11 @@ export type CheckoutPaymentMethod = 'card' | 'pix' | 'boleto';
 
 export type CheckoutEnvironment = 'sandbox' | 'production';
 
-/** Um gateway (formato antigo) ou a cascata: principal seguido das contingências. */
-export type CheckoutGatewayBinding = string | string[];
-
 export interface CheckoutSettings extends Record<string, unknown> {
     environment?: CheckoutEnvironment;
-    paymentGatewayBindings?: Partial<Record<CheckoutPaymentMethod, CheckoutGatewayBinding>>;
+    startPageId?: string;
+    /** Fluxo de nós do pagamento deste checkout; ausente, segue o preset (primeiro gateway ativo). */
+    paymentFlow?: FlowGraph;
 }
 
 export interface Checkout {
@@ -709,7 +710,6 @@ export interface Checkout {
     version: number;
     createdAt: string;
     updatedAt: string;
-    /** Itens do checkout; vem só no detalhe (GET /checkouts/:id). */
     products?: CheckoutProductPrice[];
 }
 

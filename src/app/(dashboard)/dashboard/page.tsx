@@ -85,14 +85,6 @@ export default async function DashboardPage() {
     return (
         <DashboardPeriodProvider>
             <div className="dashboard-home" data-tour="dashboard-home">
-                {/* Formas prateadas discretas e a estrela do Astro atrás do cabeçalho. */}
-                <div aria-hidden="true" className="dashboard-home-decor">
-                    <span />
-                    <span />
-                    <span />
-                    {/* eslint-disable-next-line @next/next/no-img-element -- SVG decorativo */}
-                    <img src="/astro-star.svg" alt="" className="dashboard-home-star" />
-                </div>
                 <PageHeader
                     prominentTitle
                     eyebrow={
@@ -423,7 +415,7 @@ function RecentCheckouts({ checkouts }: { checkouts: Checkout[] }) {
                     {checkouts.map((checkout) => (
                         <Link
                             key={checkout.id}
-                            href={`/checkouts/${checkout.id}/builder`}
+                            href={`/checkouts/${checkout.id}`}
                             className="dashboard-list-row group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-2 py-3 transition hover:bg-white/38 sm:grid-cols-[minmax(0,1fr)_70px_80px_auto]"
                         >
                             <span className="min-w-0">

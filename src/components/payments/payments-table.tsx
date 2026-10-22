@@ -305,11 +305,11 @@ export function PaymentsTable({
                                     <Detail
                                         label="Decidido por"
                                         value={
-                                            selected.routing.source === 'flow'
-                                                ? `Fluxo de orquestração v${String(selected.routing.flowVersion ?? '')}`
+                                            selected.routing.source === 'checkout_flow'
+                                                ? 'Fluxo de pagamento do checkout'
                                                 : selected.routing.source === 'checkout'
                                                   ? 'Configuração do checkout'
-                                                  : 'Primeiro gateway compatível'
+                                                  : 'Padrão (primeiro gateway compatível)'
                                         }
                                     />
                                     <Detail

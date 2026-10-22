@@ -24,13 +24,7 @@ type Draft = Record<Method, { percent: string; fixed: string }>;
 /** Venda usada nos exemplos: um valor redondo que qualquer pessoa entende. */
 const exampleSaleMinor = 10_000;
 
-export function GatewayCosts({
-    connections,
-    costRules,
-}: {
-    connections: GatewayConnection[];
-    costRules: number;
-}) {
+export function GatewayCosts({ connections }: { connections: GatewayConnection[] }) {
     const [editing, setEditing] = useState<GatewayConnection | null>(null);
     // O modal usa portal no document: só pode existir depois de montar no navegador.
     const mounted = useSyncExternalStore(
@@ -59,18 +53,16 @@ export function GatewayCosts({
                 />
             ))}
 
-            {costRules === 0 && (
-                <p className="px-1 pt-2 text-[13px] text-muted">
-                    As taxas servem para o bloco &ldquo;Mais barato&rdquo; do fluxo escolher o
-                    gateway.{' '}
-                    <Link
-                        href="/orchestration"
-                        className="font-semibold text-foreground underline-offset-2 hover:underline"
-                    >
-                        Abrir o fluxo
-                    </Link>
-                </p>
-            )}
+            <p className="px-1 pt-2 text-[13px] text-muted">
+                As taxas servem para a estratégia &ldquo;Menor taxa&rdquo; do pagamento de cada
+                checkout escolher o gateway.{' '}
+                <Link
+                    href="/checkouts"
+                    className="font-semibold text-foreground underline-offset-2 hover:underline"
+                >
+                    Abrir checkouts
+                </Link>
+            </p>
 
             {mounted && editing && (
                 <FeeModal key={editing.id} connection={editing} onClose={() => setEditing(null)} />

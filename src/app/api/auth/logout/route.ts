@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { forwardedClientIp } from '@/lib/api/client-ip';
 import { astroApiUrl } from '@/lib/api/config';
 
 export async function POST(request: NextRequest) {
@@ -7,7 +8,10 @@ export async function POST(request: NextRequest) {
     if (refreshToken !== undefined) {
         await fetch(`${astroApiUrl()}/api/v1/auth/logout`, {
             method: 'POST',
-            headers: { 'content-type': 'application/json' },
+            headers: {
+                'content-type': 'application/json',
+                ...forwardedClientIp(request.headers),
+            },
             body: JSON.stringify({ refreshToken }),
             cache: 'no-store',
         }).catch(() => undefined);

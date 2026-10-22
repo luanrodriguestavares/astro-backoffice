@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@astro/checkout-renderer": ["../checkout-renderer/src/index.ts"],
+      "@astro/checkout-renderer/*": ["../checkout-renderer/src/*"]
     }
   },
   "include": [

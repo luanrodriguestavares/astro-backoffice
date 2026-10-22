@@ -189,18 +189,10 @@ const navigationGroups: { label: string; icon: IconName; items: NavigationItem[]
         ],
     },
     {
-        // Decide por onde cada venda é cobrada; Integrações só conecta os provedores.
+        // Como as vendas estão sendo cobradas. O fluxo de cada venda é do checkout dela.
         label: 'Orquestração',
         icon: 'route',
         items: [
-            {
-                label: 'Fluxo',
-                href: '/orchestration',
-                icon: 'route',
-                exact: true,
-                permission: 'gateway_connections.manage',
-                feature: 'gateways.connected',
-            },
             {
                 label: 'Desempenho',
                 href: '/orchestration/performance',
@@ -342,7 +334,11 @@ export function DashboardShell({
         setPreviousActiveGroup(activeGroup);
         if (activeGroup !== null) setExpandedGroup(activeGroup);
     }
-    const focusedEditor = /^\/checkouts\/[^/]+\/(?:builder|preview)\/?$/.test(pathname);
+    // O workspace do checkout (funil, páginas, pagamento e relatórios) ocupa a tela toda.
+    const focusedEditor =
+        /^\/checkouts\/(?!(?:templates|analytics)\/?$)[^/]+(?:\/(?:builder|preview))?\/?$/.test(
+            pathname,
+        );
     const dashboardDark = dashboardTheme === 'dark';
 
     useEffect(() => {
@@ -522,7 +518,8 @@ export function DashboardShell({
                         </span>
                     </header>
 
-                    <main className="mx-auto w-full max-w-[1540px] px-4 pb-10 pt-3 sm:px-6 sm:pt-5 lg:px-10 lg:pb-14 lg:pt-8">
+                    <main className="relative isolate mx-auto w-full max-w-[1540px] px-4 pb-10 pt-3 sm:px-6 sm:pt-5 lg:px-10 lg:pb-14 lg:pt-8">
+                        <DashboardPageDecor />
                         <ShellActionsProvider
                             actions={
                                 <>
@@ -720,6 +717,17 @@ function AmbientBackground() {
         >
             <div className="absolute -right-48 -top-56 size-[620px] rounded-full bg-brand opacity-[0.055] blur-[90px]" />
             <div className="absolute -bottom-52 left-[24%] size-[520px] rounded-full bg-brand opacity-[0.035] blur-[100px]" />
+        </div>
+    );
+}
+
+/** Formas prateadas discretas compartilhadas por todas as páginas do painel. */
+function DashboardPageDecor() {
+    return (
+        <div aria-hidden="true" className="dashboard-page-decor">
+            <span />
+            <span />
+            <span />
         </div>
     );
 }

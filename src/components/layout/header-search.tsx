@@ -123,15 +123,6 @@ const destinations: (SearchResult & {
         feature: 'commerce.orders',
     },
     {
-        label: 'Fluxo de orquestração',
-        group: 'Orquestração',
-        href: '/orchestration',
-        icon: 'route',
-        permission: 'gateway_connections.manage',
-        feature: 'gateways.connected',
-        keywords: 'fluxo regras roteamento gateway reserva contingência nós condição n8n',
-    },
-    {
         label: 'Desempenho da orquestração',
         group: 'Orquestração',
         href: '/orchestration/performance',

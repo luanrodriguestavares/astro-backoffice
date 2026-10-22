@@ -71,7 +71,7 @@ const reports: ReportDefinition[] = [
     ['orders-by-product', 'Top produtos por pedidos', 'bar', 'performance', true],
     ['orders-by-payment-method', 'Métodos de pagamento', 'bar', 'performance'],
     ['revenue-by-checkout', 'Receita por checkout', 'bar', 'performance'],
-    ['checkout-funnel', 'Funil do checkout', 'funnel', 'customers', true],
+    ['checkout-funnel', 'Jornada por página', 'funnel', 'customers', true],
     ['customers-by-plan', 'Clientes por plano recorrente', 'bar', 'customers'],
     ['checkouts-by-revenue', 'Checkouts por receita', 'bar', 'performance'],
     ['checkouts-by-sales', 'Checkouts por vendas', 'bar', 'performance'],

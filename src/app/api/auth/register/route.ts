@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+import { forwardedClientIp } from '@/lib/api/client-ip';
 import { astroApiUrl } from '@/lib/api/config';
 import type { ApiEnvelope, ProblemDetails, SessionData } from '@/lib/api/types';
 import { authenticatedRedirect } from '@/lib/auth/session';
@@ -25,7 +26,11 @@ export async function POST(request: Request) {
     try {
         const response = await fetch(`${astroApiUrl()}/api/v1/auth/register`, {
             method: 'POST',
-            headers: { 'content-type': 'application/json', accept: 'application/json' },
+            headers: {
+                'content-type': 'application/json',
+                accept: 'application/json',
+                ...forwardedClientIp(request.headers),
+            },
             body: JSON.stringify({
                 name: input.name,
                 email: input.email,
@@ -59,7 +64,10 @@ export async function POST(request: Request) {
         const destination = new URL('/dashboard', request.url);
         if (!input.invitationToken) destination.searchParams.set('onboarding', 'appearance');
         if (!session.user.emailVerified) {
-            const verificationResult = await requestVerificationEmail(input.email);
+            const verificationResult = await requestVerificationEmail(
+                input.email,
+                forwardedClientIp(request.headers),
+            );
             destination.searchParams.set('email', input.email);
             destination.searchParams.set(
                 'verification',
@@ -76,11 +84,15 @@ export async function POST(request: Request) {
     }
 }
 
-async function requestVerificationEmail(email: string) {
+async function requestVerificationEmail(email: string, clientIp: Record<string, string>) {
     try {
         const response = await fetch(`${astroApiUrl()}/api/v1/auth/email-verification/request`, {
             method: 'POST',
-            headers: { 'content-type': 'application/json', accept: 'application/json' },
+            headers: {
+                'content-type': 'application/json',
+                accept: 'application/json',
+                ...clientIp,
+            },
             body: JSON.stringify({ email }),
             cache: 'no-store',
         });

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { forwardedClientIp } from '@/lib/api/client-ip';
 import { astroApiUrl } from '@/lib/api/config';
 import type { ApiEnvelope, SessionData } from '@/lib/api/types';
 import { applySessionCookies } from '@/lib/auth/session';
@@ -18,7 +19,11 @@ export async function proxy(request: NextRequest) {
         try {
             const refresh = await fetch(`${astroApiUrl()}/api/v1/auth/refresh`, {
                 method: 'POST',
-                headers: { 'content-type': 'application/json', accept: 'application/json' },
+                headers: {
+                    'content-type': 'application/json',
+                    accept: 'application/json',
+                    ...forwardedClientIp(request.headers),
+                },
                 body: JSON.stringify({ refreshToken }),
                 cache: 'no-store',
             });

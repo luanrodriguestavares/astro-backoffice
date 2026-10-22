@@ -151,7 +151,7 @@ export function CustomSelect({
     );
 
     return (
-        <div ref={root} className="relative">
+        <div ref={root} className="custom-select relative">
             <input type="hidden" name={name} value={selected} required={required} />
             <Button
                 ref={triggerRef}

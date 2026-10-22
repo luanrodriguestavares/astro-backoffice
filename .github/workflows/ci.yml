@@ -17,16 +17,34 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backoffice
     steps:
+      # `@astro/checkout-renderer` é `file:../checkout-renderer`: os dois repositórios ficam lado a
+      # lado, como no desenvolvimento local. Se o renderer for privado, configure o segredo
+      # CHECKOUT_RENDERER_TOKEN com leitura nele.
       - uses: actions/checkout@v4
+        with:
+          path: backoffice
+      - uses: actions/checkout@v4
+        with:
+          repository: luanrodriguestavares/astro-checkout-renderer
+          path: checkout-renderer
+          token: ${{ secrets.CHECKOUT_RENDERER_TOKEN || github.token }}
       - uses: pnpm/action-setup@v4
         with:
-          version: 10.18.3
+          package_json_file: backoffice/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+          cache-dependency-path: |
+            backoffice/pnpm-lock.yaml
+            checkout-renderer/pnpm-lock.yaml
+      - name: Install renderer dependencies
+        working-directory: checkout-renderer
+        run: pnpm install --frozen-lockfile
       - run: pnpm install --frozen-lockfile
       - name: Audit production dependencies
         run: pnpm audit --prod --audit-level high
@@ -35,4 +53,5 @@ jobs:
           ASTRO_API_URL: http://api:3000
           NEXT_PUBLIC_CHECKOUT_URL: https://checkout.example.com
       - name: Build production image
-        run: docker build --build-arg NEXT_PUBLIC_CHECKOUT_URL=https://checkout.example.com -t astro-backoffice:${{ github.sha }} .
+        working-directory: .
+        run: docker build -f backoffice/Dockerfile --build-arg NEXT_PUBLIC_CHECKOUT_URL=https://checkout.example.com -t astro-backoffice:${{ github.sha }} .

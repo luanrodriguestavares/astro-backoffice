@@ -10,39 +10,28 @@ export const blockDragType = 'application/astro-flow-block';
 
 export function BlockPalette({
     hasTrigger,
-    templatesOpen,
     onAdd,
     onOpenTemplates,
-    onCloseTemplates,
 }: {
     hasTrigger: boolean;
-    templatesOpen: boolean;
     onAdd(type: FlowNodeType, event?: FlowEvent): void;
     onOpenTemplates(): void;
-    onCloseTemplates(): void;
 }) {
     return (
         <aside
             aria-label="Blocos do fluxo"
             className="flex h-full w-full flex-col overflow-hidden border-r border-border bg-surface"
         >
-            <div role="tablist" className="flex gap-1 p-3 pb-0">
-                <button
-                    type="button"
-                    role="tab"
-                    aria-selected={!templatesOpen}
-                    onClick={onCloseTemplates}
-                    className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${!templatesOpen ? 'bg-surface-muted text-foreground' : 'text-muted hover:text-foreground'}`}
-                >
+            <div className="flex gap-1 p-3 pb-0">
+                <span className="rounded-lg bg-surface-muted px-3 py-1.5 text-[12px] font-semibold text-foreground">
                     Blocos
-                </button>
-                {/* Modelos abrem uma galeria sobre o quadro, com miniaturas de cada fluxo. */}
+                </span>
+                {/* Modelos abrem um modal com miniaturas de cada fluxo. */}
                 <button
                     type="button"
-                    role="tab"
-                    aria-selected={templatesOpen}
+                    aria-haspopup="dialog"
                     onClick={onOpenTemplates}
-                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${templatesOpen ? 'bg-surface-muted text-foreground' : 'text-muted hover:text-foreground'}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-muted transition hover:text-foreground"
                 >
                     <Icon name="layers" className="size-3.5" />
                     Modelos

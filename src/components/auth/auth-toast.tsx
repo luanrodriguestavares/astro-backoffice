@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -13,6 +14,8 @@ export function AuthToast({
     tone?: 'error' | 'info';
 }) {
     const [visible, setVisible] = useState(Boolean(message));
+    // false no servidor e na hidratação, true depois: o portal só entra no cliente.
+    const mounted = useSyncExternalStore(subscribeNothing, isClient, isServer);
 
     useEffect(() => {
         if (!message) return;
@@ -28,9 +31,11 @@ export function AuthToast({
         clearAuthFeedbackFromUrl();
     }
 
-    if (!message || !visible) return null;
+    if (!message || !visible || !mounted) return null;
     const error = tone === 'error';
-    return (
+    // Portal no body: dentro do card de vidro (backdrop-filter) o `fixed` ficaria
+    // preso ao card em vez de ir para o canto da tela.
+    return createPortal(
         <div
             role={error ? 'alert' : 'status'}
             aria-live={error ? 'assertive' : 'polite'}
@@ -64,7 +69,8 @@ export function AuthToast({
                     error ? 'bg-danger' : 'bg-brand'
                 }`}
             />
-        </div>
+        </div>,
+        document.body,
     );
 }
 
@@ -75,3 +81,7 @@ function clearAuthFeedbackFromUrl() {
     url.searchParams.delete('message');
     window.history.replaceState(window.history.state, '', url);
 }
+
+const subscribeNothing = () => () => {};
+const isClient = () => true;
+const isServer = () => false;

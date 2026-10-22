@@ -19,16 +19,21 @@ import {
     type Edge,
     type FinalConnectionState,
 } from '@xyflow/react';
-import Link from 'next/link';
 import { createPortal } from 'react-dom';
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    useSyncExternalStore,
+    type ReactNode,
+} from 'react';
 
-import { ShellActions } from '@/components/layout/shell-actions';
 import { Button } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { showToast } from '@/components/ui/toast';
 import type {
-    Checkout,
     FlowGraph,
     FlowIssue,
     FlowNode,
@@ -36,7 +41,6 @@ import type {
     FlowEvent,
     FlowSimulation,
     GatewayConnection,
-    GatewayFlow,
     GatewayInsights,
     Product,
     WebhookEndpointSummary,
@@ -67,15 +71,22 @@ import { TemplateGallery } from './template-gallery';
 const nodeTypes = { flow: FlowNodeCard };
 const edgeTypes = { flow: FlowEdge };
 
-type SaveState = 'saved' | 'dirty' | 'saving' | 'error' | 'conflict';
-
+/**
+ * Fluxo de pagamento de um checkout, dentro do workspace dele: o grafo sobe para o
+ * workspace, que salva e publica tudo junto com as páginas.
+ */
 interface Props {
-    flow: GatewayFlow;
+    graph: FlowGraph;
     connections: GatewayConnection[];
     insights: GatewayInsights | null;
-    checkouts: Checkout[];
     products: Product[];
     webhooks: WebhookEndpointSummary[];
+    onChange(graph: FlowGraph): void;
+    /** Problemas atuais do fluxo, para quem mostra o resumo fora do editor. */
+    onIssues?(issues: FlowIssue[]): void;
+    /** Esquerda da barra (identidade da área); sem ela, o título padrão do fluxo. */
+    leading?: ReactNode;
+    actions?: ReactNode;
 }
 
 export function FlowEditor(props: Props) {
@@ -86,30 +97,34 @@ export function FlowEditor(props: Props) {
     );
 }
 
-function Editor({ flow, connections, insights, checkouts, products, webhooks }: Props) {
+function Editor({
+    graph: initial,
+    connections,
+    insights,
+    products,
+    webhooks,
+    onChange,
+    onIssues,
+    leading,
+    actions,
+}: Props) {
     const reactFlow = useReactFlow<FlowCanvasNode, FlowCanvasEdge>();
     const canvas = useRef<HTMLDivElement>(null);
     const [nodes, setNodes, onNodesChange] = useNodesState<FlowCanvasNode>(
-        toCanvasNodes(adoptLegacyMembership(flow.draft.nodes)),
+        toCanvasNodes(adoptLegacyMembership(initial.nodes)),
     );
-    const [edges, setEdges, onEdgesChange] = useEdgesState<FlowCanvasEdge>(
-        toCanvasEdges(flow.draft),
-    );
-    const [name, setName] = useState(flow.name);
-    const [meta, setMeta] = useState(() => pickMeta(flow));
-    const [issues, setIssues] = useState<FlowIssue[]>(flow.issues);
-    const [saveState, setSaveState] = useState<SaveState>('saved');
+    const [edges, setEdges, onEdgesChange] = useEdgesState<FlowCanvasEdge>(toCanvasEdges(initial));
+    const [issues, setIssues] = useState<FlowIssue[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [panel, setPanel] = useState<'inspector' | 'simulation' | null>(null);
     const [simulation, setSimulation] = useState<FlowSimulation | null>(null);
     const [simulating, setSimulating] = useState(false);
     const [picker, setPicker] = useState<PickerRequest | null>(null);
     const [paletteOpen, setPaletteOpen] = useState(true);
-    const [publishing, setPublishing] = useState(false);
+    const [galleryOpen, setGalleryOpen] = useState(false);
     const [menu, setMenu] = useState<
         (MenuState & { title: string | undefined; entries: MenuEntry[] }) | null
     >(null);
-    const [galleryOpen, setGalleryOpen] = useState(false);
     const [spaceHeld, setSpaceHeld] = useState(false);
     /** Seção destacada enquanto blocos são arrastados sobre ela. */
     const [dropSection, setDropSection] = useState<string | null>(null);
@@ -129,10 +144,7 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
     const [hasClipboard, setHasClipboard] = useState(false);
 
     const graph = useMemo(() => fromCanvas(nodes, edges), [nodes, edges]);
-    const key = useMemo(
-        () => JSON.stringify({ name, nodes: graph.nodes, edges: graph.edges }),
-        [name, graph],
-    );
+    const key = useMemo(() => JSON.stringify({ nodes: graph.nodes, edges: graph.edges }), [graph]);
 
     // --- Histórico (desfazer/refazer) --------------------------------------------------
     const history = useRef({ past: [] as string[], future: [] as string[], current: key });
@@ -159,8 +171,7 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
 
     const restore = useCallback(
         (serialized: string) => {
-            const parsed = JSON.parse(serialized) as { name: string } & FlowGraph;
-            setName(parsed.name);
+            const parsed = JSON.parse(serialized) as FlowGraph;
             setNodes(toCanvasNodes(parsed.nodes));
             setEdges(toCanvasEdges(parsed));
             setSelectedId(null);
@@ -185,63 +196,45 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
         restore(next);
     }, [restore]);
 
-    // --- Rascunho automático -----------------------------------------------------------
+    // Cada mudança vai para o documento do checkout, e a validação (com gateways, produtos
+    // e webhooks atuais) vem da API sem salvar nada.
     const savedKey = useRef(key);
-    const saving = useRef(false);
-    const latest = useRef({ key, name, graph, version: meta.version });
     useEffect(() => {
-        latest.current = { key, name, graph, version: meta.version };
-    }, [graph, key, meta.version, name]);
-
-    const saveDraft = useCallback(async () => {
-        if (saving.current) return;
-        const snapshot = latest.current;
-        if (snapshot.key === savedKey.current) return;
-        saving.current = true;
-        setSaveState('saving');
-        const response = await fetch('/api/gateway-flow/draft', {
-            method: 'PUT',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-                name: snapshot.name.trim().length >= 2 ? snapshot.name.trim() : undefined,
-                graph: { ...snapshot.graph, viewport: reactFlow.getViewport() },
-                expectedVersion: snapshot.version,
-            }),
-        }).catch(() => null);
-        saving.current = false;
-        const body = response
-            ? ((await response.json().catch(() => ({}))) as { data?: GatewayFlow; detail?: string })
-            : {};
-        if (response?.status === 409) {
-            setSaveState('conflict');
-            showToast({ tone: 'error', description: body.detail ?? 'O fluxo mudou em outra aba.' });
-            return;
-        }
-        if (!response?.ok || !body.data) {
-            setSaveState('error');
-            return;
-        }
-        savedKey.current = snapshot.key;
-        setMeta(pickMeta(body.data));
-        setIssues(body.data.issues);
-        setSaveState(latest.current.key === snapshot.key ? 'saved' : 'dirty');
-    }, [reactFlow]);
-
-    useEffect(() => {
-        if (key === savedKey.current || saveState === 'conflict') return;
-        setSaveState((state) => (state === 'saving' ? state : 'dirty'));
-        const timer = setTimeout(() => void saveDraft(), 1200);
+        if (key === savedKey.current) return;
+        const timer = setTimeout(() => {
+            savedKey.current = key;
+            onChange({ ...graph, viewport: reactFlow.getViewport() });
+        }, 250);
         return () => clearTimeout(timer);
-    }, [key, saveDraft, saveState]);
-
+    }, [graph, key, onChange, reactFlow]);
+    // `onIssues` fica numa ref: as issues devolvidas re-renderizam quem embute, que pode
+    // recriar a função (validaria em loop).
+    const issuesListener = useRef(onIssues);
     useEffect(() => {
-        function warn(event: BeforeUnloadEvent) {
-            if (latest.current.key !== savedKey.current) event.preventDefault();
-        }
-
-        window.addEventListener('beforeunload', warn);
-        return () => window.removeEventListener('beforeunload', warn);
-    }, []);
+        issuesListener.current = onIssues;
+    }, [onIssues]);
+    useEffect(() => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => {
+            void fetch('/api/gateway-flow/validate', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ graph }),
+                signal: controller.signal,
+            })
+                .then(async (response) => {
+                    const body = (await response.json()) as { data?: { issues: FlowIssue[] } };
+                    if (!response.ok || !body.data) return;
+                    setIssues(body.data.issues);
+                    issuesListener.current?.(body.data.issues);
+                })
+                .catch(() => undefined);
+        }, 500);
+        return () => {
+            controller.abort();
+            clearTimeout(timer);
+        };
+    }, [graph]);
 
     // --- Edição ------------------------------------------------------------------------
     const updateNode = useCallback(
@@ -616,9 +609,6 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
             } else if (keyName === 'a') {
                 event.preventDefault();
                 selectAll();
-            } else if (keyName === 's') {
-                event.preventDefault();
-                void saveDraft();
             } else if (keyName === 'z' && !event.shiftKey) {
                 event.preventDefault();
                 undo();
@@ -638,7 +628,6 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
         duplicate,
         paste,
         redo,
-        saveDraft,
         selectAll,
         selectedId,
         setNodes,
@@ -1001,75 +990,7 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
         setPanel('inspector');
     }
 
-    // --- Publicar, pausar, simular -----------------------------------------------------
-    async function publish() {
-        setPublishing(true);
-        const response = await fetch('/api/gateway-flow/publish', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-                name: name.trim().length >= 2 ? name.trim() : undefined,
-                graph: { ...graph, viewport: reactFlow.getViewport() },
-                expectedVersion: meta.version,
-            }),
-        }).catch(() => null);
-        setPublishing(false);
-        const body = response
-            ? ((await response.json().catch(() => ({}))) as {
-                  data?: GatewayFlow;
-                  detail?: string;
-                  meta?: { issues?: FlowIssue[] };
-              })
-            : {};
-        if (!response?.ok || !body.data) {
-            if (body.meta?.issues) setIssues(body.meta.issues);
-            if (response?.status === 409) setSaveState('conflict');
-            const firstError = body.meta?.issues?.find((issue) => issue.nodeId);
-            if (firstError?.nodeId) focusNode(firstError.nodeId);
-            showToast({
-                tone: 'error',
-                title: 'Não foi possível publicar',
-                description: body.detail ?? 'Tente novamente em instantes.',
-            });
-            return;
-        }
-        savedKey.current = key;
-        setSaveState('saved');
-        setMeta(pickMeta(body.data));
-        setIssues(body.data.issues);
-        showToast({
-            tone: 'success',
-            title: 'Fluxo publicado',
-            description: 'As próximas vendas já seguem este fluxo.',
-        });
-    }
-
-    async function setStatus(status: 'active' | 'inactive') {
-        const response = await fetch('/api/gateway-flow', {
-            method: 'PATCH',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ status }),
-        }).catch(() => null);
-        const body = response
-            ? ((await response.json().catch(() => ({}))) as { data?: GatewayFlow; detail?: string })
-            : {};
-        if (!response?.ok || !body.data) {
-            showToast({
-                tone: 'error',
-                description: body.detail ?? 'Não foi possível alterar o fluxo.',
-            });
-            return;
-        }
-        setMeta(pickMeta(body.data));
-        showToast({
-            tone: 'success',
-            description:
-                status === 'active'
-                    ? 'Fluxo ativado. As vendas voltam a seguir o fluxo.'
-                    : 'Fluxo pausado. As vendas usam o gateway de cada checkout.',
-        });
-    }
-
+    // --- Simular ----------------------------------------------------------------------
     async function simulate(input: SimulationInput) {
         setSimulating(true);
         const response = await fetch('/api/gateway-flow/simulate', {
@@ -1095,11 +1016,12 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
         setSimulation(body.data);
     }
 
+    /** Modelo de rota: substitui o quadro (dá para desfazer com Ctrl+Z). */
     function applyTemplate(template: FlowGraph) {
         if (
             graph.nodes.length > 4 &&
             !window.confirm(
-                'Substituir o rascunho atual por este modelo? Dá para desfazer com Ctrl+Z.',
+                'Substituir o fluxo atual por este modelo? Dá para desfazer com Ctrl+Z.',
             )
         )
             return;
@@ -1110,7 +1032,7 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
         window.setTimeout(() => void reactFlow.fitView({ padding: 0.2, duration: 400 }), 50);
     }
 
-    /** Adiciona um grafo abaixo do que já existe, com ids novos para não colidir. */
+    /** Modelo de automação: entra abaixo do que já existe, com ids novos para não colidir. */
     function appendGraph(addition: FlowGraph) {
         const bottom = Math.max(
             0,
@@ -1236,7 +1158,6 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
                 (insights?.gateways ?? []).map((item) => [item.gatewayConnectionId, item]),
             ),
             names: {
-                checkouts: new Map(checkouts.map((checkout) => [checkout.id, checkout.name])),
                 products: new Map(products.map((product) => [product.id, product.name])),
             },
             issues: issueMap,
@@ -1257,7 +1178,6 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
             updateNode,
         };
     }, [
-        checkouts,
         connections,
         edges,
         insights,
@@ -1274,7 +1194,6 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
     ]);
 
     const selected = selectedId ? flowById.get(selectedId) : undefined;
-    const usableGateways = connections.filter((connection) => connection.status !== 'disabled');
     const availableEvents = useMemo(
         () => [
             ...new Set(
@@ -1304,18 +1223,17 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
             ? 'sandbox'
             : 'production';
     }, [connections, graph]);
-    const templateReferences = useMemo(
-        () => ({
-            primaryGateway: usableGateways[0]?.id ?? null,
-            backupGateway: usableGateways[1]?.id ?? null,
+    const templateReferences = useMemo(() => {
+        const usable = connections.filter((connection) => connection.status !== 'disabled');
+        return {
+            primaryGateway: usable[0]?.id ?? null,
+            backupGateway: usable[1]?.id ?? null,
             webhookEndpoint: webhooks.find((endpoint) => endpoint.status === 'active')?.id ?? null,
-        }),
-        [usableGateways, webhooks],
-    );
+        };
+    }, [connections, webhooks]);
     const hasTrigger = graph.nodes.some((node) => node.type === 'trigger');
     const errors = issues.filter((issue) => issue.severity === 'error');
     const warnings = issues.filter((issue) => issue.severity === 'warning');
-    const changed = meta.published === null || structure(meta.published) !== structure(graph);
     const panelOpen = panel === 'simulation' || (panel === 'inspector' && selected !== undefined);
 
     function openInspector(id: string, tab: 'config' | 'settings' = 'config') {
@@ -1569,39 +1487,36 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
         <FlowEditorContext.Provider value={context}>
             {withPortal(
                 fullscreen,
-                <div ref={editor} className={fullscreen ? 'flow-fullscreen' : undefined}>
-                    <div
-                        className={`${fullscreen ? 'mb-3' : 'mb-4'} flex flex-col justify-between gap-4 sm:flex-row sm:items-center`}
-                    >
-                        <div className="min-w-0">
-                            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
-                                Orquestração
-                            </p>
-                            <div className="flex flex-wrap items-center gap-2.5">
-                                <label className="group relative flex items-center">
-                                    <span className="sr-only">Nome do fluxo</span>
-                                    <input
-                                        value={name}
-                                        maxLength={160}
-                                        onChange={(event) => setName(event.target.value)}
-                                        className="flow-title-input w-[min(60vw,22ch)] outline-none"
-                                    />
-                                    <Icon
-                                        name="edit"
-                                        className="size-3.5 text-muted opacity-0 transition group-hover:opacity-100"
-                                    />
-                                </label>
-                                <StatusChip meta={meta} changed={changed} />
-                                <SaveIndicator state={saveState} updatedAt={meta.updatedAt} />
+                <div
+                    ref={editor}
+                    className={
+                        fullscreen
+                            ? 'flow-fullscreen'
+                            : 'flow-embedded flex h-full min-h-0 flex-col'
+                    }
+                >
+                    <div className="flow-embedded-toolbar">
+                        {leading ?? (
+                            <div className="min-w-0">
+                                <strong>Fluxo de pagamento</strong>
+                                <span>
+                                    O checkout entrega a venda em “Venda iniciada”; as saídas levam
+                                    às páginas de resultado do funil.
+                                </span>
                             </div>
-                        </div>
-                        <div className="flex shrink-0 flex-wrap items-center gap-2">
-                            <ShellActions />
+                        )}
+                        <div className="flow-embedded-actions flex shrink-0 items-center gap-2">
+                            {actions}
                             <IssuesButton errors={errors} warnings={warnings} onFocus={focusNode} />
+                            <Button type="button" variant="ghost" onClick={arrange}>
+                                <Icon name="route" className="size-3.5" />
+                                Organizar
+                            </Button>
                             <Button
                                 type="button"
                                 variant="secondary"
                                 aria-pressed={panel === 'simulation'}
+                                className="h-9"
                                 onClick={() => {
                                     if (panel === 'simulation') {
                                         setPanel(null);
@@ -1612,56 +1527,24 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
                                 <Icon name="play" className="size-3.5" />
                                 Simular
                             </Button>
-                            <Button
-                                type="button"
-                                variant="primary"
-                                disabled={publishing || saveState === 'conflict'}
-                                onClick={() => void publish()}
-                                className="gap-2.5 disabled:opacity-55"
-                            >
-                                <Icon name="bolt" className="size-4" />
-                                {publishing ? 'Publicando…' : 'Publicar fluxo'}
-                                <Icon
-                                    name="arrow-right"
-                                    className="size-3.5 opacity-70 transition-transform group-hover:translate-x-0.5"
-                                />
-                            </Button>
-                            <FlowMenu
-                                status={meta.status}
-                                published={meta.published !== null}
-                                onArrange={arrange}
-                                onStatus={(status) => void setStatus(status)}
-                                onRevert={() => {
-                                    if (!meta.published) return;
-                                    if (
-                                        !window.confirm(
-                                            'Descartar o rascunho e voltar para a versão publicada?',
-                                        )
-                                    )
-                                        return;
-                                    applyTemplate(meta.published);
-                                }}
-                            />
                         </div>
                     </div>
 
-                    <div
-                        className={`glass-panel relative flex overflow-hidden rounded-[24px] ${fullscreen ? 'min-h-0 flex-1' : 'h-[calc(100dvh-210px)] min-h-[600px]'}`}
-                    >
-                        {paletteOpen && (
-                            <div className="absolute inset-y-0 left-0 z-20 w-[248px] shrink-0 lg:static">
-                                <BlockPalette
-                                    hasTrigger={hasTrigger}
-                                    templatesOpen={galleryOpen}
-                                    onAdd={(type, event) => {
-                                        setGalleryOpen(false);
-                                        addNode(type, viewportCenter(), undefined, event);
-                                    }}
-                                    onOpenTemplates={() => setGalleryOpen(true)}
-                                    onCloseTemplates={() => setGalleryOpen(false)}
-                                />
-                            </div>
-                        )}
+                    <div className="glass-panel relative flex min-h-0 flex-1 overflow-hidden rounded-none border-0">
+                        <div
+                            className="flow-palette-shell absolute inset-y-0 left-0 z-20 shrink-0 lg:static"
+                            data-open={paletteOpen || undefined}
+                            aria-hidden={!paletteOpen}
+                            inert={!paletteOpen}
+                        >
+                            <BlockPalette
+                                hasTrigger={hasTrigger}
+                                onOpenTemplates={() => setGalleryOpen(true)}
+                                onAdd={(type, event) =>
+                                    addNode(type, viewportCenter(), undefined, event)
+                                }
+                            />
+                        </div>
 
                         <div
                             ref={canvas}
@@ -1904,28 +1787,11 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
                             {graph.nodes.length <= 1 && <EmptyHint />}
                         </div>
 
-                        {galleryOpen && (
-                            <div
-                                className={`absolute inset-y-0 right-0 z-40 ${paletteOpen ? 'left-0 lg:left-[248px]' : 'left-0'}`}
-                            >
-                                <TemplateGallery
-                                    references={templateReferences}
-                                    onUse={(template, built) => {
-                                        if (template.kind === 'automation') appendGraph(built);
-                                        else applyTemplate(built);
-                                        setGalleryOpen(false);
-                                    }}
-                                    onClose={() => setGalleryOpen(false)}
-                                />
-                            </div>
-                        )}
-
                         {panelOpen && (
                             <div className="absolute inset-y-0 right-0 z-30 w-[min(380px,100%)] shrink-0 shadow-[-12px_0_32px_rgba(16,18,20,0.08)] lg:static lg:shadow-none">
                                 {panel === 'simulation' ? (
                                     <SimulationPanel
                                         defaultEnvironment={simulationEnvironment}
-                                        checkouts={checkouts}
                                         products={products}
                                         result={simulation}
                                         running={simulating}
@@ -1958,7 +1824,6 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
                                             initialTab={inspectorTab.tab}
                                             node={selected}
                                             connections={connections}
-                                            checkouts={checkouts}
                                             products={products}
                                             issues={context.issues.get(selected.id) ?? []}
                                             onChange={(next) => updateNode(selected.id, () => next)}
@@ -1979,6 +1844,17 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
                         )}
                     </div>
 
+                    {galleryOpen && (
+                        <TemplateGallery
+                            references={templateReferences}
+                            onUse={(template, built) => {
+                                if (template.kind === 'automation') appendGraph(built);
+                                else applyTemplate(built);
+                                setGalleryOpen(false);
+                            }}
+                            onClose={() => setGalleryOpen(false)}
+                        />
+                    )}
                     {picker && (
                         <BlockPicker
                             screen={picker.screen}
@@ -2006,48 +1882,8 @@ function Editor({ flow, connections, insights, checkouts, products, webhooks }: 
 
 // --- Partes da interface -------------------------------------------------------------
 
-function StatusChip({ meta, changed }: { meta: ReturnType<typeof pickMeta>; changed: boolean }) {
-    const [label, tone] =
-        meta.published === null
-            ? ['Nunca publicado', 'bg-surface-muted text-muted']
-            : meta.status === 'inactive'
-              ? ['Pausado', 'bg-surface-muted text-muted']
-              : changed
-                ? ['Alterações não publicadas', 'bg-[#fff5e9] text-[#9a5b0b]']
-                : [`Publicado · v${String(meta.publishedVersion)}`, 'bg-[#e8f7ee] text-[#1f7a43]'];
-    return (
-        <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${tone}`}
-        >
-            <span className="size-1.5 rounded-full bg-current" />
-            {label}
-        </span>
-    );
-}
-
-function SaveIndicator({ state, updatedAt }: { state: SaveState; updatedAt: string | null }) {
-    const text =
-        state === 'saving'
-            ? 'Salvando…'
-            : state === 'dirty'
-              ? 'Alterações pendentes'
-              : state === 'error'
-                ? 'Erro ao salvar o rascunho'
-                : state === 'conflict'
-                  ? 'Alterado em outra aba: recarregue'
-                  : updatedAt
-                    ? `Rascunho salvo ${relativeTime(updatedAt)}`
-                    : 'Rascunho ainda não salvo';
-    return (
-        <span
-            className={`text-[12px] ${state === 'error' || state === 'conflict' ? 'font-semibold text-danger' : 'text-muted'}`}
-        >
-            {text}
-        </span>
-    );
-}
-
-function IssuesButton({
+/** Problemas do quadro no header: mesmo botão no orquestrador e no funil. */
+export function IssuesButton({
     errors,
     warnings,
     onFocus,
@@ -2134,97 +1970,10 @@ function IssuesButton({
     );
 }
 
-function FlowMenu({
-    status,
-    published,
-    onArrange,
-    onStatus,
-    onRevert,
-}: {
-    status: 'active' | 'inactive';
-    published: boolean;
-    onArrange(): void;
-    onStatus(status: 'active' | 'inactive'): void;
-    onRevert(): void;
-}) {
-    const [open, setOpen] = useState(false);
-    const root = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        if (!open) return;
-
-        function close(event: PointerEvent) {
-            if (!root.current?.contains(event.target as Node)) setOpen(false);
-        }
-
-        window.addEventListener('pointerdown', close);
-        return () => window.removeEventListener('pointerdown', close);
-    }, [open]);
-    const items: { label: string; icon: IconName; onSelect(): void; hidden?: boolean }[] = [
-        { label: 'Organizar automaticamente', icon: 'layout', onSelect: onArrange },
-        {
-            label: status === 'active' ? 'Pausar fluxo' : 'Ativar fluxo',
-            icon: status === 'active' ? 'clock' : 'play',
-            onSelect: () => onStatus(status === 'active' ? 'inactive' : 'active'),
-            hidden: !published,
-        },
-        {
-            label: 'Voltar à versão publicada',
-            icon: 'undo',
-            onSelect: onRevert,
-            hidden: !published,
-        },
-    ];
-    return (
-        <div ref={root} className="relative">
-            <Button
-                type="button"
-                variant="icon"
-                aria-label="Mais ações do fluxo"
-                aria-haspopup="menu"
-                aria-expanded={open}
-                onClick={() => setOpen((value) => !value)}
-                className="!size-11 !rounded-xl"
-            >
-                <Icon name="dots" className="size-4" />
-            </Button>
-            {open && (
-                <div
-                    role="menu"
-                    className="glass-popover absolute right-0 top-12 z-50 w-60 rounded-xl p-1.5 shadow-[0_12px_32px_rgba(16,18,20,0.14)]"
-                >
-                    {items
-                        .filter((item) => !item.hidden)
-                        .map((item) => (
-                            <button
-                                key={item.label}
-                                type="button"
-                                role="menuitem"
-                                onClick={() => {
-                                    setOpen(false);
-                                    item.onSelect();
-                                }}
-                                className="flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-left text-[13px] transition hover:bg-surface-muted"
-                            >
-                                <Icon name={item.icon} className="size-3.5 text-muted" />
-                                {item.label}
-                            </button>
-                        ))}
-                    <Link
-                        href="/orchestration/performance"
-                        role="menuitem"
-                        className="flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-left text-[13px] transition hover:bg-surface-muted"
-                    >
-                        <Icon name="pulse" className="size-3.5 text-muted" />
-                        Ver desempenho
-                    </Link>
-                </div>
-            )}
-        </div>
-    );
-}
-
-function CanvasToolbar({
+/** Barra do canto do quadro (paleta, desfazer, refazer): a mesma no orquestrador e no funil. */
+export function CanvasToolbar({
     paletteOpen,
+    paletteLabel = 'blocos',
     onTogglePalette,
     canUndo,
     canRedo,
@@ -2232,6 +1981,7 @@ function CanvasToolbar({
     onRedo,
 }: {
     paletteOpen: boolean;
+    paletteLabel?: string;
     onTogglePalette(): void;
     canUndo: boolean;
     canRedo: boolean;
@@ -2241,7 +1991,7 @@ function CanvasToolbar({
     return (
         <div className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-xl border border-border bg-surface p-1 shadow-sm">
             <ToolButton
-                label={paletteOpen ? 'Esconder blocos' : 'Mostrar blocos'}
+                label={paletteOpen ? `Esconder ${paletteLabel}` : `Mostrar ${paletteLabel}`}
                 icon="layout"
                 active={paletteOpen}
                 onClick={onTogglePalette}
@@ -2263,12 +2013,13 @@ function CanvasToolbar({
     );
 }
 
-function ZoomControls({
-    fullscreen,
+export function ZoomControls({
+    fullscreen = false,
     onToggleFullscreen,
 }: {
-    fullscreen: boolean;
-    onToggleFullscreen(): void;
+    fullscreen?: boolean;
+    /** Sem ele, o botão de tela cheia não aparece. */
+    onToggleFullscreen?(): void;
 }) {
     const { zoomIn, zoomOut, fitView } = useReactFlow();
     const { zoom } = useViewport();
@@ -2293,12 +2044,14 @@ function ZoomControls({
                 icon="maximize"
                 onClick={() => void fitView({ padding: 0.2, duration: 300 })}
             />
-            <ToolButton
-                label={fullscreen ? 'Sair da tela cheia (Shift+F)' : 'Tela cheia (Shift+F)'}
-                icon={fullscreen ? 'shrink' : 'expand'}
-                active={fullscreen}
-                onClick={onToggleFullscreen}
-            />
+            {onToggleFullscreen && (
+                <ToolButton
+                    label={fullscreen ? 'Sair da tela cheia (Shift+F)' : 'Tela cheia (Shift+F)'}
+                    icon={fullscreen ? 'shrink' : 'expand'}
+                    active={fullscreen}
+                    onClick={onToggleFullscreen}
+                />
+            )}
         </div>
     );
 }
@@ -2597,30 +2350,6 @@ function fromCanvas(nodes: FlowCanvasNode[], edges: FlowCanvasEdge[]): FlowGraph
     };
 }
 
-/** Estrutura sem posições: mover blocos não conta como alteração a publicar. */
-function structure(graph: FlowGraph) {
-    return stableStringify({
-        nodes: graph.nodes
-            .map((node) => ({ ...node, position: undefined }))
-            .sort((left, right) => left.id.localeCompare(right.id)),
-        edges: graph.edges
-            .map((edge) => `${edge.source}:${edge.sourceHandle}>${edge.target}`)
-            .sort(),
-    });
-}
-
-/** JSON com chaves ordenadas: a API devolve os nós na ordem do schema, o editor não. */
-function stableStringify(value: unknown): string {
-    if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
-    if (value !== null && typeof value === 'object')
-        return `{${Object.entries(value as Record<string, unknown>)
-            .filter(([, item]) => item !== undefined)
-            .sort(([left], [right]) => left.localeCompare(right))
-            .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`)
-            .join(',')}}`;
-    return JSON.stringify(value);
-}
-
 /**
  * O bloco está na escolha do gateway (a partir de "Venda iniciada") ou numa automação (depois
  * de um pagamento ou de um gatilho de evento)? Sobe pelas ligações até achar a origem.
@@ -2654,21 +2383,8 @@ function reaches(edges: FlowCanvasEdge[], from: string, to: string) {
     return false;
 }
 
-function pickMeta(flow: GatewayFlow) {
-    return {
-        status: flow.status,
-        published: flow.published,
-        publishedAt: flow.publishedAt,
-        publishedVersion: flow.publishedVersion,
-        version: flow.version,
-        updatedAt: flow.updatedAt,
-    };
-}
-
 function isGateway(node: FlowNode | undefined) {
-    return (
-        node?.type === 'gateway' || node?.type === 'cheapest' || node?.type === 'checkout_default'
-    );
+    return node?.type === 'gateway' || node?.type === 'cheapest';
 }
 
 /** Desce a posição até não sobrepor nenhum card existente. */
@@ -2693,14 +2409,4 @@ function freeSpot(position: { x: number; y: number }, nodes: FlowCanvasNode[]) {
 
 function jitter() {
     return Math.round((Math.random() - 0.5) * 40);
-}
-
-function relativeTime(value: string) {
-    const seconds = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 1000));
-    if (seconds < 45) return 'agora';
-    const minutes = Math.round(seconds / 60);
-    if (minutes < 60) return `há ${String(minutes)} min`;
-    const hours = Math.round(minutes / 60);
-    if (hours < 24) return `há ${String(hours)} h`;
-    return new Date(value).toLocaleDateString('pt-BR');
 }

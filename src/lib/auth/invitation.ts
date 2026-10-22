@@ -1,3 +1,6 @@
+import { headers } from 'next/headers';
+
+import { forwardedClientIp } from '@/lib/api/client-ip';
 import { astroApiUrl } from '@/lib/api/config';
 import type { ApiEnvelope } from '@/lib/api/types';
 
@@ -14,7 +17,7 @@ export async function getInvitationPreview(token: string): Promise<InvitationPre
         const url = new URL('/api/v1/organization-invitations/preview', astroApiUrl());
         url.searchParams.set('token', token);
         const response = await fetch(url, {
-            headers: { accept: 'application/json' },
+            headers: { accept: 'application/json', ...forwardedClientIp(await headers()) },
             cache: 'no-store',
         });
         if (!response.ok) return undefined;

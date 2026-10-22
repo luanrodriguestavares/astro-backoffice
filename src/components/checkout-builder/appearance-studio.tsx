@@ -7,7 +7,7 @@ import {
     CheckoutCartSummary,
     CheckoutCustomerForm,
     CheckoutOrderHeader,
-    CheckoutPaymentInstruction,
+    CheckoutPaymentMethodNotice,
     CheckoutPaymentMethods,
     type CustomerValues,
 } from '@astro/checkout-renderer/components';
@@ -134,7 +134,7 @@ export function CheckoutAppearanceStudio({
             {/* Fontes do seletor ("Aa" em cada família). */}
             <link rel="stylesheet" href={checkoutGoogleFontsUrl} />
             <style>{studioStyles}</style>
-            <div className="studio-scroll grid content-start gap-7 lg:min-h-0 lg:overflow-y-auto lg:pr-4">
+            <div className="studio-scroll grid content-start gap-7 lg:min-h-0 lg:overflow-y-auto lg:pb-1 lg:pl-1 lg:pr-4">
                 <p className="flex items-start gap-2.5 rounded-[14px] border border-border bg-surface-muted px-3.5 py-3 text-[12px] leading-5 text-muted">
                     <Icon name="layers" className="mt-0.5 size-4 shrink-0 text-foreground" />
                     <span>
@@ -690,50 +690,41 @@ function CheckoutPreview({
                     ]}
                     selectedId={method}
                     onSelect={setMethod}
-                />
-                {method === 'card' ? (
-                    <div data-checkout-swap key="card">
-                        <CheckoutCardPayment
-                            layout="compact"
-                            title="Dados do cartão"
-                            description="Criptografados e enviados direto ao processador."
-                            secureElement={
-                                <div style={{ display: 'grid', gap: 10 }}>
-                                    <PreviewField
-                                        label="Número do cartão"
-                                        placeholder="0000 0000 0000 0000"
-                                    />
-                                    <div
-                                        style={{
-                                            display: 'grid',
-                                            gridTemplateColumns: '1fr 1fr',
-                                            gap: 10,
-                                        }}
-                                    >
-                                        <PreviewField label="Validade" placeholder="MM/AA" />
-                                        <PreviewField label="CVV" placeholder="123" />
+                    detail={
+                        method === 'card' ? (
+                            <CheckoutCardPayment
+                                embedded
+                                secureElement={
+                                    <div style={{ display: 'grid', gap: 10 }}>
+                                        <PreviewField
+                                            label="Número do cartão"
+                                            placeholder="0000 0000 0000 0000"
+                                        />
+                                        <div
+                                            style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: '1fr 1fr',
+                                                gap: 10,
+                                            }}
+                                        >
+                                            <PreviewField label="Validade" placeholder="MM/AA" />
+                                            <PreviewField label="CVV" placeholder="123" />
+                                        </div>
                                     </div>
-                                </div>
-                            }
-                        />
-                    </div>
-                ) : (
-                    <div data-checkout-swap key="pix">
-                        <CheckoutPaymentInstruction
-                            kind="pix"
-                            layout="compact"
-                            title="Pagamento via Pix"
-                            description="O QR Code aparece logo depois de confirmar."
-                        />
-                    </div>
-                )}
+                                }
+                            />
+                        ) : (
+                            <CheckoutPaymentMethodNotice kind="pix" />
+                        )
+                    }
+                />
                 <CheckoutCartSummary
                     layout="compact"
                     title="Resumo do pedido"
                     product={row}
                     lines={[{ label: 'Subtotal', value: product.price }]}
                     total={product.price}
-                    buttonLabel="Pagar agora"
+                    buttonLabel={method === 'pix' ? 'Pagar com Pix' : 'Finalizar compra'}
                     onSubmit={() => undefined}
                 />
             </main>

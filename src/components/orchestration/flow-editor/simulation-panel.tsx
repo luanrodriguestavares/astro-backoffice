@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 import type {
-    Checkout,
     FlowEvent,
     FlowSimulation,
     Product,
@@ -21,13 +20,11 @@ export interface SimulationInput {
     paymentMethod: RoutingPaymentMethod;
     amountMinor: number;
     environment: 'sandbox' | 'production';
-    checkoutId: string | null;
     productIds: string[];
     seed: string;
 }
 
 export function SimulationPanel({
-    checkouts,
     products,
     result,
     running,
@@ -42,7 +39,6 @@ export function SimulationPanel({
     onAddTrigger(event: FlowEvent): void;
     /** Ambiente dos gateways do fluxo: simular em outro pularia todos eles. */
     defaultEnvironment: 'sandbox' | 'production';
-    checkouts: Checkout[];
     products: Product[];
     result: FlowSimulation | null;
     running: boolean;
@@ -54,7 +50,6 @@ export function SimulationPanel({
         paymentMethod: 'pix',
         amountMinor: 15_000,
         environment: defaultEnvironment,
-        checkoutId: null,
         productIds: [],
         seed: newSeed(),
     });
@@ -182,21 +177,6 @@ export function SimulationPanel({
                         ))}
                     </div>
                 </div>
-                {checkouts.length > 0 && (
-                    <div>
-                        <span className="mb-1.5 block text-[12px] font-semibold">Checkout</span>
-                        <CustomSelect
-                            name="simulation_checkout"
-                            value={input.checkoutId ?? ''}
-                            placeholder="Qualquer checkout"
-                            options={[
-                                { value: '', label: 'Qualquer checkout' },
-                                ...checkouts.map(({ id, name }) => ({ value: id, label: name })),
-                            ]}
-                            onValueChange={(value) => update({ checkoutId: value || null })}
-                        />
-                    </div>
-                )}
                 {products.length > 0 && (
                     <div>
                         <span className="mb-1.5 block text-[12px] font-semibold">
@@ -321,7 +301,7 @@ function SimulationResult({
             )}
             {result.attempts.length === 0 ? (
                 <p className="mt-2 text-[12px] leading-5 text-muted">
-                    Nenhum gateway no caminho: a venda usa o gateway configurado no checkout.
+                    Nenhum gateway no caminho: a venda usa o primeiro gateway compatível.
                 </p>
             ) : (
                 <ol className="mt-3 space-y-2">

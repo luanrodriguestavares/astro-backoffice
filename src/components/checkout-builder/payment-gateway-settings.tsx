@@ -5,12 +5,9 @@ import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
 import {
-    fallbackCandidates,
-    maxGatewayFallbacks,
     paymentMethods,
     requiredCheckoutComponents,
     selectableConnections,
-    type GatewayCascades,
     type RequiredCheckoutComponent,
 } from '@/lib/checkout/gateway-bindings';
 import type {
@@ -43,24 +40,30 @@ const componentCopy: Record<RequiredCheckoutComponent, { label: string; descript
 interface PaymentGatewaySettingsProps {
     open: boolean;
     environment: CheckoutEnvironment;
-    bindings: GatewayCascades;
+    /** Gateways do fluxo de pagamento em uso, na ordem em que a venda os encontra. */
+    flowGatewayIds: Readonly<Partial<Record<CheckoutPaymentMethod, readonly string[]>>>;
     enabledMethods: readonly CheckoutPaymentMethod[];
     presentComponents: readonly RequiredCheckoutComponent[];
     connections: readonly GatewayConnection[];
+    publicationError?: string | null;
+    /** Erros do fluxo de pagamento próprio do checkout (impedem a publicação). */
+    paymentFlowErrors?: number;
     onEnvironmentChange(environment: CheckoutEnvironment): void;
-    onBindingChange(method: CheckoutPaymentMethod, connectionIds: string[]): void;
+    onOpenPaymentFlow(): void;
     onClose(): void;
 }
 
 export function PaymentGatewaySettings({
     open,
     environment,
-    bindings,
+    flowGatewayIds,
     enabledMethods,
     presentComponents,
     connections,
+    publicationError,
+    paymentFlowErrors = 0,
     onEnvironmentChange,
-    onBindingChange,
+    onOpenPaymentFlow,
     onClose,
 }: PaymentGatewaySettingsProps) {
     const missingComponents = requiredCheckoutComponents.filter(
@@ -83,6 +86,23 @@ export function PaymentGatewaySettings({
             />
 
             <ModalBody>
+                {publicationError && (
+                    <section className="mb-6 rounded-2xl border border-danger/25 bg-danger/5 px-4 py-3">
+                        <div className="flex gap-3">
+                            <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-danger/10 text-danger">
+                                <Icon name="alert" className="size-4" />
+                            </span>
+                            <div>
+                                <h3 className="text-[13px] font-semibold text-danger">
+                                    Erro da última tentativa de publicação
+                                </h3>
+                                <p className="mt-1 text-[12px] leading-5 text-muted">
+                                    {publicationError}
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+                )}
                 <section>
                     <div className="flex items-center justify-between gap-4">
                         <div>
@@ -170,28 +190,17 @@ export function PaymentGatewaySettings({
                         {paymentMethods.map((method) => {
                             const options = selectableConnections(connections, method, environment);
                             const enabled = enabledMethods.includes(method);
-                            const cascade = bindings[method] ?? [];
-                            const [selected, ...fallbacks] = cascade;
-                            const fallbackOptions = fallbackCandidates(
-                                connections,
-                                method,
-                                environment,
-                                selected,
+                            const selected = (flowGatewayIds[method] ?? []).find((id) =>
+                                options.some((connection) => connection.id === id),
                             );
-                            const invalidFallback = fallbacks.some(
-                                (id) => !fallbackOptions.some((connection) => connection.id === id),
-                            );
+                            const selectedConnection = options.find(({ id }) => id === selected);
                             const requiresBinding = environment === 'production' && enabled;
                             const ready =
                                 !enabled ||
-                                (!invalidFallback &&
-                                    (requiresBinding
-                                        ? selected !== undefined &&
-                                          options.some(({ id }) => id === selected)
-                                        : options.length > 0));
-                            const unusedFallbacks = fallbackOptions.filter(
-                                ({ id }) => !fallbacks.includes(id),
-                            );
+                                (requiresBinding
+                                    ? selected !== undefined &&
+                                      options.some(({ id }) => id === selected)
+                                    : options.length > 0);
                             return (
                                 <article
                                     key={method}
@@ -234,51 +243,38 @@ export function PaymentGatewaySettings({
                                             <p className="mt-1 text-[11px] text-muted">
                                                 {enabled
                                                     ? requiresBinding
-                                                        ? 'Escolha a conexão que receberá cobranças reais.'
-                                                        : 'Em sandbox, a API pode selecionar uma conexão compatível.'
+                                                        ? 'Precisa de um gateway que aceite esta forma no pagamento do checkout.'
+                                                        : 'Sem gateway compatível no pagamento, o sandbox usa uma conexão compatível.'
                                                     : 'Ative este método no bloco Formas de pagamento.'}
                                             </p>
                                         </div>
                                     </div>
                                     <div>
-                                        <CustomSelect
-                                            name={`gatewayBinding_${method}`}
-                                            value={selected ?? ''}
-                                            placeholder={
-                                                enabled
-                                                    ? 'Selecione uma conexão'
-                                                    : 'Método desabilitado'
-                                            }
-                                            disabled={!enabled}
-                                            options={options.map((connection) => ({
-                                                value: connection.id,
-                                                label: connection.name,
-                                                badge: providerLabel(connection.provider),
-                                            }))}
-                                            onValueChange={(value) =>
-                                                // Trocar o principal pode tornar as contingências
-                                                // incompatíveis, então a cascata recomeça.
-                                                onBindingChange(method, value ? [value] : [])
-                                            }
-                                        />
+                                        <div className="flex h-11 items-center justify-between gap-2 rounded-xl border border-border bg-surface px-3 text-[12px]">
+                                            <span
+                                                className={
+                                                    selectedConnection
+                                                        ? 'truncate font-semibold'
+                                                        : 'truncate text-muted'
+                                                }
+                                            >
+                                                {!enabled
+                                                    ? 'Método desabilitado'
+                                                    : (selectedConnection?.name ??
+                                                      'Nenhum gateway aceita esta forma')}
+                                            </span>
+                                            {selectedConnection && (
+                                                <span className="shrink-0 text-[11px] text-muted">
+                                                    {providerLabel(selectedConnection.provider)}
+                                                </span>
+                                            )}
+                                        </div>
                                         {enabled && options.length === 0 && (
                                             <p className="mt-2 text-[11px] text-danger">
                                                 Nenhuma conexão ativa e compatível neste ambiente.
                                             </p>
                                         )}
                                     </div>
-                                    {enabled && selected !== undefined && (
-                                        <FallbackCascade
-                                            method={method}
-                                            fallbacks={fallbacks}
-                                            options={fallbackOptions}
-                                            unused={unusedFallbacks}
-                                            connections={connections}
-                                            onChange={(next) =>
-                                                onBindingChange(method, [selected, ...next])
-                                            }
-                                        />
-                                    )}
                                 </article>
                             );
                         })}
@@ -295,6 +291,20 @@ export function PaymentGatewaySettings({
                             de cada conexão antes de publicar.
                         </p>
                     )}
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface-muted/45 px-4 py-3">
+                        <div>
+                            <h4 className="text-[12px] font-semibold">Como este checkout cobra</h4>
+                            <p className="mt-1 text-[11px] leading-4 text-muted">
+                                {paymentFlowErrors > 0
+                                    ? `O pagamento tem ${String(paymentFlowErrors)} ${paymentFlowErrors === 1 ? 'problema' : 'problemas'} a corrigir antes de publicar.`
+                                    : 'Sem configuração, cobra no primeiro gateway ativo que aceita cada forma. Para reserva, divisão ou menor taxa, configure no nó Pagamento do funil.'}
+                            </p>
+                        </div>
+                        <Button type="button" variant="secondary" onClick={onOpenPaymentFlow}>
+                            <Icon name="bolt" className="size-3.5" />
+                            Configurar pagamento
+                        </Button>
+                    </div>
                 </section>
             </ModalBody>
 
@@ -309,127 +319,6 @@ export function PaymentGatewaySettings({
             </ModalFooter>
         </Modal>
     );
-}
-
-function FallbackCascade({
-    method,
-    fallbacks,
-    options,
-    unused,
-    connections,
-    onChange,
-}: {
-    method: CheckoutPaymentMethod;
-    fallbacks: string[];
-    options: readonly GatewayConnection[];
-    unused: readonly GatewayConnection[];
-    connections: readonly GatewayConnection[];
-    onChange(fallbacks: string[]): void;
-}) {
-    const canAdd = fallbacks.length < maxGatewayFallbacks && unused.length > 0;
-    return (
-        <div className="border-t border-border pt-3 sm:col-span-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                    <h5 className="text-[11px] font-semibold">Contingência</h5>
-                    <p className="mt-0.5 text-[11px] text-muted">
-                        Se o gateway principal falhar ao criar a cobrança, tentamos os próximos na
-                        ordem, sem o comprador perceber.
-                    </p>
-                </div>
-                {canAdd && (
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        className="h-8"
-                        onClick={() => {
-                            const next = unused[0];
-                            if (next) onChange([...fallbacks, next.id]);
-                        }}
-                    >
-                        <Icon name="plus" className="size-3" />
-                        Adicionar contingência
-                    </Button>
-                )}
-            </div>
-            {fallbacks.length > 0 && (
-                <ol className="mt-3 space-y-2">
-                    {fallbacks.map((id, position) => {
-                        const known = options.some((connection) => connection.id === id);
-                        const current = connections.find((connection) => connection.id === id);
-                        const choices = [
-                            ...(known || current === undefined ? [] : [current]),
-                            ...options.filter(
-                                (connection) =>
-                                    connection.id === id || !fallbacks.includes(connection.id),
-                            ),
-                        ];
-                        return (
-                            <li key={`${method}-${id}`} className="flex items-center gap-2">
-                                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-surface-muted text-[10px] font-semibold text-muted">
-                                    {position + 2}
-                                </span>
-                                <div className="min-w-0 flex-1">
-                                    <CustomSelect
-                                        name={`gatewayFallback_${method}_${String(position)}`}
-                                        value={id}
-                                        options={choices.map((connection) => ({
-                                            value: connection.id,
-                                            label: connection.name,
-                                            badge: providerLabel(connection.provider),
-                                        }))}
-                                        onValueChange={(value) =>
-                                            onChange(
-                                                fallbacks.map((item, index) =>
-                                                    index === position ? value : item,
-                                                ),
-                                            )
-                                        }
-                                    />
-                                </div>
-                                <Button
-                                    type="button"
-                                    variant="icon"
-                                    aria-label="Subir na ordem"
-                                    disabled={position === 0}
-                                    onClick={() => onChange(moveItem(fallbacks, position, -1))}
-                                >
-                                    <Icon name="arrow-up" className="size-3.5" />
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="icon"
-                                    aria-label="Remover contingência"
-                                    onClick={() =>
-                                        onChange(fallbacks.filter((_, index) => index !== position))
-                                    }
-                                >
-                                    <Icon name="close" className="size-3.5" />
-                                </Button>
-                                {!known && (
-                                    <span className="text-[11px] text-danger">Incompatível</span>
-                                )}
-                            </li>
-                        );
-                    })}
-                </ol>
-            )}
-            {fallbacks.length === 0 && !canAdd && (
-                <p className="mt-2 text-[11px] text-muted">
-                    Nenhum outro gateway compatível com a mesma experiência de pagamento neste
-                    ambiente.
-                </p>
-            )}
-        </div>
-    );
-}
-
-function moveItem<T>(items: readonly T[], index: number, offset: number) {
-    const next = [...items];
-    const target = index + offset;
-    if (target < 0 || target >= next.length) return next;
-    [next[index], next[target]] = [next[target] as T, next[index] as T];
-    return next;
 }
 
 function StatusBadge({

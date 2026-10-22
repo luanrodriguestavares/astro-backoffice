@@ -7,7 +7,7 @@ import { providerPresentation } from '@/components/gateways/connected-gateway-ca
 import { GatewayMark } from '@/components/gateways/gateway-mark';
 import { Button } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
-import type { GatewayConnection, GatewayFlow, GatewayInsights } from '@/lib/api/types';
+import type { GatewayConnection, GatewayInsights } from '@/lib/api/types';
 import { declineLabel, retryAdviceLabels } from '@/lib/payments/decline';
 
 const methodLabels: Record<string, string> = {
@@ -27,15 +27,13 @@ interface Recommendation {
 export function OrchestrationOverview({
     insights,
     connections,
-    flow,
 }: {
     insights: GatewayInsights;
     connections: GatewayConnection[];
-    flow: GatewayFlow | null;
 }) {
     return (
         <div className="space-y-4">
-            <NextSteps insights={insights} connections={connections} flow={flow} />
+            <NextSteps insights={insights} connections={connections} />
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,1fr)]">
                 <Gateways insights={insights} connections={connections} />
                 <DeclineReasons insights={insights} />
@@ -49,7 +47,6 @@ export function OrchestrationOverview({
 function recommendations(
     insights: GatewayInsights,
     connections: GatewayConnection[],
-    flow: GatewayFlow | null,
 ): Recommendation[] {
     const items: Recommendation[] = [];
     const unstable = connections.filter((connection) => connection.status === 'degraded');
@@ -78,26 +75,23 @@ function recommendations(
                 'Se o seu gateway sair do ar, as vendas param. Com um reserva, elas passam por ele automaticamente.',
             action: { label: 'Conectar outro gateway', href: '/gateways' },
         });
-    else if (insights.summary.recoveredByFailover === 0 && flow?.published == null)
+    else if (insights.summary.recoveredByFailover === 0)
         items.push({
             tone: 'action',
             title: 'Use o segundo gateway como reserva',
             description:
-                'Você já tem mais de um gateway. No fluxo de orquestração, ligue a saída "falhou" de um gateway ao outro.',
-            action: { label: 'Abrir o fluxo', href: '/orchestration' },
+                'Você já tem mais de um gateway. Em cada checkout, no Pagamento, escolha "Principal + reserva".',
+            action: { label: 'Abrir checkouts', href: '/checkouts' },
         });
-    const usesCost =
-        flow?.status === 'active' &&
-        (flow.published?.nodes.some((node) => node.type === 'cheapest') ?? false);
     const missingFees = connections.filter(
         (connection) => Object.keys(connection.feeSchedule ?? {}).length === 0,
     );
-    if (usesCost && missingFees.length > 0)
+    if (connections.length > 1 && missingFees.length > 0)
         items.push({
             tone: 'action',
             title: 'Informe as taxas dos seus gateways',
             description:
-                'Uma regra escolhe o gateway mais barato, mas falta a taxa de alguns deles para comparar.',
+                'Com as taxas, a estratégia "Menor taxa" do checkout consegue escolher o gateway mais barato.',
             action: { label: 'Informar taxas', href: '/orchestration/costs' },
         });
     if (items.length === 0)
@@ -115,13 +109,11 @@ function recommendations(
 function NextSteps({
     insights,
     connections,
-    flow,
 }: {
     insights: GatewayInsights;
     connections: GatewayConnection[];
-    flow: GatewayFlow | null;
 }) {
-    const items = recommendations(insights, connections, flow);
+    const items = recommendations(insights, connections);
     const icons: Record<Recommendation['tone'], IconName> = {
         action: 'bolt',
         warning: 'clock',

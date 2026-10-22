@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
+import { Icon } from '@/components/ui/icon';
 import { MediaPicker } from '@/components/files/media-picker';
 
 import { FieldLabel, type Config, type Data, type Slot } from '@puckeditor/core';
@@ -19,10 +20,12 @@ import {
 } from '@astro/checkout-renderer/theme';
 import { checkoutDesignSystemStyles } from '@astro/checkout-renderer/design-system';
 import {
-    defaultResultScreens,
     fillResultText,
-    type CheckoutResultScreens,
-} from '@astro/checkout-renderer/result-screens';
+    paymentStatusDefaults,
+    readNavigation,
+    type CheckoutNavigation,
+    type CheckoutPageKind,
+} from '@astro/checkout-renderer/funnel';
 import {
     CheckoutDataTable,
     CheckoutBenefits,
@@ -37,10 +40,11 @@ import {
     CheckoutCustomerForm,
     CheckoutOrderBump,
     CheckoutOrderHeader,
-    CheckoutPaymentInstruction,
+    CheckoutPaymentMethodNotice,
     CheckoutPaymentResult,
     CheckoutParagraphText,
     CheckoutPaymentMethods,
+    CheckoutPendingPayment,
     CheckoutTestimonials,
     CheckoutTextBlock,
     CheckoutTrustBadges,
@@ -58,9 +62,10 @@ import {
     CheckoutBanner,
     CheckoutPlans,
     CheckoutStats,
-    CheckoutVideo,
 } from '@astro/checkout-renderer/content-components';
+import { CheckoutActionButton, CheckoutVideo } from '@astro/checkout-renderer/video-player';
 
+import { CheckoutSelectField } from '@/components/checkout-builder/checkout-select-field';
 import { ColorPickerField } from '@/components/checkout-builder/color-picker-field';
 
 type BuilderMediaContextValue = {
@@ -79,10 +84,86 @@ export const CheckoutBuilderStaticContext = createContext(false);
 /** Produtos e preços deste checkout, para vincular blocos (ex.: planos) a preços reais. */
 export const CheckoutBuilderProductsContext = createContext<CheckoutProductPrice[]>([]);
 
+/** Id da página do funil em edição ("checkout", "pix", "success", uma página de conteúdo…). */
+export type CheckoutPreviewScreen = string;
+
+export type BuilderFunnelPage = {
+    id: string;
+    name: string;
+    kind: CheckoutPageKind;
+    next?: string | null;
+    triggers?: BuilderFunnelTrigger[];
+};
+
+export type BuilderFunnelTrigger = {
+    id: string;
+    label: string;
+    kind: 'button' | 'video-cta' | 'video-end';
+    active: boolean;
+    target?: string | null;
+};
+
+export type BuilderFunnelPosition = { x: number; y: number };
+
 /**
- * Forma de pagamento escolhida na prévia. Liga o bloco "Formas de pagamento" aos blocos de
- * detalhe (cartão, Pix, boleto), que só aparecem quando o método deles está selecionado,
- * igual ao checkout publicado.
+ * Página mostrada no editor e modo da prévia. Fica fora dos dados do Puck: trocar de página
+ * não é edição, então não entra no histórico nem marca alterações. No modo de teste
+ * (`interactive`), botões e vídeos do comprador navegam entre as páginas.
+ */
+export const CheckoutBuilderPreviewContext = createContext<{
+    screen: CheckoutPreviewScreen;
+    pageKind: CheckoutPageKind;
+    /** Páginas e gatilhos reais usados pelo editor visual do funil. */
+    pages: BuilderFunnelPage[];
+    interactive: boolean;
+    navigate(screen: CheckoutPreviewScreen): void;
+    /** Segue um destino de bloco (próxima etapa, checkout, página) a partir da página atual. */
+    follow(navigation: CheckoutNavigation): void;
+    addPage?(): void;
+    removePage?(pageId: string): void;
+    /** Compatibilidade do organizador linear anterior. */
+    reorderPages?(orderedPageIds: string[]): void;
+    startPageId?: string;
+    updatePage?(pageId: string, changes: { name?: string; next?: string | null }): void;
+    setPageTriggerTarget?(pageId: string, triggerId: string, target: string | null): void;
+    positions?: Record<string, BuilderFunnelPosition>;
+    updatePosition?(pageId: string, position: BuilderFunnelPosition): void;
+    setStartPage?(pageId: string): void;
+    flowOpen?: boolean;
+    setFlowOpen?(open: boolean): void;
+    /** Abre outra página do funil no construtor (seletor de tela da prévia). */
+    openPage?(pageId: string): void;
+} | null>(null);
+
+/**
+ * Navegação da jornada do comprador: só existe no modo de teste do editor. Na edição (e nas
+ * prévias estáticas) os botões continuam parados para não atrapalhar quem está editando.
+ */
+function useBuilderTestNavigation() {
+    const preview = useContext(CheckoutBuilderPreviewContext);
+    const isStatic = useContext(CheckoutBuilderStaticContext);
+    return preview?.interactive && !isStatic ? preview.navigate : undefined;
+}
+
+/** Destino de botões e vídeos no modo de teste; parado na edição. */
+function useBuilderFollow() {
+    const preview = useContext(CheckoutBuilderPreviewContext);
+    const isStatic = useContext(CheckoutBuilderStaticContext);
+    return preview?.interactive && !isStatic ? preview.follow : undefined;
+}
+
+/** Blocos que só fazem sentido na página de checkout (dados, carrinho e pagamento). */
+export const checkoutOnlyComponents = new Set([
+    'product_summary',
+    'order_bump',
+    'checkout_form',
+    'coupon_field',
+    'payment_methods',
+]);
+
+/**
+ * Forma de pagamento escolhida na prévia. Fica na raiz para a escolha sobreviver quando o
+ * bloco "Formas de pagamento" remonta durante a edição.
  */
 const BuilderPaymentSelectionContext = createContext<{
     selected?: string;
@@ -119,9 +200,35 @@ type BuilderPropsBase = {
         title: string;
         caption: string;
         posterUrl: string;
-        aspectRatio: VideoRatio;
+        format: 'landscape' | 'vertical' | 'square';
         autoplay: boolean;
         controls: boolean;
+        resume: boolean;
+        ctaEnabled: boolean;
+        ctaLabel: string;
+        ctaSublabel: string;
+        ctaReveal: 'start' | 'time' | 'end';
+        ctaSeconds: number;
+        ctaAction: 'none' | 'next' | 'checkout' | 'page';
+        ctaPageId: string;
+        endAction: 'none' | 'next';
+        endPageId: string;
+    };
+    cta_button: {
+        label: string;
+        sublabel: string;
+        alignment: 'left' | 'center' | 'stretch';
+        variant: 'primary' | 'secondary';
+        delaySeconds: number;
+        action: 'none' | 'next' | 'checkout' | 'page';
+        pageId: string;
+    };
+    payment_status: {
+        title: string;
+        message?: string;
+        footnote?: string;
+        buttonLabel?: string;
+        buttonUrl?: string;
     };
     logo: {
         url: string;
@@ -160,6 +267,9 @@ type BuilderPropsBase = {
         eyebrow?: string;
         title: string;
         description?: string;
+        averageRating: number;
+        reviewCount: number;
+        showRatingSummary: boolean;
         items: {
             quote: string;
             name: string;
@@ -167,6 +277,7 @@ type BuilderPropsBase = {
             avatarUrl: string;
             rating: number;
             verified: boolean;
+            date: string;
         }[];
     };
     faq: {
@@ -192,6 +303,8 @@ type BuilderPropsBase = {
             features?: string;
             featured: boolean;
         }[];
+        /** Muda quando o vendedor pede para preencher com os planos do checkout. */
+        syncFromCheckout?: string;
     };
     data_table: {
         layout: DataTableLayout;
@@ -271,24 +384,6 @@ type BuilderPropsBase = {
         showBoleto: boolean;
         showWallets: boolean;
     };
-    card_payment: {
-        layout: CardPaymentLayout;
-        title: string;
-        description: string;
-        showInstallments: boolean;
-    };
-    pix_payment: {
-        layout: PaymentInstructionLayout;
-        title: string;
-        description: string;
-        expiresIn: string;
-    };
-    boleto_payment: {
-        layout: PaymentInstructionLayout;
-        title: string;
-        description: string;
-        dueInDays: number;
-    };
     shipping_address: { title: string; description: string };
     shipping_methods: { title: string; economyLabel: string; expressLabel: string };
     coupon_field: { layout: CouponLayout; title: string; placeholder: string; buttonLabel: string };
@@ -338,6 +433,7 @@ type ImageShape = 'rectangle' | 'soft' | 'square' | 'circle' | 'pill';
 
 type ImageSize = 'sm' | 'md' | 'lg' | 'full';
 
+/** Compatibilidade da prévia visual antiga, mantida apenas como referência de migração. */
 type VideoRatio = '16/9' | '4/3' | '1/1' | '9/16';
 
 type InputGroupStyle = 'filled' | 'outlined';
@@ -398,11 +494,7 @@ type FormLayout = 'card' | 'compact' | 'plain';
 
 type PaymentLayout = 'cards' | 'list' | 'segmented';
 
-type CardPaymentLayout = 'standard' | 'compact' | 'visual';
-
 type CouponLayout = 'inline' | 'card' | 'minimal';
-
-type PaymentInstructionLayout = 'split' | 'card' | 'compact';
 
 type TrustLayout = 'pills' | 'cards' | 'strip';
 
@@ -410,6 +502,8 @@ type FooterLayout = 'centered' | 'columns' | 'minimal';
 
 export type BuilderRootProps = {
     brandPreset: string;
+    /** Última identidade personalizada deste checkout, preservada ao experimentar presets. */
+    customPreset?: Record<string, string>;
     themeMode: ThemeMode;
     grayTone: GrayTone;
     fontFamily: FontPreset;
@@ -435,10 +529,69 @@ export type BuilderRootProps = {
     motion: 'full' | 'subtle' | 'none';
     density: 'compact' | 'comfortable' | 'spacious';
     /** Só do editor: qual tela a prévia mostra. Não é salvo no documento. */
-    previewScreen: 'checkout' | 'success' | 'failure';
-    successScreen: CheckoutResultScreens['success'];
-    failureScreen: CheckoutResultScreens['failure'];
 };
+
+export const checkoutCustomPresetFields = [
+    'themeMode',
+    'grayTone',
+    'fontFamily',
+    'headingFontFamily',
+    'buttonStyle',
+    'buttonShape',
+    'headingFontWeight',
+    'bodyFontWeight',
+    'backgroundColor',
+    'surfaceColor',
+    'textColor',
+    'accentColor',
+    'radius',
+    'shadow',
+    'maxWidth',
+    'componentGap',
+    'pagePadding',
+    'inputGroupStyle',
+    'componentBackgroundStyle',
+    'componentBorderStyle',
+    'componentShadowMode',
+    'blockStyle',
+    'motion',
+    'density',
+] as const satisfies readonly (keyof BuilderRootProps)[];
+
+export function captureCheckoutCustomPreset(
+    props: Partial<BuilderRootProps> | Record<string, unknown>,
+) {
+    const snapshot: Record<string, string> = {};
+    const source = props as Record<string, unknown>;
+    for (const field of checkoutCustomPresetFields) {
+        const value = source[field];
+        if (typeof value === 'string') snapshot[field] = value;
+    }
+    return snapshot;
+}
+
+export function checkoutBrandPresetProps(value: string): Partial<BuilderRootProps> | undefined {
+    const preset = checkoutBrandPresets.find((item) => item.value === value);
+    if (!preset) return undefined;
+    return {
+        ...(preset.theme as Partial<BuilderRootProps>),
+        ...(preset.layout as Partial<BuilderRootProps>),
+        inputGroupStyle:
+            preset.layout.componentBackgroundStyle === 'transparent' ? 'outlined' : 'filled',
+    };
+}
+
+export function checkoutMatchesBrandPreset(
+    props: Partial<BuilderRootProps> | Record<string, unknown>,
+    value: string,
+) {
+    const expected = checkoutBrandPresetProps(value);
+    if (!expected) return false;
+    const source = props as Record<string, unknown>;
+    return Object.entries(expected).every(
+        ([field, expectedValue]) => source[field] === expectedValue,
+    );
+}
 
 export type BuilderData = Data<BuilderProps, BuilderRootProps>;
 
@@ -537,6 +690,64 @@ function sizeSliderField(label: string, options: readonly SliderOption[] = sizeO
     };
 }
 
+function RatingSliderControl({
+    label,
+    value = 5,
+    onChange,
+}: {
+    label: string;
+    value?: number;
+    onChange(value: number): void;
+}) {
+    const normalized = Math.min(5, Math.max(1, Number(value) || 5));
+    const progress = ((normalized - 1) / 4) * 100;
+    return (
+        <FieldLabel label={label}>
+            <div
+                className="checkout-size-slider"
+                style={
+                    {
+                        '--slider-progress': `${progress}%`,
+                        '--slider-steps': 5,
+                    } as CSSProperties
+                }
+            >
+                <div className="checkout-size-slider-value">
+                    <span>Nota</span>
+                    <strong>{normalized.toLocaleString('pt-BR')} / 5</strong>
+                </div>
+                <input
+                    type="range"
+                    min={1}
+                    max={5}
+                    step={0.1}
+                    value={normalized}
+                    aria-label={label}
+                    aria-valuetext={`${normalized.toLocaleString('pt-BR')} de 5`}
+                    onChange={(event) => onChange(Number(event.currentTarget.value))}
+                />
+                <div className="checkout-size-slider-labels" aria-hidden="true">
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                        <span key={rating} data-active={Math.round(normalized) === rating}>
+                            {rating}
+                        </span>
+                    ))}
+                </div>
+            </div>
+        </FieldLabel>
+    );
+}
+
+function ratingSliderField(label: string) {
+    return {
+        type: 'custom' as const,
+        label,
+        render: ({ value, onChange }: { value?: number; onChange(value: number): void }) => (
+            <RatingSliderControl label={label} value={value} onChange={onChange} />
+        ),
+    };
+}
+
 const shadowOptions = [{ label: 'Sem sombra', value: 'none' }, ...sizeOptions.slice(0, 4)] as const;
 const fontWeightOptions = [
     { label: 'Regular', value: '400' },
@@ -560,6 +771,41 @@ const ctaActionOptions = [
     { label: 'Abrir URL', value: 'url' },
     { label: 'Ocultar botão', value: 'hidden' },
 ] as const;
+const hiddenFunnelActionOptions = [
+    { label: 'Configurado no fluxo', value: 'next' },
+    { label: 'Sem ação', value: 'none' },
+] as const;
+function FunnelPageField({
+    name,
+    id,
+    value,
+    onChange,
+}: {
+    name: string;
+    id?: string;
+    value?: string;
+    onChange(value: string): void;
+}) {
+    const preview = useContext(CheckoutBuilderPreviewContext);
+    const options = (preview?.pages ?? [])
+        .filter((page) => page.kind === 'content' || page.kind === 'checkout')
+        .map((page) => ({ label: page.name, value: page.id }));
+    return (
+        <CheckoutSelectField
+            field={{ type: 'select', label: 'Página de destino', options }}
+            name={name}
+            id={id}
+            value={value ?? ''}
+            onChange={(next) => onChange(String(next))}
+        />
+    );
+}
+
+const funnelPageField = (label = 'Página de destino') => ({
+    type: 'custom' as const,
+    label,
+    render: FunnelPageField,
+});
 const textSizeOptions = [
     { label: 'Pequeno', value: 'sm' },
     { label: 'Normal', value: 'md' },
@@ -668,6 +914,63 @@ function PriceLinkField({
                 />
                 <p className="text-[11px] leading-4 text-muted">
                     {products.length === 0 ? help.empty : help.filled}
+                </p>
+            </div>
+        </FieldLabel>
+    );
+}
+
+/** Preços do checkout (metadata do Puck): os do produto principal, ou todos se ele tiver um só. */
+function checkoutPlanPrices(metadata: unknown): CheckoutProductPrice[] {
+    const prices =
+        (metadata as { checkoutPrices?: CheckoutProductPrice[] } | undefined)?.checkoutPrices ?? [];
+    const main = prices.find((price) => price.isDefault) ?? prices[0];
+    const sameProduct = prices.filter((price) => price.productId === main?.productId);
+    return sameProduct.length > 1 ? sameProduct : prices;
+}
+
+function plansFromPrices(prices: CheckoutProductPrice[]) {
+    return prices.slice(0, 6).map((price, index) => ({
+        name: price.priceName,
+        priceId: price.priceId,
+        price: formatMinor(price.amountMinor, price.currency),
+        period:
+            price.pricingType !== 'recurring'
+                ? ''
+                : price.recurringInterval === 'year'
+                  ? '/ano'
+                  : price.recurringInterval === 'week'
+                    ? '/semana'
+                    : price.recurringInterval === 'day'
+                      ? '/dia'
+                      : '/mês',
+        originalPrice: '',
+        description: price.productName,
+        features: '',
+        featured: prices.length > 1 && index === Math.min(prices.length, 6) - 1,
+    }));
+}
+
+function CheckoutPlansSyncField({ onSync }: { onSync(): void }) {
+    const prices = checkoutPlanPrices({
+        checkoutPrices: useContext(CheckoutBuilderProductsContext),
+    });
+    return (
+        <FieldLabel label="Planos do checkout">
+            <div className="grid gap-1.5">
+                <button
+                    type="button"
+                    disabled={prices.length === 0}
+                    onClick={onSync}
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-border text-[12px] font-semibold transition hover:bg-surface-muted disabled:opacity-40"
+                >
+                    <Icon name="repeat" className="size-3.5" />
+                    {prices.length > 0
+                        ? `Usar os ${String(prices.length)} ${prices.length === 1 ? 'preço' : 'preços'} do checkout`
+                        : 'Sem preços no checkout'}
+                </button>
+                <p className="text-[11px] leading-4 text-muted">
+                    Substitui a lista abaixo pelos planos vinculados ao checkout, já selecionáveis.
                 </p>
             </div>
         </FieldLabel>
@@ -869,15 +1172,6 @@ const paymentLayoutField = templateField<PaymentLayout>('Organização dos méto
     { value: 'list', label: 'Lista', description: 'Opções amplas e descritivas.' },
     { value: 'segmented', label: 'Segmentado', description: 'Seletor compacto em uma faixa.' },
 ]);
-const cardPaymentLayoutField = templateField<CardPaymentLayout>('Organização dos dados do cartão', [
-    { value: 'standard', label: 'Padrão', description: 'Campos amplos e confortáveis.' },
-    { value: 'compact', label: 'Compacto', description: 'Ocupa menos espaço na página.' },
-    {
-        value: 'visual',
-        label: 'Cartão visual',
-        description: 'Prévia do cartão ao lado dos campos.',
-    },
-]);
 const couponLayoutField = templateField<CouponLayout>('Organização interna do cupom', [
     {
         value: 'inline',
@@ -895,14 +1189,6 @@ const couponLayoutField = templateField<CouponLayout>('Organização interna do 
         description: 'Mostra os controles depois de abrir a caixa.',
     },
 ]);
-const paymentInstructionLayoutField = templateField<PaymentInstructionLayout>(
-    'Template da instrução',
-    [
-        { value: 'split', label: 'Dividido', description: 'Código e detalhes lado a lado.' },
-        { value: 'card', label: 'Cartão', description: 'Instrução central em destaque.' },
-        { value: 'compact', label: 'Compacto', description: 'Bloco curto para laterais.' },
-    ],
-);
 const trustLayoutField = templateField<TrustLayout>('Template dos selos', [
     { value: 'pills', label: 'Pills', description: 'Selos pequenos em linha.' },
     { value: 'cards', label: 'Cartões', description: 'Selos com mais presença.' },
@@ -1175,6 +1461,7 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 'before_after',
                 'client_logos',
                 'floating_cta',
+                'cta_button',
             ],
             defaultExpanded: false,
         },
@@ -1185,7 +1472,7 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
         },
         payment: {
             title: 'Pagamento',
-            components: ['payment_methods', 'card_payment', 'pix_payment', 'boleto_payment'],
+            components: ['payment_methods', 'payment_status'],
             defaultExpanded: false,
         },
         // Frete fica fora do editor enquanto só há produtos digitais; documentos antigos
@@ -1211,15 +1498,6 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 render: ({ value, onChange }) => (
                     <BrandPresetPicker value={value ?? ''} onChange={onChange} />
                 ),
-            },
-            previewScreen: {
-                type: 'select',
-                label: 'Tela em edição',
-                options: [
-                    { label: 'Checkout', value: 'checkout' },
-                    { label: 'Pagamento aprovado', value: 'success' },
-                    { label: 'Pagamento recusado', value: 'failure' },
-                ],
             },
             blockStyle: {
                 type: 'select',
@@ -1369,40 +1647,10 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                     { label: 'Ocultar', value: 'hidden' },
                 ],
             },
-            successScreen: {
-                type: 'object',
-                label: 'Tela de pagamento aprovado',
-                objectFields: {
-                    title: { type: 'text', label: 'Título' },
-                    message: {
-                        type: 'textarea',
-                        label: 'Mensagem (use {nome}, {email} e {produto})',
-                    },
-                    footnote: { type: 'textarea', label: 'Nota de rodapé' },
-                    buttonLabel: {
-                        type: 'text',
-                        label: 'Texto do botão (opcional)',
-                        placeholder: 'Ex.: Acessar a área de membros',
-                    },
-                    buttonUrl: {
-                        type: 'text',
-                        label: 'Link do botão (https://)',
-                        placeholder: 'https://',
-                    },
-                },
-            },
-            failureScreen: {
-                type: 'object',
-                label: 'Tela de pagamento recusado',
-                objectFields: {
-                    title: { type: 'text', label: 'Título' },
-                    message: { type: 'textarea', label: 'Mensagem' },
-                    buttonLabel: { type: 'text', label: 'Texto do botão de nova tentativa' },
-                },
-            },
         },
         defaultProps: {
             brandPreset: '',
+            customPreset: {},
             themeMode: 'light',
             grayTone: 'neutral',
             fontFamily: 'system',
@@ -1427,36 +1675,58 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             blockStyle: 'rich',
             motion: 'full',
             density: 'comfortable',
-            previewScreen: 'checkout',
-            successScreen: defaultResultScreens.success,
-            failureScreen: defaultResultScreens.failure,
         },
         // Escolher um preset preenche tipografia, cores, formas e botão de uma vez.
         resolveData: (data, { changed, lastData, trigger }) => {
             // Só aplica quando o vendedor troca o preset; ao abrir o editor, preserva os
             // ajustes já salvos por cima do preset.
-            if (
-                trigger === 'load' ||
-                !changed.brandPreset ||
-                !lastData ||
-                lastData.props?.brandPreset === data.props?.brandPreset
-            )
-                return data;
-            const preset = checkoutBrandPresets.find(
-                (item) => item.value === data.props?.brandPreset,
+            if (trigger === 'load' || !lastData) return data;
+
+            const presetChanged =
+                Boolean(changed.brandPreset) &&
+                lastData.props?.brandPreset !== data.props?.brandPreset;
+            if (presetChanged) {
+                if (data.props?.brandPreset === 'custom') {
+                    const saved = captureCheckoutCustomPreset(
+                        data.props.customPreset ?? lastData.props?.customPreset ?? {},
+                    );
+                    const restored = Object.keys(saved).length
+                        ? saved
+                        : captureCheckoutCustomPreset(lastData.props ?? {});
+                    return {
+                        ...data,
+                        props: {
+                            ...data.props,
+                            ...(restored as Partial<BuilderRootProps>),
+                            brandPreset: 'custom',
+                            customPreset: restored,
+                        },
+                    };
+                }
+
+                const preset = checkoutBrandPresetProps(data.props?.brandPreset ?? '');
+                if (!preset) return data;
+                return {
+                    ...data,
+                    props: {
+                        ...data.props,
+                        ...preset,
+                        customPreset: captureCheckoutCustomPreset(
+                            data.props?.customPreset ?? lastData.props?.customPreset ?? {},
+                        ),
+                    },
+                };
+            }
+
+            const appearanceChanged = checkoutCustomPresetFields.some(
+                (field) => changed[field as keyof typeof changed],
             );
-            if (!preset) return data;
+            if (!appearanceChanged) return data;
+
+            const customPreset = captureCheckoutCustomPreset(data.props ?? {});
             return {
                 ...data,
-                props: {
-                    ...data.props,
-                    ...(preset.theme as Partial<BuilderRootProps>),
-                    ...(preset.layout as Partial<BuilderRootProps>),
-                    inputGroupStyle:
-                        preset.layout.componentBackgroundStyle === 'transparent'
-                            ? 'outlined'
-                            : 'filled',
-                },
+                props: { ...data.props, brandPreset: 'custom', customPreset },
             };
         },
         render: function CheckoutRootRender({ children, ...theme }) {
@@ -1464,7 +1734,6 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             const [selectedPayment, setSelectedPayment] = useState<string>();
             const palette = resolvePalette(theme);
             const colorScheme = theme.themeMode === 'system' ? 'light dark' : theme.themeMode;
-            const screen = isStaticPreview ? 'checkout' : (theme.previewScreen ?? 'checkout');
             return (
                 <div
                     data-checkout-page
@@ -1513,25 +1782,14 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                             rowGap: spacingValue(theme.componentGap),
                         }}
                     >
-                        {screen !== 'checkout' && (
-                            <ResultScreenPreview
-                                status={screen === 'success' ? 'approved' : 'failed'}
-                                success={theme.successScreen ?? defaultResultScreens.success}
-                                failure={theme.failureScreen ?? defaultResultScreens.failure}
-                            />
-                        )}
-                        {/* As seções continuam montadas para o editor; só somem da vista. */}
-                        <div
-                            data-checkout-sections
-                            hidden={screen !== 'checkout'}
-                            style={{ display: screen === 'checkout' ? 'contents' : 'none' }}
+                        {/* A escolha também alcança as páginas seguintes (ex.: método no resultado). */}
+                        <BuilderPaymentSelectionContext.Provider
+                            value={{ selected: selectedPayment, select: setSelectedPayment }}
                         >
-                            <BuilderPaymentSelectionContext.Provider
-                                value={{ selected: selectedPayment, select: setSelectedPayment }}
-                            >
+                            <div data-checkout-sections style={{ display: 'contents' }}>
                                 {children}
-                            </BuilderPaymentSelectionContext.Provider>
-                        </div>
+                            </div>
+                        </BuilderPaymentSelectionContext.Provider>
                     </main>
                 </div>
             );
@@ -1921,53 +2179,154 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             ),
         },
         video: {
-            label: 'Player de vídeo',
+            label: 'Vídeo de vendas',
             fields: {
                 url: {
                     type: 'text',
-                    label: 'URL do vídeo (YouTube, Vimeo ou arquivo HTTPS)',
+                    label: 'URL do vídeo',
                     placeholder: 'https://youtube.com/watch?v=...',
                 },
                 title: { type: 'text', label: 'Título acessível' },
                 caption: { type: 'text', label: 'Legenda' },
                 posterUrl: imageField('Imagem de capa do vídeo'),
-                aspectRatio: {
+                format: {
                     type: 'select',
                     label: 'Formato',
                     options: [
-                        { label: 'Paisagem · 16:9', value: '16/9' },
-                        { label: 'Clássico · 4:3', value: '4/3' },
-                        { label: 'Quadrado · 1:1', value: '1/1' },
-                        { label: 'Vertical · 9:16', value: '9/16' },
+                        { label: 'Paisagem · 16:9', value: 'landscape' },
+                        { label: 'Vertical · 9:16', value: 'vertical' },
+                        { label: 'Quadrado · 1:1', value: 'square' },
                     ],
                 },
                 autoplay: {
                     type: 'radio',
-                    label: 'Reprodução automática',
+                    label: 'Iniciar sem som automaticamente',
                     options: booleanOptions,
                 },
                 controls: { type: 'radio', label: 'Controles', options: booleanOptions },
+                resume: {
+                    type: 'radio',
+                    label: 'Continuar de onde parou',
+                    options: booleanOptions,
+                },
+                ctaEnabled: {
+                    type: 'radio',
+                    label: 'Mostrar botão de oferta',
+                    options: booleanOptions,
+                },
+                ctaLabel: { type: 'text', label: 'Texto do botão' },
+                ctaSublabel: { type: 'text', label: 'Texto abaixo do botão' },
+                ctaReveal: {
+                    type: 'select',
+                    label: 'Quando mostrar o botão',
+                    options: [
+                        { label: 'Desde o início', value: 'start' },
+                        { label: 'Em um momento do vídeo', value: 'time' },
+                        { label: 'Ao terminar o vídeo', value: 'end' },
+                    ],
+                },
+                ctaSeconds: { type: 'number', label: 'Momento (segundos)', min: 0, max: 86400 },
+                ctaAction: {
+                    type: 'select',
+                    label: 'Destino (configurado no fluxo)',
+                    options: hiddenFunnelActionOptions,
+                },
+                ctaPageId: funnelPageField(),
+                endAction: {
+                    type: 'select',
+                    label: 'Ao terminar (configurado no fluxo)',
+                    options: [
+                        { label: 'Permanecer na página', value: 'none' },
+                        { label: 'Avançar automaticamente', value: 'next' },
+                    ],
+                },
+                endPageId: funnelPageField(),
             },
             defaultProps: {
                 url: '',
                 title: 'Vídeo de apresentação',
                 caption: '',
                 posterUrl: '',
-                aspectRatio: '16/9',
-                autoplay: false,
-                controls: true,
+                format: 'landscape',
+                autoplay: true,
+                controls: false,
+                resume: true,
+                ctaEnabled: true,
+                ctaLabel: 'Quero continuar',
+                ctaSublabel: '',
+                ctaReveal: 'time',
+                ctaSeconds: 60,
+                ctaAction: 'next',
+                ctaPageId: '',
+                endAction: 'none',
+                endPageId: '',
             },
-            render: ({ url, title, caption, posterUrl, aspectRatio, autoplay, controls }) => (
-                <CheckoutVideo
-                    url={url}
-                    title={title}
-                    caption={caption}
-                    posterUrl={posterUrl}
-                    aspectRatio={aspectRatio ?? '16/9'}
-                    autoplay={autoplay ?? false}
-                    controls={controls ?? true}
-                />
-            ),
+            resolveFields: (data, { fields }) => ({
+                ...fields,
+                ctaLabel: { ...fields.ctaLabel, visible: data.props.ctaEnabled === true },
+                ctaSublabel: { ...fields.ctaSublabel, visible: data.props.ctaEnabled === true },
+                ctaReveal: { ...fields.ctaReveal, visible: data.props.ctaEnabled === true },
+                ctaSeconds: {
+                    ...fields.ctaSeconds,
+                    visible: data.props.ctaEnabled === true && data.props.ctaReveal === 'time',
+                },
+                ctaAction: { ...fields.ctaAction, visible: false },
+                ctaPageId: { ...fields.ctaPageId, visible: false },
+                endAction: { ...fields.endAction, visible: false },
+                endPageId: { ...fields.endPageId, visible: false },
+            }),
+            render: (props) => <VideoBuilderPreview {...props} />,
+        },
+        cta_button: {
+            label: 'Botão de avanço',
+            fields: {
+                label: { type: 'text', label: 'Texto do botão' },
+                sublabel: { type: 'text', label: 'Texto de apoio' },
+                alignment: {
+                    type: 'select',
+                    label: 'Alinhamento',
+                    options: [
+                        { label: 'Centro', value: 'center' },
+                        { label: 'Esquerda', value: 'left' },
+                        { label: 'Largura total', value: 'stretch' },
+                    ],
+                },
+                variant: {
+                    type: 'select',
+                    label: 'Estilo',
+                    options: [
+                        { label: 'Principal', value: 'primary' },
+                        { label: 'Secundário', value: 'secondary' },
+                    ],
+                },
+                delaySeconds: {
+                    type: 'number',
+                    label: 'Atraso para aparecer (segundos)',
+                    min: 0,
+                    max: 86400,
+                },
+                action: {
+                    type: 'select',
+                    label: 'Destino (configurado no fluxo)',
+                    options: hiddenFunnelActionOptions,
+                },
+                pageId: funnelPageField(),
+            },
+            defaultProps: {
+                label: 'Quero continuar',
+                sublabel: '',
+                alignment: 'stretch',
+                variant: 'primary',
+                delaySeconds: 0,
+                action: 'next',
+                pageId: '',
+            },
+            resolveFields: (_data, { fields }) => ({
+                ...fields,
+                action: { ...fields.action, visible: false },
+                pageId: { ...fields.pageId, visible: false },
+            }),
+            render: (props) => <ActionButtonBuilderPreview {...props} />,
         },
         benefits: {
             label: 'Benefícios',
@@ -2036,6 +2395,18 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 eyebrow: { type: 'text', label: 'Sobretítulo (opcional)' },
                 title: { type: 'text', label: 'Título', contentEditable: true },
                 description: { type: 'textarea', label: 'Subtítulo (opcional)' },
+                showRatingSummary: {
+                    type: 'radio',
+                    label: 'Exibir resumo das avaliações',
+                    options: booleanOptions,
+                },
+                averageRating: ratingSliderField('Nota média'),
+                reviewCount: {
+                    type: 'number',
+                    label: 'Total de avaliações',
+                    min: 0,
+                    max: 999999999,
+                },
                 items: {
                     type: 'array',
                     label: 'Depoimentos',
@@ -2046,7 +2417,8 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                         name: { type: 'text', label: 'Nome' },
                         role: { type: 'text', label: 'Identificação' },
                         avatarUrl: imageField('Imagem do cliente'),
-                        rating: { type: 'number', label: 'Nota', min: 0, max: 5 },
+                        rating: ratingSliderField('Nota'),
+                        date: { type: 'text', label: 'Data (opcional)' },
                         verified: {
                             type: 'radio',
                             label: 'Compra verificada',
@@ -2060,6 +2432,7 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                         avatarUrl: '',
                         rating: 5,
                         verified: true,
+                        date: '',
                     },
                     getItemSummary: (item) => item.name,
                 },
@@ -2067,6 +2440,9 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             defaultProps: {
                 layout: 'cards',
                 title: 'Quem já comprou recomenda',
+                showRatingSummary: true,
+                averageRating: 4.9,
+                reviewCount: 2847,
                 items: [
                     {
                         quote: 'Consegui colocar tudo em prática rapidamente e os resultados apareceram.',
@@ -2075,6 +2451,7 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                         avatarUrl: '',
                         rating: 4.9,
                         verified: true,
+                        date: '',
                     },
                     {
                         quote: 'Conteúdo direto, organizado e muito mais completo do que eu esperava.',
@@ -2083,15 +2460,28 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                         avatarUrl: '',
                         rating: 4.8,
                         verified: true,
+                        date: '',
                     },
                 ],
             },
-            render: ({ layout, eyebrow, title, description, items }) => (
+            render: ({
+                layout,
+                eyebrow,
+                title,
+                description,
+                averageRating,
+                reviewCount,
+                showRatingSummary,
+                items,
+            }) => (
                 <CheckoutTestimonials
                     layout={layout ?? 'cards'}
                     eyebrow={eyebrow || undefined}
                     description={description || undefined}
                     title={title}
+                    averageRating={averageRating}
+                    reviewCount={reviewCount}
+                    showRatingSummary={showRatingSummary}
                     items={items.map((item) => ({ ...item, rating: item.rating ?? 5 }))}
                 />
             ),
@@ -2324,98 +2714,6 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 />
             ),
         },
-        card_payment: {
-            label: 'Dados do cartão',
-            fields: {
-                layout: cardPaymentLayoutField,
-                title: { type: 'text', label: 'Título' },
-                description: { type: 'textarea', label: 'Descrição' },
-                showInstallments: { type: 'radio', label: 'Parcelamento', options: booleanOptions },
-            },
-            defaultProps: {
-                layout: 'standard',
-                title: 'Dados do cartão',
-                description: 'Suas informações são protegidas e criptografadas.',
-                showInstallments: true,
-            },
-            render: ({ layout, title, description, showInstallments }) => (
-                <ConditionalPaymentBlock method="card" label={title || 'Dados do cartão'}>
-                    <CheckoutCardPayment
-                        layout={layout ?? 'standard'}
-                        title={title}
-                        description={description}
-                        secureElement={
-                            <CardPaymentFields
-                                compact={layout === 'compact'}
-                                showInstallments={showInstallments}
-                            />
-                        }
-                    />
-                </ConditionalPaymentBlock>
-            ),
-        },
-        pix_payment: {
-            label: 'Pagamento via Pix',
-            fields: {
-                layout: paymentInstructionLayoutField,
-                title: { type: 'text', label: 'Título' },
-                description: { type: 'textarea', label: 'Descrição' },
-                expiresIn: { type: 'text', label: 'Tempo de expiração' },
-            },
-            defaultProps: {
-                layout: 'split',
-                title: 'Pague com Pix',
-                description: 'Escaneie o QR Code ou copie o código Pix.',
-                expiresIn: '30 minutos',
-            },
-            render: ({ layout, title, description, expiresIn }) => (
-                <ConditionalPaymentBlock method="pix" label={title || 'Pagamento via Pix'}>
-                    <CheckoutPaymentInstruction
-                        kind="pix"
-                        layout={layout ?? 'split'}
-                        title={title}
-                        description={description}
-                        code="00020126••••••••••••••••"
-                        codeLabel="Código Pix copia e cola"
-                        footer={
-                            <p style={{ fontSize: 12, opacity: 0.62 }}>Expira em {expiresIn}.</p>
-                        }
-                    />
-                </ConditionalPaymentBlock>
-            ),
-        },
-        boleto_payment: {
-            label: 'Pagamento via boleto',
-            fields: {
-                layout: paymentInstructionLayoutField,
-                title: { type: 'text', label: 'Título' },
-                description: { type: 'textarea', label: 'Descrição' },
-                dueInDays: { type: 'number', label: 'Vencimento em dias', min: 1, max: 30 },
-            },
-            defaultProps: {
-                layout: 'split',
-                title: 'Pague com boleto',
-                description: 'O pedido será confirmado após a compensação bancária.',
-                dueInDays: 3,
-            },
-            render: ({ layout, title, description, dueInDays }) => (
-                <ConditionalPaymentBlock method="boleto" label={title || 'Pagamento via boleto'}>
-                    <CheckoutPaymentInstruction
-                        kind="boleto"
-                        layout={layout ?? 'split'}
-                        title={title}
-                        description={description}
-                        code="00190.00009 01234.567890 12345.678901 1 00000000000000"
-                        codeLabel="Código de barras"
-                        footer={
-                            <p style={{ fontSize: 12, opacity: 0.62 }}>
-                                Vencimento em {dueInDays} dias.
-                            </p>
-                        }
-                    />
-                </ConditionalPaymentBlock>
-            ),
-        },
         shipping_address: {
             label: 'Dados de entrega',
             fields: {
@@ -2597,6 +2895,13 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
         plan_comparison: {
             label: 'Comparação de planos',
             fields: {
+                syncFromCheckout: {
+                    type: 'custom',
+                    label: 'Planos do checkout',
+                    render: ({ onChange }) => (
+                        <CheckoutPlansSyncField onSync={() => onChange(String(Date.now()))} />
+                    ),
+                },
                 layout: planComparisonLayoutField,
                 title: { type: 'text', label: 'Título', contentEditable: true },
                 description: { type: 'textarea', label: 'Subtítulo (opcional)' },
@@ -2648,6 +2953,15 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                         featured: true,
                     },
                 ],
+            },
+            // Os planos vêm dos preços do checkout: ao inserir o bloco (com 2+ preços) e
+            // sempre que o vendedor pede para sincronizar.
+            resolveData: (data, { changed, trigger, metadata }) => {
+                const prices = checkoutPlanPrices(metadata);
+                const insert = trigger === 'insert' && prices.length > 1;
+                if (!insert && !(changed.syncFromCheckout && trigger !== 'load')) return data;
+                if (prices.length === 0) return data;
+                return { ...data, props: { ...data.props, plans: plansFromPrices(prices) } };
             },
             render: ({ layout, title, description, plans }) => (
                 <PlansPreview
@@ -2904,6 +3218,18 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 />
             ),
         },
+        payment_status: {
+            label: 'Status do pagamento',
+            fields: {
+                title: { type: 'text', label: 'Título', contentEditable: true },
+                message: { type: 'textarea', label: 'Mensagem' },
+                footnote: { type: 'textarea', label: 'Nota final' },
+                buttonLabel: { type: 'text', label: 'Texto do botão' },
+                buttonUrl: { type: 'text', label: 'Link do botão' },
+            },
+            defaultProps: paymentStatusDefaults.success as BuilderProps['payment_status'],
+            render: (props) => <PaymentStatusPreview props={props} />,
+        },
         footer: {
             label: 'Rodapé',
             fields: {
@@ -2984,10 +3310,26 @@ function withComponentSurfaceControls(
 /** Miniaturas dos presets: fundo, cartão, destaque e texto de cada identidade. */
 function BrandPresetPicker({ value, onChange }: { value: string; onChange(value: string): void }) {
     const selected = checkoutBrandPresets.find((preset) => preset.value === value);
+    const customActive = value === 'custom';
     return (
         <FieldLabel label="Tema da página">
             <div className="checkout-preset-picker">
                 <div className="checkout-preset-grid">
+                    <button
+                        type="button"
+                        onClick={() => onChange('custom')}
+                        aria-pressed={customActive}
+                        data-active={customActive}
+                        className="checkout-preset checkout-preset-custom"
+                    >
+                        <span className="checkout-preset-swatch checkout-preset-custom-swatch">
+                            <span className="checkout-preset-surface">
+                                <span className="checkout-preset-line" />
+                                <span className="checkout-preset-button" />
+                            </span>
+                        </span>
+                        <span className="checkout-preset-name">Personalizado</span>
+                    </button>
                     {checkoutBrandPresets.map((preset) => {
                         const [background, surface, accent, text] = preset.swatch;
                         const active = preset.value === value;
@@ -3029,8 +3371,10 @@ function BrandPresetPicker({ value, onChange }: { value: string; onChange(value:
                     })}
                 </div>
                 <p className="checkout-preset-description">
-                    {selected?.description ??
-                        'Escolha um ponto de partida e depois ajuste cores e fontes da sua marca.'}
+                    {customActive
+                        ? 'Sua identidade salva neste checkout. Você pode testar outros temas e voltar quando quiser.'
+                        : (selected?.description ??
+                          'Escolha um ponto de partida e depois ajuste cores e fontes da sua marca.')}
                 </p>
             </div>
         </FieldLabel>
@@ -3119,614 +3463,6 @@ function TemplatePicker<T extends string>({
                 </button>
             ))}
         </div>
-    );
-}
-
-type BenefitItem = { title: string; description: string };
-
-// Temporary visual migration reference; the builder renders CheckoutBenefits.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function BenefitsSection({
-    layout,
-    title,
-    items,
-}: {
-    layout: BenefitsLayout;
-    title: string;
-    items: BenefitItem[];
-}) {
-    const itemCount = Math.max(items.length, 1);
-    if (layout === 'checklist')
-        return (
-            <section style={{ ...card(), padding: 'clamp(26px, 5vw, 46px)' }}>
-                <h2 style={heading()}>{title}</h2>
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit,minmax(230px,1fr))',
-                        gap: 12,
-                        marginTop: 24,
-                    }}
-                >
-                    {items.map((item, index) => (
-                        <article
-                            key={`${item.title}-${index}`}
-                            style={{
-                                display: 'flex',
-                                gap: 12,
-                                alignItems: 'flex-start',
-                                border: 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
-                                borderRadius: 16,
-                                background: 'var(--checkout-muted)',
-                                padding: 16,
-                            }}
-                        >
-                            <span style={{ ...numberBadge(), width: 30, height: 30 }}>✓</span>
-                            <span>
-                                <strong style={{ display: 'block', fontSize: 14 }}>
-                                    {item.title}
-                                </strong>
-                                <small
-                                    style={{
-                                        display: 'block',
-                                        marginTop: 5,
-                                        lineHeight: 1.55,
-                                        opacity: 0.65,
-                                    }}
-                                >
-                                    {item.description}
-                                </small>
-                            </span>
-                        </article>
-                    ))}
-                </div>
-            </section>
-        );
-    if (layout === 'feature-grid')
-        return (
-            <section
-                style={{
-                    ...card(),
-                    overflow: 'hidden',
-                    padding: 0,
-                    background:
-                        'linear-gradient(135deg, color-mix(in srgb, var(--checkout-accent) 9%, var(--checkout-surface)), var(--checkout-surface))',
-                }}
-            >
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
-                    }}
-                >
-                    <div
-                        style={{
-                            display: 'grid',
-                            alignContent: 'center',
-                            minHeight: 260,
-                            padding: 'clamp(28px, 5vw, 54px)',
-                            borderRight:
-                                'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
-                        }}
-                    >
-                        <span style={heroEyebrow()}>Beneficios</span>
-                        <h2 style={{ ...heading(), marginTop: 12 }}>{title}</h2>
-                        <p
-                            style={{
-                                margin: '14px 0 0',
-                                maxWidth: 360,
-                                fontSize: 14,
-                                lineHeight: 1.7,
-                                opacity: 0.64,
-                            }}
-                        >
-                            Destaques organizados para leitura rapida, sem limitar a quantidade de
-                            itens.
-                        </p>
-                    </div>
-                    <div
-                        style={{
-                            display: 'grid',
-                            gridTemplateColumns: `repeat(auto-fit, minmax(${itemCount > 4 ? 190 : 220}px, 1fr))`,
-                            gap: 0,
-                        }}
-                    >
-                        {items.map((item, index) => (
-                            <article
-                                key={`${item.title}-${index}`}
-                                style={{
-                                    minHeight: 180,
-                                    padding: 24,
-                                    borderLeft:
-                                        'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
-                                    borderTop:
-                                        index > 0
-                                            ? 'var(--checkout-card-border-width) solid var(--checkout-component-divider)'
-                                            : 0,
-                                }}
-                            >
-                                <span
-                                    style={{
-                                        display: 'inline-grid',
-                                        minWidth: 34,
-                                        height: 34,
-                                        placeItems: 'center',
-                                        borderRadius: 999,
-                                        background: 'var(--checkout-accent)',
-                                        color: '#fff',
-                                        fontSize: 12,
-                                        fontWeight: 900,
-                                        paddingInline: 10,
-                                    }}
-                                >
-                                    {String(index + 1).padStart(2, '0')}
-                                </span>
-                                <h3
-                                    style={{
-                                        margin: '18px 0 0',
-                                        fontSize: 18,
-                                        letterSpacing: '-.02em',
-                                    }}
-                                >
-                                    {item.title}
-                                </h3>
-                                <p
-                                    style={{
-                                        margin: '9px 0 0',
-                                        fontSize: 13,
-                                        lineHeight: 1.65,
-                                        opacity: 0.68,
-                                    }}
-                                >
-                                    {item.description}
-                                </p>
-                            </article>
-                        ))}
-                    </div>
-                </div>
-            </section>
-        );
-    if (layout === 'cards')
-        return (
-            <section style={{ ...fullWidth(), padding: '32px 0' }}>
-                <h2 style={{ ...heading(), textAlign: 'center' }}>{title}</h2>
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                        gap: 16,
-                        marginTop: 28,
-                    }}
-                >
-                    {items.map((item, index) => (
-                        <article key={`${item.title}-${index}`} style={{ ...card(), padding: 24 }}>
-                            <span style={numberBadge()}>{index + 1}</span>
-                            <h3 style={{ margin: '18px 0 0', fontSize: 18 }}>{item.title}</h3>
-                            <p
-                                style={{
-                                    margin: '9px 0 0',
-                                    fontSize: 14,
-                                    lineHeight: 1.65,
-                                    opacity: 0.68,
-                                }}
-                            >
-                                {item.description}
-                            </p>
-                        </article>
-                    ))}
-                </div>
-            </section>
-        );
-    if (layout === 'list')
-        return (
-            <section style={{ ...card(), padding: 'clamp(28px, 5vw, 48px)' }}>
-                <h2 style={heading()}>{title}</h2>
-                <div style={{ display: 'grid', gap: 0, marginTop: 24 }}>
-                    {items.map((item, index) => (
-                        <div
-                            key={`${item.title}-${index}`}
-                            style={{
-                                display: 'grid',
-                                gridTemplateColumns: '40px minmax(0,1fr)',
-                                gap: 14,
-                                padding: '18px 0',
-                                borderTop:
-                                    'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
-                            }}
-                        >
-                            <span style={{ ...numberBadge(), width: 36, height: 36 }}>✓</span>
-                            <div>
-                                <strong style={{ fontSize: 15 }}>{item.title}</strong>
-                                <p
-                                    style={{
-                                        margin: '5px 0 0',
-                                        fontSize: 13,
-                                        lineHeight: 1.6,
-                                        opacity: 0.66,
-                                    }}
-                                >
-                                    {item.description}
-                                </p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </section>
-        );
-    if (layout === 'steps')
-        return (
-            <section style={{ ...fullWidth(), padding: '32px 0' }}>
-                <h2 style={{ ...heading(), textAlign: 'center' }}>{title}</h2>
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))',
-                        gap: 12,
-                        marginTop: 28,
-                    }}
-                >
-                    {items.map((item, index) => (
-                        <article
-                            key={`${item.title}-${index}`}
-                            style={{
-                                position: 'relative',
-                                padding: 24,
-                                borderTop: '3px solid var(--checkout-accent)',
-                                background:
-                                    'color-mix(in srgb, var(--checkout-accent) 5%, var(--checkout-surface))',
-                                borderRadius: '0 0 var(--checkout-radius) var(--checkout-radius)',
-                            }}
-                        >
-                            <span
-                                style={{
-                                    color: 'var(--checkout-accent)',
-                                    fontSize: 12,
-                                    fontWeight: 850,
-                                }}
-                            >
-                                0{index + 1}
-                            </span>
-                            <h3 style={{ margin: '12px 0 0', fontSize: 17 }}>{item.title}</h3>
-                            <p
-                                style={{
-                                    margin: '8px 0 0',
-                                    fontSize: 13,
-                                    lineHeight: 1.6,
-                                    opacity: 0.66,
-                                }}
-                            >
-                                {item.description}
-                            </p>
-                        </article>
-                    ))}
-                </div>
-            </section>
-        );
-    return null;
-}
-
-type TestimonialItem = { quote: string; name: string; role: string };
-
-// Temporary visual migration reference; the builder renders CheckoutTestimonials.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function TestimonialsSection({
-    layout,
-    title,
-    items,
-}: {
-    layout: TestimonialsLayout;
-    title: string;
-    items: TestimonialItem[];
-}) {
-    if (layout === 'spotlight' && items.length) {
-        const [first, ...rest] = items;
-        return (
-            <section
-                style={{
-                    ...card(),
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-                    gap: 18,
-                    padding: 'clamp(26px, 5vw, 48px)',
-                    alignItems: 'stretch',
-                }}
-            >
-                <div>
-                    <span style={heroEyebrow()}>Prova social</span>
-                    <h2 style={{ ...heading(), marginTop: 12 }}>{title}</h2>
-                    <TestimonialCard item={first} featured />
-                </div>
-                <div style={{ display: 'grid', gap: 12, alignContent: 'center' }}>
-                    {rest.map((item, index) => (
-                        <TestimonialMini key={`${item.name}-${index}`} item={item} />
-                    ))}
-                </div>
-            </section>
-        );
-    }
-    if (layout === 'wall')
-        return (
-            <section style={{ ...fullWidth(), padding: '32px 0' }}>
-                <h2 style={{ ...heading(), textAlign: 'center' }}>{title}</h2>
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))',
-                        gap: 12,
-                        marginTop: 28,
-                    }}
-                >
-                    {items.map((item, index) => (
-                        <TestimonialMini
-                            key={`${item.name}-${index}`}
-                            item={item}
-                            tall={index % 3 === 0}
-                        />
-                    ))}
-                </div>
-            </section>
-        );
-    if (layout === 'featured' && items.length)
-        return (
-            <section style={{ ...fullWidth(), padding: '32px 0' }}>
-                <h2 style={{ ...heading(), textAlign: 'center' }}>{title}</h2>
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-                        gap: 16,
-                        marginTop: 28,
-                    }}
-                >
-                    <TestimonialCard item={items[0]} featured />
-                    {items.length > 1 && (
-                        <div style={{ display: 'grid', gap: 16 }}>
-                            {items.slice(1).map((item, index) => (
-                                <TestimonialCard key={`${item.name}-${index}`} item={item} />
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </section>
-        );
-    if (layout === 'compact')
-        return (
-            <section style={{ ...card(), padding: 28 }}>
-                <h2 style={{ ...checkoutHeading(), fontSize: 18 }}>{title}</h2>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, marginTop: 20 }}>
-                    {items.map((item, index) => (
-                        <blockquote
-                            key={`${item.name}-${index}`}
-                            style={{ minWidth: 220, flex: 1, margin: 0 }}
-                        >
-                            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65 }}>
-                                &ldquo;{item.quote}&rdquo;
-                            </p>
-                            <footer style={{ marginTop: 10, fontSize: 11, opacity: 0.62 }}>
-                                {item.name} · {item.role}
-                            </footer>
-                        </blockquote>
-                    ))}
-                </div>
-            </section>
-        );
-    return (
-        <section style={{ ...fullWidth(), padding: '32px 0' }}>
-            <h2 style={{ ...heading(), textAlign: 'center' }}>{title}</h2>
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                    gap: 16,
-                    marginTop: 28,
-                }}
-            >
-                {items.map((item, index) => (
-                    <TestimonialCard key={`${item.name}-${index}`} item={item} />
-                ))}
-            </div>
-        </section>
-    );
-}
-
-function TestimonialCard({
-    item,
-    featured = false,
-}: {
-    item: TestimonialItem;
-    featured?: boolean;
-}) {
-    return (
-        <blockquote
-            style={{
-                ...card(),
-                margin: 0,
-                padding: featured ? 36 : 28,
-                background: featured
-                    ? 'color-mix(in srgb, var(--checkout-accent) 8%, var(--checkout-surface))'
-                    : 'var(--checkout-surface)',
-            }}
-        >
-            <span style={{ color: 'var(--checkout-accent)', fontSize: 30, lineHeight: 1 }}>“</span>
-            <p style={{ margin: '8px 0 0', fontSize: featured ? 20 : 16, lineHeight: 1.7 }}>
-                {item.quote}
-            </p>
-            <footer style={{ marginTop: 20 }}>
-                <strong style={{ fontSize: 14 }}>{item.name}</strong>
-                <span style={{ display: 'block', marginTop: 3, fontSize: 12, opacity: 0.6 }}>
-                    {item.role}
-                </span>
-            </footer>
-        </blockquote>
-    );
-}
-
-function TestimonialMini({ item, tall = false }: { item: TestimonialItem; tall?: boolean }) {
-    return (
-        <blockquote
-            style={{
-                ...card(),
-                margin: 0,
-                minHeight: tall ? 190 : undefined,
-                padding: 20,
-            }}
-        >
-            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7 }}>&ldquo;{item.quote}&rdquo;</p>
-            <footer style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16 }}>
-                <span
-                    style={{
-                        display: 'grid',
-                        width: 34,
-                        height: 34,
-                        placeItems: 'center',
-                        borderRadius: 999,
-                        background:
-                            'color-mix(in srgb, var(--checkout-accent) 14%, var(--checkout-muted))',
-                        color: 'var(--checkout-accent)',
-                        fontWeight: 800,
-                    }}
-                >
-                    {item.name.slice(0, 1)}
-                </span>
-                <span>
-                    <strong style={{ display: 'block', fontSize: 13 }}>{item.name}</strong>
-                    <small style={{ opacity: 0.58 }}>{item.role}</small>
-                </span>
-            </footer>
-        </blockquote>
-    );
-}
-
-type FaqItem = { question: string; answer: string };
-
-// Temporary visual migration reference; the builder renders CheckoutFaq.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function FaqSection({
-    layout,
-    title,
-    items,
-}: {
-    layout: FaqLayout;
-    title: string;
-    items: FaqItem[];
-}) {
-    if (layout === 'cards') {
-        return (
-            <section style={{ ...fullWidth(), padding: '32px 0' }}>
-                <h2 style={{ ...heading(), textAlign: 'center' }}>{title}</h2>
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                        gap: 16,
-                        marginTop: 28,
-                    }}
-                >
-                    {items.map((item, index) => (
-                        <article
-                            key={`${item.question}-${index}`}
-                            style={{ ...card(), padding: 24 }}
-                        >
-                            <span
-                                style={{
-                                    display: 'grid',
-                                    width: 34,
-                                    height: 34,
-                                    placeItems: 'center',
-                                    borderRadius: 10,
-                                    background:
-                                        'color-mix(in srgb, var(--checkout-accent) 12%, var(--checkout-muted))',
-                                    color: 'var(--checkout-accent)',
-                                    fontWeight: 850,
-                                }}
-                            >
-                                ?
-                            </span>
-                            <h3 style={{ margin: '16px 0 0', fontSize: 17, lineHeight: 1.4 }}>
-                                {item.question}
-                            </h3>
-                            <p
-                                style={{
-                                    margin: '9px 0 0',
-                                    fontSize: 14,
-                                    lineHeight: 1.7,
-                                    opacity: 0.68,
-                                }}
-                            >
-                                {item.answer}
-                            </p>
-                        </article>
-                    ))}
-                </div>
-            </section>
-        );
-    }
-
-    const questions = (
-        <div>
-            {items.map((item, index) => (
-                <details
-                    key={`${item.question}-${index}`}
-                    style={{
-                        borderTop: index === 0 ? '1px solid var(--checkout-border)' : 0,
-                        borderBottom:
-                            'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
-                        padding: '18px 2px',
-                    }}
-                >
-                    <summary style={{ cursor: 'pointer', fontWeight: 750, lineHeight: 1.45 }}>
-                        {item.question}
-                    </summary>
-                    <p
-                        style={{
-                            margin: '12px 24px 0 0',
-                            fontSize: 14,
-                            lineHeight: 1.7,
-                            opacity: 0.7,
-                        }}
-                    >
-                        {item.answer}
-                    </p>
-                </details>
-            ))}
-        </div>
-    );
-    if (layout === 'split') {
-        return (
-            <section
-                style={{
-                    ...card(),
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-                    gap: 'clamp(28px, 6vw, 72px)',
-                    alignItems: 'start',
-                    padding: 'clamp(28px, 5vw, 52px)',
-                }}
-            >
-                <div>
-                    <span style={heroEyebrow()}>Tire suas dúvidas</span>
-                    <h2 style={{ ...heading(), marginTop: 12 }}>{title}</h2>
-                    <p
-                        style={{
-                            margin: '14px 0 0',
-                            maxWidth: 390,
-                            fontSize: 14,
-                            lineHeight: 1.7,
-                            opacity: 0.64,
-                        }}
-                    >
-                        Encontre respostas rápidas antes de concluir sua compra.
-                    </p>
-                </div>
-                {questions}
-            </section>
-        );
-    }
-    return (
-        <section style={{ ...card(), padding: 'clamp(28px, 5vw, 52px)' }}>
-            <h2 style={{ ...heading(), textAlign: 'center' }}>{title}</h2>
-            <div style={{ maxWidth: 800, margin: '28px auto 0' }}>{questions}</div>
-        </section>
     );
 }
 
@@ -3890,275 +3626,6 @@ function resolveVideoSource(
     }
 }
 
-// Temporary visual migration reference; the builder renders CheckoutGuarantee.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function GuaranteeSection({
-    layout,
-    title,
-    description,
-    days,
-}: {
-    layout: GuaranteeLayout;
-    title: string;
-    description: string;
-    days: number;
-}) {
-    const titleIncludesDays = new RegExp(`\\b${days}\\s*dias?\\b`, 'i').test(title);
-    const seal = <GuaranteeSeal days={days} compact={layout === 'minimal'} />;
-    if (layout === 'minimal')
-        return (
-            <section
-                style={{
-                    ...card(),
-                    display: 'grid',
-                    gridTemplateColumns: titleIncludesDays
-                        ? 'minmax(0, 1fr)'
-                        : 'auto minmax(0, 1fr)',
-                    alignItems: 'center',
-                    gap: 14,
-                    padding: 'clamp(16px, 4vw, 22px)',
-                    boxShadow: 'none',
-                }}
-            >
-                {!titleIncludesDays && seal}
-                <div>
-                    <h2 style={{ ...checkoutHeading(), fontSize: 17 }}>{title}</h2>
-                    <p style={{ margin: '5px 0 0', fontSize: 13, lineHeight: 1.55, opacity: 0.66 }}>
-                        {description}
-                    </p>
-                </div>
-            </section>
-        );
-    if (layout === 'boxed')
-        return (
-            <section
-                style={{
-                    ...card(),
-                    display: 'grid',
-                    gridTemplateColumns: 'auto minmax(0,1fr)',
-                    gap: 18,
-                    alignItems: 'center',
-                    padding: 'clamp(24px, 5vw, 42px)',
-                    background:
-                        'linear-gradient(135deg, color-mix(in srgb, var(--checkout-accent) 8%, var(--checkout-group-bg)), var(--checkout-group-bg))',
-                }}
-            >
-                {seal}
-                <div>
-                    <h2 style={{ ...checkoutHeading(), fontSize: 24 }}>{title}</h2>
-                    <p style={{ margin: '8px 0 0', maxWidth: 720, lineHeight: 1.7, opacity: 0.68 }}>
-                        {description}
-                    </p>
-                </div>
-            </section>
-        );
-    if (layout === 'seal')
-        return (
-            <section style={{ ...card(), padding: 'clamp(28px,6vw,54px)', textAlign: 'center' }}>
-                <span style={{ display: 'inline-grid' }}>{seal}</span>
-                <h2 style={{ margin: '22px 0 0', fontSize: 25 }}>{title}</h2>
-                <p
-                    style={{
-                        maxWidth: 680,
-                        margin: '10px auto 0',
-                        lineHeight: 1.65,
-                        opacity: 0.68,
-                    }}
-                >
-                    {description}
-                </p>
-            </section>
-        );
-    if (layout === 'banner')
-        return (
-            <section
-                style={{
-                    ...fullWidth(),
-                    display: 'grid',
-                    gridTemplateColumns: 'auto minmax(0, 1fr)',
-                    alignItems: 'center',
-                    gap: 24,
-                    borderRadius: 'var(--checkout-radius)',
-                    background:
-                        'linear-gradient(135deg,var(--checkout-accent),color-mix(in srgb,var(--checkout-accent) 70%,#17152d))',
-                    color: '#fff',
-                    padding: 'clamp(26px,5vw,46px)',
-                    boxShadow: 'var(--checkout-shadow)',
-                }}
-            >
-                <GuaranteeSeal days={days} inverted />
-                <div>
-                    <h2 style={{ margin: 0, fontSize: 24 }}>{title}</h2>
-                    <p style={{ margin: '7px 0 0', lineHeight: 1.6, opacity: 0.78 }}>
-                        {description}
-                    </p>
-                </div>
-            </section>
-        );
-    return (
-        <section
-            style={{
-                ...card(),
-                display: 'grid',
-                gridTemplateColumns: 'auto minmax(0, 1fr)',
-                alignItems: 'center',
-                gap: 18,
-                padding: 'clamp(22px, 5vw, 32px)',
-                border: 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
-            }}
-        >
-            {seal}
-            <div>
-                <h2 style={{ margin: 0, fontSize: 23 }}>{title}</h2>
-                <p style={{ margin: '8px 0 0', lineHeight: 1.65, opacity: 0.7 }}>{description}</p>
-            </div>
-        </section>
-    );
-}
-
-function GuaranteeSeal({
-    days,
-    compact = false,
-    inverted = false,
-}: {
-    days: number;
-    compact?: boolean;
-    inverted?: boolean;
-}) {
-    const size = compact ? 46 : 68;
-    return (
-        <span
-            aria-hidden="true"
-            style={{
-                display: 'grid',
-                width: size,
-                height: size,
-                flex: `0 0 ${size}px`,
-                placeItems: 'center',
-                border: inverted
-                    ? '1px solid rgb(255 255 255 / 42%)'
-                    : 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
-                borderRadius: 18,
-                background: inverted
-                    ? 'rgb(255 255 255 / 14%)'
-                    : 'color-mix(in srgb, var(--checkout-accent) 10%, var(--checkout-surface))',
-                color: inverted ? '#fff' : 'var(--checkout-accent)',
-                boxShadow: inverted
-                    ? 'none'
-                    : '0 12px 26px color-mix(in srgb, var(--checkout-accent) 16%, transparent)',
-                textAlign: 'center',
-            }}
-        >
-            <span style={{ display: 'grid', gap: 1, lineHeight: 1 }}>
-                <strong style={{ fontSize: compact ? 17 : 24, fontWeight: 900 }}>{days}</strong>
-                <small
-                    style={{
-                        fontSize: compact ? 8 : 9,
-                        fontWeight: 800,
-                        textTransform: 'uppercase',
-                    }}
-                >
-                    dias
-                </small>
-            </span>
-        </span>
-    );
-}
-
-// Temporary visual migration reference; the builder renders CheckoutProductSummary.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function ProductSection({
-    layout,
-    title,
-    description,
-}: {
-    layout: ProductLayout;
-    title: string;
-    description: string;
-}) {
-    const item = (
-        <>
-            <div
-                style={{
-                    display: 'grid',
-                    width: 62,
-                    aspectRatio: '1',
-                    placeItems: 'center',
-                    borderRadius: 13,
-                    background:
-                        'color-mix(in srgb,var(--checkout-accent) 12%,var(--checkout-muted))',
-                    color: 'var(--checkout-accent)',
-                    fontSize: 22,
-                }}
-            >
-                ◇
-            </div>
-            <div>
-                <strong style={{ display: 'block', fontSize: 15 }}>Produto selecionado</strong>
-                <span style={{ display: 'block', marginTop: 4, fontSize: 12, opacity: 0.58 }}>
-                    1 unidade
-                </span>
-            </div>
-            <strong style={{ marginLeft: 'auto', fontSize: 20 }}>R$ —</strong>
-        </>
-    );
-    if (layout === 'compact')
-        return (
-            <section
-                style={{
-                    ...checkoutCard(),
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 14,
-                    padding: 18,
-                }}
-            >
-                {item}
-            </section>
-        );
-    if (layout === 'detailed')
-        return (
-            <section style={{ ...checkoutCard(), padding: 28 }}>
-                <h2 style={checkoutHeading()}>{title}</h2>
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'minmax(0,1fr) auto auto',
-                        gap: 18,
-                        marginTop: 20,
-                        padding: '18px 0',
-                        borderBlock: '1px dashed var(--checkout-border)',
-                        fontSize: 13,
-                    }}
-                >
-                    <strong>Produto selecionado</strong>
-                    <span style={{ opacity: 0.6 }}>Qtd. 1</span>
-                    <strong>R$ —</strong>
-                </div>
-                <p style={{ margin: '14px 0 0', fontSize: 12, opacity: 0.58 }}>{description}</p>
-            </section>
-        );
-    return (
-        <section style={{ ...checkoutCard(), padding: 28 }}>
-            <h2 style={checkoutHeading()}>{title}</h2>
-            <p style={checkoutDescription()}>{description}</p>
-            <div
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 16,
-                    marginTop: 24,
-                    paddingTop: 22,
-                    borderTop:
-                        'var(--checkout-card-border-width) solid var(--checkout-component-divider)',
-                }}
-            >
-                {item}
-            </div>
-        </section>
-    );
-}
-
 function CustomerFormPreview({
     layout,
     title,
@@ -4177,97 +3644,6 @@ function CustomerFormPreview({
             values={values}
             onChange={(field, value) => setValues((current) => ({ ...current, [field]: value }))}
         />
-    );
-}
-
-// Temporary visual migration reference; the builder renders CheckoutCustomerForm.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function CheckoutFormSection({
-    layout,
-    title,
-    description,
-    buttonLabel,
-    showPhone,
-    showDocument,
-}: {
-    layout: FormLayout;
-    title: string;
-    description: string;
-    buttonLabel: string;
-    showPhone: boolean;
-    showDocument: boolean;
-}) {
-    const fields = (
-        <>
-            <CheckoutInput
-                required
-                label="Nome completo *"
-                name="customerName"
-                autoComplete="name"
-                placeholder="Digite seu nome"
-            />
-            <CheckoutInput
-                required
-                label="E-mail *"
-                name="customerEmail"
-                type="email"
-                autoComplete="email"
-                placeholder="voce@email.com"
-            />
-            {showPhone && (
-                <CheckoutInput
-                    label="Telefone"
-                    name="customerPhone"
-                    type="tel"
-                    autoComplete="tel"
-                    placeholder="(00) 00000-0000"
-                />
-            )}
-            {showDocument && (
-                <CheckoutInput
-                    label="CPF/CNPJ"
-                    name="customerDocument"
-                    placeholder="000.000.000-00"
-                />
-            )}
-        </>
-    );
-    return (
-        <form
-            onSubmit={(event) => event.preventDefault()}
-            style={{
-                ...(layout === 'plain' ? fullWidth() : checkoutCard()),
-                padding: layout === 'plain' ? '12px 0' : 28,
-            }}
-        >
-            <h2 style={checkoutHeading()}>{title}</h2>
-            <p style={checkoutDescription()}>{description}</p>
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns:
-                        layout === 'compact' ? 'repeat(auto-fit,minmax(220px,1fr))' : '1fr',
-                    gap: 16,
-                    marginTop: 24,
-                }}
-            >
-                {fields}
-            </div>
-            <p style={{ margin: '16px 0 0', fontSize: 10, lineHeight: 1.5, opacity: 0.58 }}>
-                Ao continuar, você concorda com os <u>Termos de uso</u> e a{' '}
-                <u>Política de privacidade</u>.
-            </p>
-            <Button
-                type="submit"
-                className="checkout-primary-button"
-                style={{ ...primaryButton(), width: '100%', marginTop: 16 }}
-            >
-                {buttonLabel}
-            </Button>
-            <p style={{ margin: '12px 0 0', textAlign: 'center', fontSize: 10, opacity: 0.5 }}>
-                🔒 Pagamento e dados protegidos
-            </p>
-        </form>
     );
 }
 
@@ -4332,6 +3708,18 @@ function PaymentMethodsPreview({
                 options={options}
                 selectedId={effectiveSelectedId}
                 onSelect={(id) => (select ? select(id) : setLocalSelected(id))}
+                detail={
+                    effectiveSelectedId === 'card' ? (
+                        <CheckoutCardPayment
+                            embedded
+                            secureElement={<CardPaymentFields compact showInstallments />}
+                        />
+                    ) : effectiveSelectedId === 'pix' ? (
+                        <CheckoutPaymentMethodNotice kind="pix" />
+                    ) : effectiveSelectedId === 'boleto' ? (
+                        <CheckoutPaymentMethodNotice kind="boleto" />
+                    ) : undefined
+                }
                 wallets={
                     showWallets
                         ? [
@@ -4345,25 +3733,64 @@ function PaymentMethodsPreview({
     );
 }
 
-/**
- * Detalhe de uma forma de pagamento: aparece só com o método selecionado, igual ao checkout
- * publicado. Para editar o bloco, selecione o método correspondente na prévia.
- */
-function ConditionalPaymentBlock({
-    method,
-    children,
-}: {
-    method: 'card' | 'pix' | 'boleto';
-    label?: string;
-    children: React.ReactNode;
-}) {
-    const selection = useContext(BuilderPaymentSelectionContext);
-    // Sem bloco de formas de pagamento na página, não há o que condicionar.
-    if (selection && selection.selected !== undefined && selection.selected !== method) return null;
+function VideoBuilderPreview(props: BuilderProps['video']) {
+    const follow = useBuilderFollow();
+    // O canvas de edição é estático: autoplay dentro do Puck reiniciava a cada remontagem
+    // do bloco e desviava a atenção. O comportamento real continua disponível em Testar.
+    const editing = !follow;
+    const navigation = readNavigation(props.ctaAction, props.ctaPageId);
     return (
-        <div data-checkout-swap key={method}>
-            {children}
-        </div>
+        <CheckoutVideo
+            url={props.url}
+            title={props.title}
+            caption={props.caption}
+            posterUrl={props.posterUrl}
+            format={props.format ?? 'landscape'}
+            autoplay={props.autoplay ?? true}
+            controls={props.controls ?? false}
+            resume={props.resume ?? true}
+            preview={editing}
+            cta={
+                props.ctaEnabled
+                    ? {
+                          label: props.ctaLabel,
+                          sublabel: props.ctaSublabel,
+                          reveal: props.ctaReveal,
+                          seconds: props.ctaSeconds,
+                          onClick:
+                              follow && props.ctaAction !== 'none'
+                                  ? () => follow(navigation)
+                                  : undefined,
+                      }
+                    : undefined
+            }
+            onEnded={
+                props.endAction === 'next' && follow
+                    ? () =>
+                          follow(
+                              props.endPageId
+                                  ? { kind: 'page', pageId: props.endPageId }
+                                  : { kind: 'next' },
+                          )
+                    : undefined
+            }
+        />
+    );
+}
+
+function ActionButtonBuilderPreview(props: BuilderProps['cta_button']) {
+    const follow = useBuilderFollow();
+    const navigation = readNavigation(props.action, props.pageId);
+    return (
+        <CheckoutActionButton
+            label={props.label}
+            sublabel={props.sublabel}
+            alignment={props.alignment}
+            variant={props.variant}
+            delaySeconds={props.delaySeconds}
+            preview
+            onClick={follow && props.action !== 'none' ? () => follow(navigation) : undefined}
+        />
     );
 }
 
@@ -4380,6 +3807,8 @@ function ProductSummaryPreview({
 }: BuilderProps['product_summary']) {
     const isStatic = useContext(CheckoutBuilderStaticContext);
     const products = useContext(CheckoutBuilderProductsContext);
+    const method = useContext(BuilderPaymentSelectionContext)?.selected;
+    const navigate = useBuilderTestNavigation();
     const main = products.find((item) => item.isDefault) ?? products[0];
     const price = main ? formatMinor(main.amountMinor, main.currency) : 'R$ 97,00';
     const product = {
@@ -4408,23 +3837,78 @@ function ProductSummaryPreview({
             product={product}
             lines={[{ label: 'Subtotal', value: price }]}
             total={price}
-            buttonLabel={buttonLabel}
-            onSubmit={() => undefined}
+            buttonLabel={submitLabel(buttonLabel, method)}
+            onSubmit={() =>
+                navigate?.(method === 'pix' ? 'pix' : method === 'boleto' ? 'boleto' : 'success')
+            }
         />
     );
 }
 
-/** Prévia das telas depois do pagamento, com os textos editados no painel Página. */
-function ResultScreenPreview({
-    status,
-    success,
-    failure,
-}: {
-    status: 'approved' | 'failed';
-    success: CheckoutResultScreens['success'];
-    failure: CheckoutResultScreens['failure'];
-}) {
+function submitLabel(configured: string | undefined, method?: string) {
+    if (configured && configured !== 'Finalizar compra') return configured;
+    if (method === 'pix') return 'Pagar com Pix';
+    if (method === 'boleto') return 'Gerar boleto';
+    return 'Finalizar compra';
+}
+
+const samplePixCode =
+    '00020126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-4266141740005204000053039865406097.005802BR5913LOJA EXEMPLO6009SAO PAULO62070503***6304B14F';
+
+function PendingPaymentPreview({ kind }: { kind: 'pix' | 'boleto' }) {
     const products = useContext(CheckoutBuilderProductsContext);
+    const navigate = useBuilderTestNavigation();
+    const main = products.find((item) => item.isDefault) ?? products[0];
+    return (
+        <div key={kind} style={{ display: 'grid', placeItems: 'center', padding: '32px 0 56px' }}>
+            <div style={{ width: '100%', maxWidth: 520 }}>
+                <CheckoutPendingPayment
+                    kind={kind}
+                    amount={main ? formatMinor(main.amountMinor, main.currency) : 'R$ 97,00'}
+                    productName={main?.productName ?? 'Seu produto'}
+                    code={
+                        kind === 'pix'
+                            ? samplePixCode
+                            : '23793.38128 60000.000003 00000.000400 1 99990000009700'
+                    }
+                    expiresLabel={kind === 'pix' ? '30:00' : '3 dias'}
+                    email="maria@exemplo.com"
+                    onCheckStatus={() => navigate?.('success')}
+                    action={
+                        kind === 'boleto' ? (
+                            <button
+                                type="button"
+                                data-checkout-button-secondary
+                                style={{
+                                    display: 'inline-flex',
+                                    minHeight: 44,
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    border: '1px solid var(--checkout-control-border)',
+                                    borderRadius: 'var(--checkout-control-radius)',
+                                    background: 'var(--checkout-surface)',
+                                    color: 'var(--checkout-text)',
+                                    font: 'inherit',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                Baixar boleto em PDF
+                            </button>
+                        ) : undefined
+                    }
+                />
+            </div>
+        </div>
+    );
+}
+
+function PaymentStatusPreview({ props }: { props: BuilderProps['payment_status'] }) {
+    const pageKind = useContext(CheckoutBuilderPreviewContext)?.pageKind ?? 'success';
+    const products = useContext(CheckoutBuilderProductsContext);
+    const method = useContext(BuilderPaymentSelectionContext)?.selected;
+    const navigate = useBuilderTestNavigation();
+    if (pageKind === 'pix' || pageKind === 'boleto')
+        return <PendingPaymentPreview kind={pageKind} />;
     const main = products.find((item) => item.isDefault) ?? products[0];
     const sample = {
         name: 'Maria Souza',
@@ -4434,26 +3918,45 @@ function ResultScreenPreview({
     const details = [
         { label: 'Produto', value: sample.product },
         ...(main ? [{ label: 'Total', value: formatMinor(main.amountMinor, main.currency) }] : []),
-        { label: 'Pagamento', value: 'Cartão de crédito' },
+        {
+            label: 'Pagamento',
+            value:
+                method === 'pix'
+                    ? 'Pix'
+                    : method === 'boleto'
+                      ? 'Boleto bancário'
+                      : 'Cartão de crédito',
+        },
     ];
-    const screen = status === 'approved' ? success : failure;
-    const buttonLabel =
-        status === 'approved' ? success.buttonLabel?.trim() : failure.buttonLabel?.trim();
+    const status = pageKind === 'failure' ? 'failed' : 'approved';
+    const defaults = paymentStatusDefaults[pageKind === 'failure' ? 'failure' : 'success'];
+    const screen = { ...defaults, ...props };
+    const screenText = (key: 'title' | 'message' | 'footnote' | 'buttonLabel' | 'buttonUrl') => {
+        const value = screen[key];
+        if (typeof value === 'string' || typeof value === 'number') return String(value);
+        const fallback = defaults[key];
+        return typeof fallback === 'string' || typeof fallback === 'number' ? String(fallback) : '';
+    };
+    const buttonLabel = screenText('buttonLabel').trim();
+    const buttonUrl = screenText('buttonUrl');
+    const testAction = !navigate
+        ? undefined
+        : status === 'failed'
+          ? () => navigate('checkout')
+          : buttonUrl && safeHttpsUrl(buttonUrl)
+            ? () => window.open(buttonUrl, '_blank', 'noopener,noreferrer')
+            : undefined;
     return (
-        <div
-            // Remonta ao trocar de tela para a animação de entrada tocar de novo.
-            key={status}
-            style={{ display: 'grid', placeItems: 'center', padding: '48px 0 64px' }}
-        >
+        <div key={status} style={{ display: 'grid', placeItems: 'center', padding: '48px 0 64px' }}>
             <div style={{ width: '100%', maxWidth: 480 }}>
                 <CheckoutPaymentResult
                     status={status}
-                    title={fillResultText(screen.title ?? '', sample)}
-                    description={fillResultText(screen.message ?? '', sample)}
+                    title={fillResultText(screenText('title'), sample)}
+                    description={fillResultText(screenText('message'), sample)}
                     details={details}
                     footnote={
                         status === 'approved'
-                            ? fillResultText(success.footnote ?? '', sample)
+                            ? fillResultText(screenText('footnote'), sample)
                             : undefined
                     }
                     action={
@@ -4461,6 +3964,7 @@ function ResultScreenPreview({
                             <button
                                 type="button"
                                 data-checkout-button-primary
+                                onClick={testAction}
                                 style={{
                                     display: 'flex',
                                     width: '100%',
@@ -4542,145 +4046,6 @@ function CardPaymentFields({
     );
 }
 
-// Temporary visual migration reference; the builder renders CheckoutCardPayment.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function CardPaymentSection({
-    layout,
-    title,
-    description,
-    showInstallments,
-}: {
-    layout: CardPaymentLayout;
-    title: string;
-    description: string;
-    showInstallments: boolean;
-}) {
-    if (layout === 'visual') {
-        return (
-            <section style={{ ...checkoutCard(), padding: 28 }}>
-                <h2 style={checkoutHeading()}>{title}</h2>
-                <p style={checkoutDescription()}>{description}</p>
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-                        gap: 28,
-                        alignItems: 'center',
-                        marginTop: 24,
-                    }}
-                >
-                    <div
-                        aria-hidden="true"
-                        style={{
-                            display: 'flex',
-                            width: '100%',
-                            maxWidth: 430,
-                            aspectRatio: '1.586',
-                            flexDirection: 'column',
-                            justifyContent: 'space-between',
-                            justifySelf: 'center',
-                            borderRadius: 24,
-                            background:
-                                'radial-gradient(circle at 88% 12%, rgb(255 255 255 / 30%), transparent 26%), linear-gradient(135deg, color-mix(in srgb, var(--checkout-accent) 86%, white), var(--checkout-accent) 54%, color-mix(in srgb, var(--checkout-accent) 82%, black))',
-                            boxShadow:
-                                '0 20px 44px color-mix(in srgb, var(--checkout-accent) 24%, transparent)',
-                            color: '#fff',
-                            padding: 'clamp(18px, 4vw, 26px)',
-                        }}
-                    >
-                        <div
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                            }}
-                        >
-                            <span
-                                style={{
-                                    width: 38,
-                                    height: 28,
-                                    borderRadius: 7,
-                                    background:
-                                        'linear-gradient(135deg,#f8dd8c 0 45%,#d1a747 45% 55%,#f6d77b 55%)',
-                                    boxShadow: 'inset 0 0 0 1px rgb(0 0 0 / 12%)',
-                                }}
-                            />
-                            <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                                <i
-                                    style={{
-                                        width: 21,
-                                        height: 21,
-                                        borderRadius: 999,
-                                        background: '#ff5f57',
-                                        opacity: 0.9,
-                                    }}
-                                />
-                                <i
-                                    style={{
-                                        width: 21,
-                                        height: 21,
-                                        marginLeft: -9,
-                                        borderRadius: 999,
-                                        background: '#ffbd2e',
-                                        opacity: 0.9,
-                                    }}
-                                />
-                            </span>
-                        </div>
-                        <strong
-                            style={{ fontSize: 'clamp(16px, 2.2vw, 22px)', letterSpacing: '.12em' }}
-                        >
-                            •••• •••• •••• 4242
-                        </strong>
-                        <div
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                gap: 16,
-                                fontSize: 10,
-                                textTransform: 'uppercase',
-                            }}
-                        >
-                            <span>
-                                <small style={{ display: 'block', opacity: 0.64 }}>
-                                    Nome no cartão
-                                </small>
-                                <b
-                                    style={{
-                                        display: 'block',
-                                        marginTop: 4,
-                                        letterSpacing: '.08em',
-                                    }}
-                                >
-                                    SEU NOME
-                                </b>
-                            </span>
-                            <span>
-                                <small style={{ display: 'block', opacity: 0.64 }}>Validade</small>
-                                <b style={{ display: 'block', marginTop: 4 }}>MM/AA</b>
-                            </span>
-                        </div>
-                    </div>
-                    <CardPaymentFields compact showInstallments={showInstallments} />
-                </div>
-            </section>
-        );
-    }
-
-    return (
-        <section style={{ ...checkoutCard(), padding: layout === 'compact' ? 22 : 28 }}>
-            <h2 style={checkoutHeading()}>{title}</h2>
-            <p style={checkoutDescription()}>{description}</p>
-            <div style={{ marginTop: layout === 'compact' ? 18 : 24 }}>
-                <CardPaymentFields
-                    compact={layout === 'compact'}
-                    showInstallments={showInstallments}
-                />
-            </div>
-        </section>
-    );
-}
-
 const heroLayouts: { value: Exclude<HeroLayout, 'choose'>; name: string; description: string }[] = [
     { value: 'centered', name: 'Centralizado', description: 'Título em destaque e CTA central.' },
     { value: 'split', name: 'Dividido', description: 'Conteúdo de um lado e imagem do outro.' },
@@ -4739,7 +4104,6 @@ function HeroLayoutPicker({
     );
 }
 
-// Kept temporarily only as a migration reference until all hero templates have visual snapshots.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function HeroSection({
     layout,
@@ -5571,166 +4935,6 @@ function heading(): React.CSSProperties {
     };
 }
 
-// Temporary visual migration reference; the builder renders CheckoutPaymentInstruction.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function PixPaymentSection({
-    layout,
-    title,
-    description,
-    expiresIn,
-}: {
-    layout: PaymentInstructionLayout;
-    title: string;
-    description: string;
-    expiresIn: string;
-}) {
-    const qr = <div style={qrPlaceholder()}>PIX</div>;
-    const details = (
-        <div>
-            <h2 style={checkoutHeading()}>{title}</h2>
-            <p style={checkoutDescription()}>{description}</p>
-            <p style={{ margin: '14px 0 0', fontSize: 13, opacity: 0.65 }}>
-                O código expira em {expiresIn}.
-            </p>
-            <input
-                aria-label="Código Pix"
-                readOnly
-                value="00020126••••••••••••••••"
-                style={{ ...inputControl(), width: '100%', marginTop: 12, fontFamily: 'monospace' }}
-            />
-            <Button
-                type="button"
-                onClick={() => void navigator.clipboard?.writeText('00020126')}
-                style={{ ...secondaryButton(), width: '100%', marginTop: 10 }}
-            >
-                Copiar código Pix
-            </Button>
-        </div>
-    );
-
-    if (layout === 'compact')
-        return (
-            <section style={{ ...checkoutCard(), display: 'grid', gap: 14, padding: 22 }}>
-                {details}
-            </section>
-        );
-    if (layout === 'card')
-        return (
-            <section style={{ ...checkoutCard(), padding: 28, textAlign: 'center' }}>
-                <div style={{ width: 172, maxWidth: '70%', margin: '0 auto' }}>{qr}</div>
-                <div style={{ marginTop: 22 }}>{details}</div>
-            </section>
-        );
-    return (
-        <section style={{ ...checkoutCard(), padding: 28 }}>
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))',
-                    gap: 24,
-                    alignItems: 'center',
-                }}
-            >
-                {qr}
-                {details}
-            </div>
-        </section>
-    );
-}
-
-// Temporary visual migration reference; the builder renders CheckoutPaymentInstruction.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function BoletoPaymentSection({
-    layout,
-    title,
-    description,
-    dueInDays,
-}: {
-    layout: PaymentInstructionLayout;
-    title: string;
-    description: string;
-    dueInDays: number;
-}) {
-    const barcode = (
-        <div
-            style={{
-                height: layout === 'compact' ? 34 : 48,
-                background:
-                    'repeating-linear-gradient(90deg, var(--checkout-text) 0 2px, transparent 2px 5px, var(--checkout-text) 5px 8px, transparent 8px 12px)',
-                opacity: 0.42,
-            }}
-        />
-    );
-    const info = (
-        <>
-            <h2 style={checkoutHeading()}>{title}</h2>
-            <p style={checkoutDescription()}>{description}</p>
-            <strong style={{ display: 'block', marginTop: 16 }}>
-                Vencimento em {dueInDays} dias
-            </strong>
-        </>
-    );
-    if (layout === 'compact')
-        return (
-            <section style={{ ...checkoutCard(), display: 'grid', gap: 14, padding: 22 }}>
-                {info}
-                {barcode}
-                <Button type="button" style={{ ...secondaryButton(), width: '100%' }}>
-                    Gerar boleto
-                </Button>
-            </section>
-        );
-    if (layout === 'card')
-        return (
-            <section style={{ ...checkoutCard(), padding: 28, textAlign: 'center' }}>
-                {info}
-                <div
-                    style={{
-                        marginTop: 20,
-                        padding: 18,
-                        borderRadius: 14,
-                        background: 'var(--checkout-muted)',
-                    }}
-                >
-                    {barcode}
-                </div>
-                <Button
-                    type="button"
-                    style={{ ...secondaryButton(), width: '100%', marginTop: 12 }}
-                >
-                    Gerar boleto
-                </Button>
-            </section>
-        );
-    return (
-        <section style={{ ...checkoutCard(), padding: 28 }}>
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
-                    gap: 22,
-                    alignItems: 'center',
-                }}
-            >
-                <div>{info}</div>
-                <div
-                    style={{
-                        padding: 18,
-                        border: 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
-                        borderRadius: 14,
-                        background: 'var(--checkout-muted)',
-                    }}
-                >
-                    {barcode}
-                </div>
-            </div>
-            <Button type="button" style={{ ...secondaryButton(), width: '100%', marginTop: 14 }}>
-                Gerar boleto
-            </Button>
-        </section>
-    );
-}
-
 function checkoutHeading(): React.CSSProperties {
     return {
         margin: 0,
@@ -5864,23 +5068,6 @@ function primaryButton(): React.CSSProperties {
     };
 }
 
-function secondaryButton(): React.CSSProperties {
-    return {
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: 44,
-        border: 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
-        borderRadius: 10,
-        background: 'var(--checkout-card-bg)',
-        color: 'var(--checkout-text)',
-        padding: '0 16px',
-        fontSize: 13,
-        fontWeight: 750,
-        cursor: 'pointer',
-    };
-}
-
 function numberBadge(): React.CSSProperties {
     return {
         display: 'grid',
@@ -5891,21 +5078,6 @@ function numberBadge(): React.CSSProperties {
         background: 'color-mix(in srgb, var(--checkout-accent) 14%, white)',
         color: 'var(--checkout-accent)',
         fontWeight: 850,
-    };
-}
-
-function qrPlaceholder(): React.CSSProperties {
-    return {
-        display: 'grid',
-        aspectRatio: '1',
-        placeItems: 'center',
-        border: '10px solid var(--checkout-surface)',
-        borderRadius: 12,
-        background:
-            'repeating-conic-gradient(var(--checkout-text) 0 25%, var(--checkout-surface) 0 50%) 0 / 18px 18px',
-        boxShadow: '0 0 0 1px var(--checkout-border)',
-        color: 'var(--checkout-accent)',
-        fontWeight: 900,
     };
 }
 
@@ -6012,168 +5184,6 @@ function CouponPreview({ layout, title, placeholder, buttonLabel }: BuilderProps
     );
 }
 
-// Temporary visual migration reference; the builder renders CheckoutCoupon.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function CouponSection({
-    layout,
-    title,
-    placeholder,
-    buttonLabel,
-}: {
-    layout: CouponLayout;
-    title: string;
-    placeholder: string;
-    buttonLabel: string;
-}) {
-    const control = (
-        <div
-            style={{
-                display: 'grid',
-                gridTemplateColumns: layout === 'minimal' ? '1fr' : 'minmax(0, 1fr) auto',
-                gap: 10,
-                marginTop: layout === 'minimal' ? 12 : 18,
-            }}
-        >
-            <input
-                name="coupon"
-                placeholder={placeholder}
-                style={{ ...inputControl(), width: '100%' }}
-            />
-            <Button
-                type="button"
-                style={{ ...secondaryButton(), width: layout === 'minimal' ? '100%' : undefined }}
-            >
-                {buttonLabel}
-            </Button>
-        </div>
-    );
-    if (layout === 'minimal')
-        return (
-            <section style={{ ...fullWidth(), padding: '8px 0' }}>
-                <details style={{ ...checkoutCard(), padding: 18 }}>
-                    <summary
-                        style={{
-                            cursor: 'pointer',
-                            fontWeight:
-                                'var(--checkout-heading-weight)' as React.CSSProperties['fontWeight'],
-                        }}
-                    >
-                        {title}
-                    </summary>
-                    {control}
-                </details>
-            </section>
-        );
-    if (layout === 'card')
-        return (
-            <section
-                style={{
-                    ...checkoutCard(),
-                    padding: 28,
-                    background:
-                        'linear-gradient(135deg, color-mix(in srgb,var(--checkout-accent) 7%, var(--checkout-group-bg)), var(--checkout-group-bg))',
-                }}
-            >
-                <span style={heroEyebrow()}>Oferta</span>
-                <h2 style={{ ...checkoutHeading(), marginTop: 8 }}>{title}</h2>
-                {control}
-            </section>
-        );
-    return (
-        <section style={{ ...checkoutCard(), padding: 28 }}>
-            <h2 style={checkoutHeading()}>{title}</h2>
-            {control}
-        </section>
-    );
-}
-
-// Temporary visual migration reference; the builder renders CheckoutTrustBadges.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function TrustSection({
-    layout,
-    title,
-    showEncryption,
-    showGuarantee,
-    showPrivacy,
-}: {
-    layout: TrustLayout;
-    title: string;
-    showEncryption: boolean;
-    showGuarantee: boolean;
-    showPrivacy: boolean;
-}) {
-    const badges = [
-        showEncryption ? 'Dados criptografados' : '',
-        showGuarantee ? 'Compra garantida' : '',
-        showPrivacy ? 'Privacidade protegida' : '',
-    ].filter(Boolean);
-    if (layout === 'strip')
-        return (
-            <section
-                style={{
-                    ...card(),
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 14,
-                    padding: 18,
-                }}
-            >
-                <strong>{title}</strong>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {badges.map((label) => (
-                        <TrustBadge key={label} label={label} />
-                    ))}
-                </div>
-            </section>
-        );
-    if (layout === 'cards')
-        return (
-            <section style={{ ...fullWidth(), padding: '28px 0' }}>
-                <h2 style={{ ...checkoutHeading(), textAlign: 'center', fontSize: 20 }}>{title}</h2>
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))',
-                        gap: 12,
-                        marginTop: 16,
-                    }}
-                >
-                    {badges.map((label) => (
-                        <article
-                            key={label}
-                            style={{ ...card(), padding: 18, textAlign: 'center' }}
-                        >
-                            <span style={{ ...numberBadge(), margin: '0 auto' }}>✓</span>
-                            <strong style={{ display: 'block', marginTop: 12, fontSize: 13 }}>
-                                {label}
-                            </strong>
-                        </article>
-                    ))}
-                </div>
-            </section>
-        );
-    return (
-        <section style={{ ...fullWidth(), textAlign: 'center', padding: '28px 0' }}>
-            <h2 style={{ ...checkoutHeading(), fontSize: 18 }}>{title}</h2>
-            <div
-                style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    justifyContent: 'center',
-                    gap: 10,
-                    marginTop: 16,
-                }}
-            >
-                {badges.map((label) => (
-                    <TrustBadge key={label} label={label} />
-                ))}
-            </div>
-        </section>
-    );
-}
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- visual migration reference
 function FooterSection({
     layout,
@@ -6248,27 +5258,6 @@ function FooterSection({
                 <p style={{ margin: '8px 0 0' }}>Ambiente protegido e pagamento criptografado</p>
             )}
         </footer>
-    );
-}
-
-function TrustBadge({ label }: { label: string }) {
-    return (
-        <span
-            style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 7,
-                border: 'var(--checkout-card-border-width) solid var(--checkout-card-border)',
-                borderRadius: 999,
-                background: 'var(--checkout-card-bg)',
-                padding: '9px 13px',
-                fontSize: 12,
-                fontWeight: 700,
-            }}
-        >
-            <span style={{ color: 'var(--checkout-accent)' }}>✓</span>
-            {label}
-        </span>
     );
 }
 

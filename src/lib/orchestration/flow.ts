@@ -1,5 +1,6 @@
 import type { IconName } from '@/components/ui/icon';
 import type {
+    CheckoutPaymentMethod,
     FlowCondition,
     FlowConditionField,
     FlowConditionGroup,
@@ -134,16 +135,6 @@ export const blocks: readonly BlockDefinition[] = [
         keywords: 'custo taxa barato economia menor tarifa',
     },
     {
-        key: 'checkout_default',
-        type: 'checkout_default',
-        category: 'gateway',
-        title: 'Gateway do checkout',
-        description: 'Usa o gateway e as reservas configurados no checkout',
-        icon: 'cart',
-        tone: 'flow-tone-gateway',
-        keywords: 'padrao checkout default configurado',
-    },
-    {
         key: 'send_webhook',
         type: 'send_webhook',
         category: 'action',
@@ -271,7 +262,6 @@ export function nodeOutputs(node: FlowNode): NodeOutput[] {
             ];
         case 'gateway':
         case 'cheapest':
-        case 'checkout_default':
             return [
                 { id: 'success', label: 'aprovado', tone: 'success' },
                 { id: 'failure', label: 'falhou', tone: 'danger' },
@@ -313,7 +303,6 @@ export function createNode(
     event?: FlowEvent,
 ): FlowNode {
     const prefixes: Partial<Record<FlowNodeType, string>> = {
-        checkout_default: 'checkout',
         event_trigger: 'when',
         send_webhook: 'webhook',
         send_email: 'email',
@@ -395,7 +384,6 @@ export const fieldLabels: Record<FlowConditionField, string> = {
     amount: 'Valor da venda',
     currency: 'Moeda',
     environment: 'Ambiente',
-    checkout: 'Checkout',
     product: 'Produto no pedido',
 };
 
@@ -419,7 +407,6 @@ export const fieldOperators: Record<FlowConditionField, string[]> = {
     amount: ['gt', 'gte', 'lt', 'lte', 'eq', 'between', 'not_between'],
     currency: ['in', 'not_in'],
     environment: ['in', 'not_in'],
-    checkout: ['in', 'not_in'],
     product: ['any_in', 'all_in', 'none_in'],
 };
 
@@ -434,15 +421,12 @@ export function defaultCondition(field: FlowConditionField): FlowCondition {
             return { id, field, operator: 'in', values: ['BRL'] };
         case 'environment':
             return { id, field, operator: 'in', values: ['production'] };
-        case 'checkout':
-            return { id, field, operator: 'in', values: [] };
         case 'product':
             return { id, field, operator: 'any_in', values: [] };
     }
 }
 
 export interface NameLookup {
-    readonly checkouts: Map<string, string>;
     readonly products: Map<string, string>;
 }
 
@@ -463,11 +447,9 @@ export function conditionSentence(condition: FlowCondition, names?: NameLookup) 
               ? value === 'production'
                   ? 'Produção'
                   : 'Sandbox'
-              : condition.field === 'checkout'
-                ? (names?.checkouts.get(value) ?? value)
-                : condition.field === 'product'
-                  ? (names?.products.get(value) ?? value)
-                  : value;
+              : condition.field === 'product'
+                ? (names?.products.get(value) ?? value)
+                : value;
     const values = condition.values.map(label);
     return `${field} ${operator} ${values.length ? joinOr(values) : '…'}`;
 }
@@ -661,3 +643,39 @@ export function isDecoration(type: FlowNodeType) {
 }
 
 export const sectionColors = ['neutral', 'lime', 'blue', 'violet', 'orange', 'pink'] as const;
+
+/**
+ * Gateways do fluxo na ordem em que a venda os encontra a partir do gatilho (o primeiro
+ * vira o principal do checkout). Mesma regra da API na publicação.
+ */
+export function flowGatewayIds(graph: FlowGraph, method?: string): string[] {
+    const outgoing = new Map<string, string[]>();
+    for (const edge of graph.edges)
+        outgoing.set(edge.source, [...(outgoing.get(edge.source) ?? []), edge.target]);
+    const order: string[] = [];
+    const queue = graph.nodes.filter((node) => node.type === 'trigger').map((node) => node.id);
+    for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
+        if (order.includes(id)) continue;
+        order.push(id);
+        queue.push(...(outgoing.get(id) ?? []));
+    }
+    const rank = (id: string) => (order.includes(id) ? order.indexOf(id) : order.length);
+    return [
+        ...new Set(
+            [...graph.nodes]
+                .sort((a, b) => rank(a.id) - rank(b.id))
+                .flatMap((node) =>
+                    node.type === 'gateway'
+                        ? node.config.gatewayConnectionId === null ||
+                          (method !== undefined &&
+                              node.config.methods !== undefined &&
+                              !node.config.methods.includes(method as CheckoutPaymentMethod))
+                            ? []
+                            : [node.config.gatewayConnectionId]
+                        : node.type === 'cheapest'
+                          ? node.config.gatewayConnectionIds
+                          : [],
+                ),
+        ),
+    ];
+}

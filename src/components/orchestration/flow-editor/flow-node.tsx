@@ -138,6 +138,24 @@ function Card({ node }: { node: Exclude<FlowNodeModel, { type: 'note' | 'section
                     unstable={connection.status === 'degraded'}
                 />
             )}
+            {node.type === 'gateway' && node.config.methods && (
+                <div className="flex flex-wrap gap-1 px-4 pb-4">
+                    {node.config.methods.length === 0 ? (
+                        <span className="flow-pill rounded-full px-2 py-0.5 text-[10px] font-medium">
+                            Nenhuma forma
+                        </span>
+                    ) : (
+                        node.config.methods.map((method) => (
+                            <span
+                                key={method}
+                                className="flow-pill rounded-full px-2 py-0.5 text-[10px] font-medium"
+                            >
+                                {method === 'card' ? 'Cartão' : method === 'pix' ? 'Pix' : 'Boleto'}
+                            </span>
+                        ))
+                    )}
+                </div>
+            )}
             {node.type === 'cheapest' && node.config.gatewayConnectionIds.length > 0 && (
                 <div className="flex flex-wrap gap-1 px-4 pb-4">
                     {node.config.gatewayConnectionIds.map((id) => (
@@ -349,7 +367,7 @@ function Metrics({ stats, unstable }: { stats: GatewayStats | undefined; unstabl
     );
 }
 
-function IssueBadge({ issues }: { issues: { severity: string; message: string }[] }) {
+export function IssueBadge({ issues }: { issues: { severity: string; message: string }[] }) {
     const error = issues.some((issue) => issue.severity === 'error');
     return (
         <span

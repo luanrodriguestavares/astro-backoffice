@@ -1,11 +1,20 @@
+# O contexto do build é o workspace que contém este repositório e o `checkout-renderer` lado a lado
+# (o mesmo layout do desenvolvimento local), porque a dependência é `file:../checkout-renderer`:
+#   docker build -f backoffice/Dockerfile -t astro-backoffice .
 FROM node:22.17.1-alpine3.22 AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable
 
 FROM base AS dependencies
+# O tsconfig compila o renderer direto de `../checkout-renderer/src`, que resolve `react` e `uqr`
+# pelo próprio `node_modules`, como no desenvolvimento local.
+WORKDIR /checkout-renderer
+COPY checkout-renderer/package.json checkout-renderer/pnpm-lock.yaml checkout-renderer/tsconfig.json ./
+RUN pnpm install --frozen-lockfile
+COPY checkout-renderer/src ./src
 WORKDIR /app
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY backoffice/package.json backoffice/pnpm-lock.yaml backoffice/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 FROM dependencies AS build
@@ -15,7 +24,7 @@ ARG NEXT_PUBLIC_CHECKOUT_URL
 ENV ASTRO_API_URL=$ASTRO_API_URL
 ENV NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME
 ENV NEXT_PUBLIC_CHECKOUT_URL=$NEXT_PUBLIC_CHECKOUT_URL
-COPY . .
+COPY backoffice/ .
 RUN pnpm check
 
 FROM node:22.17.1-alpine3.22 AS runtime

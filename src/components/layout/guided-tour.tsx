@@ -75,7 +75,7 @@ function stepsForPath(pathname: string): DriveStep[] {
     if (pathname === '/pixels') return trackingSteps;
     if (pathname === '/products') return productSteps;
     if (pathname === '/coupons') return couponSteps;
-    if (/^\/checkouts\/[^/]+\/builder\/?$/.test(pathname)) return checkoutBuilderSteps;
+    if (/^\/checkouts\/chk_[^/]+\/?$/.test(pathname)) return checkoutBuilderSteps;
     return genericSteps(pageTours[pathname] ?? fallbackTour);
 }
 
@@ -654,7 +654,40 @@ const checkoutBuilderSteps: DriveStep[] = [
         },
     },
     {
+        element: '[data-tour="builder-workspace-tabs"]',
+        popover: {
+            title: 'As áreas do checkout',
+            description:
+                'Alterne entre o Funil, as páginas abertas no construtor e o Pagamento. O Funil é a visão inicial do fluxo; dê dois cliques em uma página para editá-la.',
+            side: 'bottom',
+            align: 'center',
+        },
+    },
+    {
+        element: '[data-tour="builder-funnel-library"]',
+        skipMissingElement: true,
+        popover: {
+            title: 'Biblioteca de páginas',
+            description:
+                'Adicione páginas de conteúdo, sucesso, falha e espera ao funil. Arraste um modelo para o quadro ou use o botão de adicionar.',
+            side: 'right',
+            align: 'start',
+        },
+    },
+    {
+        element: '[data-tour="builder-funnel"]',
+        skipMissingElement: true,
+        popover: {
+            title: 'Organize a jornada de compra',
+            description:
+                'Conecte e reorganize as páginas, escolha por onde o visitante entra e abra qualquer página para editar seu conteúdo. O nó Pagamento leva à configuração da cobrança.',
+            side: 'top',
+            align: 'center',
+        },
+    },
+    {
         element: '[data-tour="builder-components"]',
+        skipMissingElement: true,
         popover: {
             title: 'Biblioteca de componentes',
             description:
@@ -697,24 +730,13 @@ const checkoutBuilderSteps: DriveStep[] = [
         },
     },
     {
-        element: '[data-tour="builder-history"]',
+        element: '[data-tour="builder-payment"]',
         popover: {
-            title: 'Histórico de versões',
+            title: 'Configure o pagamento',
             description:
-                'Cada publicação cria uma versão. Use o histórico para revisar alterações anteriores e restaurar uma versão quando necessário.',
+                'Abra a área Pagamento para definir gateways, tentativas, condições e rotas de processamento usadas por este checkout.',
             side: 'bottom',
-            align: 'end',
-        },
-    },
-    {
-        element: '[data-tour="builder-public-link"]',
-        skipMissingElement: true,
-        popover: {
-            title: 'Link público',
-            description:
-                'Depois da primeira publicação, copie o endereço compartilhável ou abra o checkout real em uma nova aba.',
-            side: 'bottom',
-            align: 'end',
+            align: 'center',
         },
     },
     {

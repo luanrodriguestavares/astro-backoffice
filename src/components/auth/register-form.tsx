@@ -3,12 +3,11 @@
 import { FormEvent, useRef, useState } from 'react';
 
 import { PasswordInput } from '@/components/auth/password-input';
-import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 
 const inputClass =
-    'h-11 w-full rounded-xl border border-[#e2e2e2] bg-white/75 px-3.5 text-[12px] font-normal text-[#111111] outline-none transition placeholder:text-[#a9a9a9] focus:border-brand/70 focus:bg-white focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]';
+    'h-11 w-full rounded-xl border border-[#e6e8eb] bg-white/75 px-3.5 text-[13.5px] font-normal text-[#111111] outline-none transition duration-200 placeholder:text-[#a9adb1] hover:border-[#d9dde1] focus:border-[#9fd34a] focus:bg-white focus:shadow-[0_0_0_4px_rgb(145_207_36_/_12%)]';
 
 const organizationSteps = [
     { label: 'Seu acesso', description: 'Identidade e segurança' },
@@ -23,7 +22,14 @@ interface InvitationContext {
     role: string;
 }
 
-export function RegisterForm({ invitation }: { invitation?: InvitationContext }) {
+export function RegisterForm({
+    invitation,
+    social,
+}: {
+    invitation?: InvitationContext;
+    /** Atalhos de cadastro social: só aparecem na primeira etapa. */
+    social?: React.ReactNode;
+}) {
     const formRef = useRef<HTMLFormElement>(null);
     const passwordRef = useRef<HTMLInputElement>(null);
     const confirmationRef = useRef<HTMLInputElement>(null);
@@ -83,58 +89,60 @@ export function RegisterForm({ invitation }: { invitation?: InvitationContext })
                     : '/api/auth/register'
             }
             method="post"
-            className="mt-5"
+            className="mt-2"
             onSubmit={submit}
         >
             {invitation && <input type="hidden" name="invitationToken" value={invitation.token} />}
-            <ol
-                className={`grid gap-2 ${invitation ? 'grid-cols-1' : 'grid-cols-3'}`}
-                aria-label="Etapas do cadastro"
-            >
-                {steps.map((item, index) => (
-                    <li key={item.label} className="min-w-0">
-                        <button
-                            type="button"
-                            disabled={index > step}
-                            onClick={() => index < step && setStep(index)}
-                            className={`w-full rounded-2xl border px-3 py-2.5 text-left transition ${
-                                index === step
-                                    ? 'border-brand/35 bg-brand-soft/75 text-brand-strong'
-                                    : index < step
-                                      ? 'border-brand/15 bg-white/60 text-foreground hover:border-brand/28'
-                                      : 'border-[#ebebeb] bg-[#fafafa]/65 text-muted'
-                            }`}
-                        >
-                            <span className="flex items-center gap-2">
+            {invitation === undefined && (
+                <ol className="mt-5 grid grid-cols-3" aria-label="Etapas do cadastro">
+                    {steps.map((item, index) => (
+                        <li key={item.label} className="relative min-w-0">
+                            {index > 0 && (
                                 <span
-                                    className={`grid size-5 shrink-0 place-items-center rounded-full text-[9px] font-bold ${index <= step ? 'bg-brand text-brand-contrast' : 'bg-[#e8e8e8] text-muted'}`}
+                                    aria-hidden="true"
+                                    className={`absolute right-[calc(50%+20px)] top-[14px] h-[2px] w-[calc(100%-40px)] rounded-full transition ${index <= step ? 'bg-[#9fd34a]' : 'bg-[#eceef0]'}`}
+                                />
+                            )}
+                            <button
+                                type="button"
+                                disabled={index > step}
+                                onClick={() => index < step && setStep(index)}
+                                aria-current={index === step ? 'step' : undefined}
+                                className="flex w-full flex-col items-center text-center disabled:cursor-default"
+                            >
+                                <span
+                                    className={`grid size-7 place-items-center rounded-full text-[12px] font-semibold transition ${
+                                        index === step
+                                            ? 'bg-[#7cbd1c] text-white shadow-[0_0_0_4px_rgb(145_207_36_/_16%)]'
+                                            : index < step
+                                              ? 'bg-[#7cbd1c] text-white'
+                                              : 'bg-[#eef0f2] text-[#5d6166]'
+                                    }`}
                                 >
                                     {index < step ? (
-                                        <Icon name="check" className="size-3" />
+                                        <Icon name="check" className="size-3.5" />
                                     ) : (
                                         index + 1
                                     )}
                                 </span>
-                                <span className="truncate text-[11px] font-semibold">
+                                <span
+                                    className={`mt-2 truncate text-[12px] font-semibold ${index <= step ? 'text-[#101214]' : 'text-[#3f4245]'}`}
+                                >
                                     {item.label}
                                 </span>
-                            </span>
-                            <span className="mt-1 hidden truncate pl-7 text-[9px] text-muted sm:block">
-                                {item.description}
-                            </span>
-                        </button>
-                    </li>
-                ))}
-            </ol>
+                            </button>
+                        </li>
+                    ))}
+                </ol>
+            )}
 
-            <div className="mt-4 min-h-[286px] rounded-[22px] border border-[#ebebeb] bg-[#fafafa]/75 p-4 sm:p-5">
+            <div className="mt-4 min-h-[220px] border-t border-[#e3e6e9]/80 pt-4">
                 <section data-step="0" hidden={step !== 0}>
                     <StepHeading
-                        icon="user"
                         title="Vamos começar por você"
-                        description="Use seus dados reais para manter a conta segura e fácil de reconhecer."
+                        description="Seus dados de acesso ao Astro."
                     />
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <div className="mt-3.5 grid gap-x-3 gap-y-3 sm:grid-cols-2">
                         <Field label="Nome completo">
                             <input
                                 name="name"
@@ -170,7 +178,7 @@ export function RegisterForm({ invitation }: { invitation?: InvitationContext })
                                 minLength={12}
                                 maxLength={128}
                                 autoComplete="new-password"
-                                placeholder="Crie uma senha segura"
+                                placeholder="Crie uma senha"
                                 className={inputClass}
                             />
                         </Field>
@@ -190,11 +198,11 @@ export function RegisterForm({ invitation }: { invitation?: InvitationContext })
                     </div>
                     {invitation && (
                         <>
-                            <div className="mt-4 rounded-2xl border border-brand/12 bg-brand-soft/45 px-4 py-3">
-                                <p className="text-[11px] font-semibold text-brand-strong">
+                            <div className="mt-4 rounded-2xl border border-[#e3f1cc] bg-[#f7fbef] px-4 py-3">
+                                <p className="text-[12px] font-semibold text-[#3b660a]">
                                     Você entrará na workspace {invitation.organizationName}
                                 </p>
-                                <p className="mt-1 text-[10px] leading-4 text-muted">
+                                <p className="mt-0.5 text-[11.5px] leading-[1.45] text-[#6a6e73]">
                                     Convite para {invitation.email} · perfil {invitation.role}
                                 </p>
                             </div>
@@ -206,11 +214,10 @@ export function RegisterForm({ invitation }: { invitation?: InvitationContext })
                 {invitation === undefined && (
                     <section data-step="1" hidden={step !== 1}>
                         <StepHeading
-                            icon="box"
                             title="Agora, o seu negócio"
-                            description="Esses dados identificam a operação que você administrará no Astro."
+                            description="Como a sua operação aparece no Astro."
                         />
-                        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                        <div className="mt-3.5 grid gap-x-3 gap-y-3 sm:grid-cols-2">
                             <Field label="Nome da marca">
                                 <input
                                     name="displayName"
@@ -263,14 +270,16 @@ export function RegisterForm({ invitation }: { invitation?: InvitationContext })
                 {invitation === undefined && (
                     <section data-step="2" hidden={step !== 2}>
                         <StepHeading
-                            icon="layout"
-                            title="Dê um endereço à sua estação"
-                            description="Você poderá reconhecer e acessar esta workspace por esse identificador."
+                            title="Dê um endereço à sua operação"
+                            description="O endereço da sua workspace."
                         />
-                        <div className="mt-5">
-                            <Field label="Identificador da organização" hint="URLs e integrações">
-                                <div className="flex h-11 overflow-hidden rounded-xl border border-[#e2e2e2] bg-white/75 transition focus-within:border-brand/70 focus-within:bg-white focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]">
-                                    <span className="flex items-center border-r border-[#e2e2e2] bg-[#faf9ff] px-3 text-[10px] text-muted">
+                        <div className="mt-3.5">
+                            <Field
+                                label="Endereço da workspace"
+                                hint="Usado em URLs e integrações."
+                            >
+                                <div className="flex h-11 overflow-hidden rounded-xl border border-[#e6e8eb] bg-white/75 transition duration-200 hover:border-[#d9dde1] focus-within:border-[#9fd34a] focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgb(145_207_36_/_12%)]">
+                                    <span className="flex items-center border-r border-[#eceef0] bg-[#f6f7f6] px-3.5 text-[12.5px] text-[#8a8f94]">
                                         astro.app/
                                     </span>
                                     <input
@@ -284,15 +293,15 @@ export function RegisterForm({ invitation }: { invitation?: InvitationContext })
                                         minLength={2}
                                         maxLength={80}
                                         placeholder="minha-empresa"
-                                        className="min-w-0 flex-1 bg-transparent px-3 text-[12px] outline-none"
+                                        className="min-w-0 flex-1 bg-transparent px-3.5 text-[13.5px] text-[#111111] outline-none placeholder:text-[#a9adb1]"
                                     />
                                 </div>
                             </Field>
-                            <div className="mt-4 rounded-2xl border border-brand/12 bg-brand-soft/45 px-4 py-3">
-                                <p className="text-[11px] font-semibold text-brand-strong">
+                            <div className="mt-4 rounded-2xl border border-[#e3f1cc] bg-[#f7fbef] px-4 py-3">
+                                <p className="text-[12px] font-semibold text-[#3b660a]">
                                     {displayName || 'Sua organização'} será sua primeira workspace
                                 </p>
-                                <p className="mt-1 text-[10px] leading-4 text-muted">
+                                <p className="mt-0.5 text-[11.5px] leading-[1.45] text-[#6a6e73]">
                                     Você entrará como administrador e poderá convidar a equipe
                                     depois.
                                 </p>
@@ -303,69 +312,54 @@ export function RegisterForm({ invitation }: { invitation?: InvitationContext })
                 )}
             </div>
 
-            <div className="mt-4 flex items-center justify-between gap-3">
-                <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={step === 0}
-                    onClick={() => setStep((current) => Math.max(0, current - 1))}
-                    className={step === 0 ? 'invisible' : ''}
-                >
-                    <Icon name="arrow-right" className="size-3.5 rotate-180" />
-                    Voltar
-                </Button>
+            <div className="mt-4 flex items-center gap-3">
+                {step > 0 && (
+                    <button
+                        type="button"
+                        onClick={() => setStep((current) => Math.max(0, current - 1))}
+                        className="auth-secondary flex h-12 items-center gap-2 rounded-full px-5 text-[14px] font-medium text-[#3a3e42]"
+                    >
+                        <Icon name="arrow-right" className="size-3.5 rotate-180" />
+                        Voltar
+                    </button>
+                )}
                 {step < steps.length - 1 ? (
-                    <Button type="button" variant="primary" onClick={advance}>
+                    <button type="button" className="auth-cta flex-1" onClick={advance}>
                         Continuar
-                        <Icon name="arrow-right" className="size-4" />
-                    </Button>
+                        <Icon name="arrow-right" className="size-[18px]" />
+                    </button>
                 ) : (
-                    <Button type="submit" variant="primary">
-                        {invitation ? 'Criar conta e entrar' : 'Criar minha estação'}
-                        <Icon name="arrow-right" className="size-4" />
-                    </Button>
+                    <button type="submit" className="auth-cta flex-1">
+                        {invitation ? 'Criar conta e entrar' : 'Criar minha conta'}
+                        <Icon name="arrow-right" className="size-[18px]" />
+                    </button>
                 )}
             </div>
+            {step === 0 && social}
         </form>
     );
 }
 
 function Terms() {
     return (
-        <label className="mt-4 flex items-start gap-2.5 text-[10px] leading-4 text-muted">
-            <input
-                type="checkbox"
-                name="terms"
-                required
-                className="mt-0.5 size-3.5 shrink-0 rounded border-[#e2e2e2] accent-brand"
-            />
+        <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-[12px] leading-[1.45] text-[#6a6e73]">
+            <input type="checkbox" name="terms" required className="auth-check mt-px" />
             <span>
                 Li e concordo com os{' '}
-                <span className="font-semibold text-brand-strong">Termos de Uso</span> e a{' '}
-                <span className="font-semibold text-brand-strong">Política de Privacidade</span>.
+                <span className="font-medium text-[#2b2e31]">Termos de Uso</span> e a{' '}
+                <span className="font-medium text-[#2b2e31]">Política de Privacidade</span>.
             </span>
         </label>
     );
 }
 
-function StepHeading({
-    icon,
-    title,
-    description,
-}: {
-    icon: 'user' | 'box' | 'layout';
-    title: string;
-    description: string;
-}) {
+function StepHeading({ title, description }: { title: string; description: string }) {
     return (
-        <div className="flex items-center gap-3">
-            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand">
-                <Icon name={icon} className="size-4" />
-            </span>
-            <div>
-                <h2 className="text-[14px] font-semibold tracking-[-0.02em]">{title}</h2>
-                <p className="mt-0.5 text-[10px] leading-4 text-muted">{description}</p>
-            </div>
+        <div>
+            <h2 className="auth-display text-[15px] font-bold tracking-[-0.02em] text-[#101214]">
+                {title}
+            </h2>
+            <p className="mt-0.5 text-[12.5px] leading-5 text-[#6a6e73]">{description}</p>
         </div>
     );
 }
@@ -380,12 +374,12 @@ function Field({
     children: React.ReactNode;
 }) {
     return (
-        <label className="block text-[11px] font-semibold text-[#1a1a1a]">
-            <span className="mb-1.5 flex items-center justify-between gap-3">
-                <span>{label}</span>
-                {hint && <span className="text-[8px] font-normal text-muted">{hint}</span>}
-            </span>
+        <label className="block text-[12.5px] font-medium text-[#2b2e31]">
+            <span className="mb-1.5 block">{label}</span>
             {children}
+            {hint && (
+                <span className="mt-1.5 block text-[11px] font-normal text-[#7a7e83]">{hint}</span>
+            )}
         </label>
     );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -17,19 +18,21 @@ import {
 
 import { flowTemplates, type FlowTemplate, type TemplateReferences } from './templates';
 
-type Filter = 'all' | FlowTemplate['kind'];
+export type TemplateFilter = 'all' | FlowTemplate['kind'];
 
-/** Galeria de modelos sobre o quadro: miniatura do fluxo, etapas e o efeito de usar. */
+/** Modal de modelos: miniatura do fluxo, etapas e o efeito de usar cada um. */
 export function TemplateGallery({
     references,
+    initialFilter = 'all',
     onUse,
     onClose,
 }: {
     references: TemplateReferences;
+    initialFilter?: TemplateFilter;
     onUse(template: FlowTemplate, graph: FlowGraph): void;
     onClose(): void;
 }) {
-    const [filter, setFilter] = useState<Filter>('all');
+    const [filter, setFilter] = useState<TemplateFilter>(initialFilter);
     const [query, setQuery] = useState('');
     const built = useMemo(
         () => flowTemplates.map((template) => ({ template, graph: template.build(references) })),
@@ -51,77 +54,92 @@ export function TemplateGallery({
         return () => window.removeEventListener('keydown', escape);
     }, [onClose]);
 
-    return (
-        <section
-            aria-label="Modelos de fluxo"
-            className="absolute inset-0 z-40 flex flex-col overflow-hidden bg-surface"
+    return createPortal(
+        <div
+            className="fixed inset-0 z-[90] grid place-items-center bg-[rgb(17_20_19/42%)] p-6 backdrop-blur-[2px]"
+            onPointerDown={(event) => {
+                if (event.target === event.currentTarget) onClose();
+            }}
         >
-            <header className="flex flex-wrap items-center gap-3 border-b border-border px-6 py-4">
-                <div className="min-w-0 flex-1">
-                    <h2 className="text-[18px] font-semibold tracking-[-0.02em]">Modelos</h2>
-                    <p className="mt-0.5 text-[12.5px] text-muted">
-                        Comece de um fluxo pronto e ajuste depois. Nada muda nas vendas até você
-                        publicar.
-                    </p>
-                </div>
-                <div className="ui-tabs" role="radiogroup" aria-label="Tipo de modelo">
-                    {(
-                        [
-                            ['all', 'Todos'],
-                            ['routing', 'Roteamento'],
-                            ['automation', 'Automações'],
-                        ] as const
-                    ).map(([value, label]) => (
-                        <Button
-                            key={value}
-                            type="button"
-                            role="radio"
-                            aria-checked={filter === value}
-                            data-active={filter === value}
-                            onClick={() => setFilter(value)}
-                            className="ui-tab whitespace-nowrap px-3.5 py-1 text-[12px] font-semibold"
-                        >
-                            {label}
-                        </Button>
-                    ))}
-                </div>
-                <label className="relative block w-[220px]">
-                    <Icon
-                        name="search"
-                        className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted"
-                    />
-                    <input
-                        value={query}
-                        onChange={(event) => setQuery(event.target.value)}
-                        placeholder="Buscar modelos…"
-                        aria-label="Buscar modelos"
-                        className="!h-9 w-full rounded-xl border border-border bg-[var(--control-bg)] pl-8 pr-3 text-[12px] outline-none focus:border-brand/60"
-                    />
-                </label>
-                <Button type="button" variant="secondary" className="!h-9 px-3.5" onClick={onClose}>
-                    <Icon name="close" className="size-3.5" />
-                    Voltar ao quadro
-                </Button>
-            </header>
-
-            <div className="min-h-0 flex-1 overflow-y-auto p-6">
-                {visible.length === 0 ? (
-                    <p className="text-[13px] text-muted">Nenhum modelo encontrado.</p>
-                ) : (
-                    <ul className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))]">
-                        {visible.map(({ template, graph }) => (
-                            <li key={template.id}>
-                                <TemplateCard
-                                    template={template}
-                                    graph={graph}
-                                    onUse={() => onUse(template, graph)}
-                                />
-                            </li>
+            <section
+                role="dialog"
+                aria-modal="true"
+                aria-label="Modelos de fluxo"
+                className="flex h-[min(780px,88vh)] w-[min(1120px,100%)] flex-col overflow-hidden rounded-[22px] bg-surface shadow-[0_30px_80px_rgba(17,20,19,0.28)]"
+            >
+                <header className="flex flex-wrap items-center gap-3 border-b border-border px-6 py-4">
+                    <div className="min-w-0 flex-1">
+                        <h2 className="text-[18px] font-semibold tracking-[-0.02em]">Modelos</h2>
+                        <p className="mt-0.5 text-[12.5px] text-muted">
+                            Comece de um fluxo pronto e ajuste depois. Nada muda nas vendas até você
+                            publicar.
+                        </p>
+                    </div>
+                    <div className="ui-tabs" role="radiogroup" aria-label="Tipo de modelo">
+                        {(
+                            [
+                                ['all', 'Todos'],
+                                ['routing', 'Roteamento'],
+                                ['automation', 'Automações'],
+                            ] as const
+                        ).map(([value, label]) => (
+                            <Button
+                                key={value}
+                                type="button"
+                                role="radio"
+                                aria-checked={filter === value}
+                                data-active={filter === value}
+                                onClick={() => setFilter(value)}
+                                className="ui-tab whitespace-nowrap px-3.5 py-1 text-[12px] font-semibold"
+                            >
+                                {label}
+                            </Button>
                         ))}
-                    </ul>
-                )}
-            </div>
-        </section>
+                    </div>
+                    <label className="relative block w-[220px]">
+                        <Icon
+                            name="search"
+                            className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted"
+                        />
+                        <input
+                            value={query}
+                            onChange={(event) => setQuery(event.target.value)}
+                            placeholder="Buscar modelos…"
+                            aria-label="Buscar modelos"
+                            className="!h-9 w-full rounded-xl border border-border bg-[var(--control-bg)] pl-8 pr-3 text-[12px] outline-none focus:border-brand/60"
+                        />
+                    </label>
+                    <Button
+                        type="button"
+                        variant="icon"
+                        aria-label="Fechar modelos"
+                        className="!size-9 !rounded-xl"
+                        onClick={onClose}
+                    >
+                        <Icon name="close" className="size-4" />
+                    </Button>
+                </header>
+
+                <div className="min-h-0 flex-1 overflow-y-auto p-6">
+                    {visible.length === 0 ? (
+                        <p className="text-[13px] text-muted">Nenhum modelo encontrado.</p>
+                    ) : (
+                        <ul className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))]">
+                            {visible.map(({ template, graph }) => (
+                                <li key={template.id}>
+                                    <TemplateCard
+                                        template={template}
+                                        graph={graph}
+                                        onUse={() => onUse(template, graph)}
+                                    />
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            </section>
+        </div>,
+        document.body,
     );
 }
 

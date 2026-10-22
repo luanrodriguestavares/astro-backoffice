@@ -48,7 +48,8 @@ export function ProductManager({
     const [query, setQuery] = useState(initialQuery);
     const [status, setStatus] = useState<StatusFilter>('all');
     const [pageSize, setPageSize] = useState(10);
-    const [pricingType, setPricingType] = useState('one_time');
+    const [productType, setProductType] = useState<Product['type']>('digital');
+    const [plans, setPlans] = useState<PlanDraft[]>([]);
     const [statusChanging, setStatusChanging] = useState<string>();
     const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
     const [selectedImageFileId, setSelectedImageFileId] = useState<string | null>();
@@ -124,6 +125,21 @@ export function ProductManager({
                   : {}),
         };
 
+        const activePlans = plans.filter((plan) => !plan.removed);
+        const invalid = activePlans.find((plan) => !plan.name.trim() || plan.amountMinor <= 0);
+        if (activePlans.length === 0 || invalid) {
+            setLoading(false);
+            showToast({
+                tone: 'error',
+                description:
+                    activePlans.length === 0
+                        ? 'Adicione pelo menos um plano.'
+                        : 'Todo plano precisa de um nome e de um valor maior que zero.',
+            });
+            return;
+        }
+
+        let productId = editing?.id;
         if (editing) {
             const response = await fetch(`/api/products/${editing.id}`, {
                 method: 'PATCH',
@@ -131,89 +147,65 @@ export function ProductManager({
                 body: JSON.stringify({ ...productPayload, version: editing.version }),
             });
             const body = (await response.json()) as { detail?: string };
-            setLoading(false);
             if (!response.ok) {
+                setLoading(false);
                 showToast({
                     tone: 'error',
                     description: body.detail ?? 'Não foi possível atualizar o produto.',
                 });
                 return;
             }
-            setOpen(false);
-            setEditing(undefined);
-            showToast({
-                tone: 'success',
-                title: 'Produto atualizado',
-                description: 'As alterações do produto foram salvas.',
+        } else {
+            const response = await fetch('/api/products', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                    ...productPayload,
+                    inventoryMode: 'unlimited',
+                    metadata: {},
+                }),
             });
-            router.refresh();
-            return;
+            const body = (await response.json()) as { data?: Product; detail?: string };
+            if (!response.ok || !body.data) {
+                setLoading(false);
+                showToast({
+                    tone: 'error',
+                    description: body.detail ?? 'Não foi possível criar o produto.',
+                });
+                return;
+            }
+            productId = body.data.id;
         }
 
-        const productResponse = await fetch('/api/products', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-                ...productPayload,
-                inventoryMode: 'unlimited',
-                metadata: {},
-            }),
-        });
-        const productBody = (await productResponse.json()) as {
-            data?: Product;
-            detail?: string;
-        };
-        if (!productResponse.ok || !productBody.data) {
-            setLoading(false);
-            showToast({
-                tone: 'error',
-                description: productBody.detail ?? 'Não foi possível criar o produto.',
-            });
-            return;
+        // Planos: em sequência, para cada falha virar uma mensagem clara.
+        const failures: string[] = [];
+        for (const plan of plans) {
+            const label = plan.name.trim() || 'Plano sem nome';
+            const result = await savePlan(productId as string, plan);
+            if (result) failures.push(`${label}: ${result}`);
         }
-
-        const recurring = pricingType === 'recurring';
-        const priceResponse = await fetch(`/api/products/${productBody.data.id}/prices`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-                name: recurring ? 'Plano principal' : 'Preço principal',
-                pricingType,
-                amountMinor: Number(form.get('amountMinor')),
-                currency: 'BRL',
-                ...(recurring
-                    ? {
-                          recurringInterval: form.get('interval'),
-                          recurringIntervalCount: 1,
-                          billingMode: 'gateway_managed',
-                      }
-                    : {}),
-                status: 'active',
-                allowQuantity: false,
-                minimumQuantity: 1,
-                maximumQuantity: 1,
-                metadata: {},
-            }),
-        });
-        const priceBody = (await priceResponse.json()) as { detail?: string };
         setLoading(false);
-        if (!priceResponse.ok) {
+        router.refresh();
+        // Fecha mesmo com falha: salvar de novo duplicaria o que já foi criado.
+        setOpen(false);
+        setEditing(undefined);
+        if (failures.length > 0) {
             showToast({
                 tone: 'warning',
-                description:
-                    priceBody.detail ??
-                    'Produto criado sem preço. Recarregue a página para continuar.',
+                title: editing
+                    ? 'Produto salvo, mas alguns planos falharam'
+                    : 'Produto criado, mas há planos pendentes',
+                description: failures.join(' · '),
             });
             return;
         }
-        setOpen(false);
-        setPricingType('one_time');
         showToast({
             tone: 'success',
-            title: 'Produto criado',
-            description: 'O produto foi adicionado ao seu catálogo.',
+            title: editing ? 'Produto atualizado' : 'Produto criado',
+            description: editing
+                ? 'As alterações do produto e dos planos foram salvas.'
+                : `O produto foi adicionado ao catálogo com ${String(activePlans.length)} ${activePlans.length === 1 ? 'plano' : 'planos'}.`,
         });
-        router.refresh();
     }
 
     async function remove(product: Product) {
@@ -266,15 +258,28 @@ export function ProductManager({
 
     function openCreate() {
         setEditing(undefined);
-        setPricingType('one_time');
+        setProductType('digital');
+        setPlans([newPlan('digital')]);
         setSelectedImageFileId(null);
         setOpen(true);
     }
 
     function openEdit(product: Product) {
         setEditing(product);
+        setProductType(product.type);
+        setPlans(
+            (prices[product.id] ?? [])
+                .filter((price) => price.status !== 'archived')
+                .map(planFromPrice),
+        );
         setSelectedImageFileId(product.imageFileId);
         setOpen(true);
+    }
+
+    function updatePlan(key: string, change: Partial<PlanDraft>) {
+        setPlans((current) =>
+            current.map((plan) => (plan.key === key ? withAutoName({ ...plan, ...change }) : plan)),
+        );
     }
 
     function closeForm() {
@@ -410,24 +415,24 @@ export function ProductManager({
                         onMouseDown={(event) => {
                             if (event.target === event.currentTarget) closeForm();
                         }}
-                        className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-black/20 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] grid place-items-center bg-black/20 p-4 backdrop-blur-sm"
                     >
+                        {/* Altura fixa: o cabeçalho e o rodapé ficam parados e só o conteúdo rola. */}
                         <form
                             onSubmit={submit}
-                            className="product-modal theme-modal modal-surface modal-form-layout glass-panel my-6 w-full max-w-2xl rounded-[28px] p-5 sm:p-7"
+                            className="product-modal theme-modal modal-surface glass-panel flex h-[min(760px,calc(100dvh-32px))] w-full max-w-5xl flex-col overflow-hidden rounded-[28px]"
                         >
-                            <div className="flex items-start justify-between gap-5">
+                            <header className="flex shrink-0 items-start justify-between gap-5 border-b border-border px-5 py-5 sm:px-7">
                                 <div>
                                     <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-strong">
                                         Catálogo
                                     </p>
-                                    <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
+                                    <h2 className="mt-1.5 text-2xl font-semibold tracking-[-0.04em]">
                                         {editing ? 'Editar produto' : 'Novo produto'}
                                     </h2>
-                                    <p className="mt-1.5 text-[13px] leading-5 text-muted">
-                                        {editing
-                                            ? 'Atualize os dados comerciais e a disponibilidade do produto.'
-                                            : 'Cadastre os dados comerciais e o primeiro preço.'}
+                                    <p className="mt-1 text-[13px] leading-5 text-muted">
+                                        Dados do produto à esquerda; os planos que o cliente pode
+                                        escolher à direita.
                                     </p>
                                 </div>
                                 <Button
@@ -439,79 +444,76 @@ export function ProductManager({
                                 >
                                     <Icon name="close" className="size-4" />
                                 </Button>
-                            </div>
+                            </header>
 
-                            <div className="mt-7 grid gap-4 sm:grid-cols-2">
-                                <Field
-                                    name="name"
-                                    label="Nome"
-                                    placeholder="Ex.: Curso de Marketing"
-                                    defaultValue={editing?.name}
-                                    required
-                                />
-                                <Field
-                                    name="slug"
-                                    label="Slug (opcional)"
-                                    placeholder="curso-de-marketing"
-                                    defaultValue={editing?.slug}
-                                />
-                                <SelectField
-                                    name="type"
-                                    label="Tipo"
-                                    defaultValue={editing?.type ?? 'digital'}
-                                >
-                                    <option value="digital">Digital</option>
-                                    <option value="service">Serviço</option>
-                                    <option value="saas">SaaS</option>
-                                </SelectField>
-                                <SelectField
-                                    name="status"
-                                    label={editing ? 'Status' : 'Status inicial'}
-                                    defaultValue={editing?.status ?? 'draft'}
-                                >
-                                    <option value="active">Ativo</option>
-                                    <option value="draft">Rascunho</option>
-                                    <option value="inactive">Inativo</option>
-                                </SelectField>
-                                <label className="text-[13px] font-semibold sm:col-span-2">
-                                    Descrição curta
-                                    <textarea
-                                        name="shortDescription"
-                                        defaultValue={editing?.shortDescription ?? ''}
-                                        placeholder="Explique brevemente o que o cliente recebe."
-                                        className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-border bg-[var(--control-bg)] p-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]"
-                                    />
-                                </label>
-                                {!editing && (
-                                    <>
+                            <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:overflow-hidden">
+                                <section className="space-y-4 px-5 py-6 sm:px-7 lg:overflow-y-auto">
+                                    <h3 className="text-[14px] font-semibold">Produto</h3>
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        <Field
+                                            name="name"
+                                            label="Nome"
+                                            placeholder="Ex.: Curso de Marketing"
+                                            defaultValue={editing?.name}
+                                            required
+                                        />
+                                        <Field
+                                            name="slug"
+                                            label="Slug (opcional)"
+                                            placeholder="curso-de-marketing"
+                                            defaultValue={editing?.slug}
+                                        />
                                         <SelectField
-                                            name="pricingType"
-                                            label="Cobrança"
-                                            value={pricingType}
-                                            onChange={(event) => setPricingType(event.target.value)}
+                                            name="type"
+                                            label="Tipo"
+                                            value={productType}
+                                            onChange={(event) => {
+                                                const type = event.target.value as Product['type'];
+                                                setProductType(type);
+                                                // Plano novo ainda intocado acompanha o tipo.
+                                                setPlans((current) =>
+                                                    current.map((plan) =>
+                                                        !plan.id && !plan.touched
+                                                            ? withAutoName({
+                                                                  ...plan,
+                                                                  pricingType: recurringByDefault(
+                                                                      type,
+                                                                  )
+                                                                      ? 'recurring'
+                                                                      : 'one_time',
+                                                              })
+                                                            : plan,
+                                                    ),
+                                                );
+                                            }}
                                         >
-                                            <option value="one_time">Pagamento único</option>
-                                            <option value="recurring">Recorrente</option>
+                                            <option value="digital">Digital</option>
+                                            <option value="service">Serviço</option>
+                                            <option value="saas">SaaS</option>
                                         </SelectField>
-                                        <MoneyField name="amountMinor" label="Valor" />
-                                    </>
-                                )}
-                                {!editing && pricingType === 'recurring' && (
-                                    <SelectField
-                                        name="interval"
-                                        label="Periodicidade"
-                                        defaultValue="month"
-                                    >
-                                        <option value="month">Mensal</option>
-                                        <option value="year">Anual</option>
-                                        <option value="week">Semanal</option>
-                                    </SelectField>
-                                )}
-                                <label className="text-[13px] font-semibold sm:col-span-2">
-                                    Imagem do produto
-                                    <span className="product-image-field mt-2 block rounded-2xl border border-dashed border-border bg-[var(--control-bg)] p-3.5 transition focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]">
-                                        <span className="flex items-center gap-3">
-                                            <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand-soft text-brand">
+                                        <SelectField
+                                            name="status"
+                                            label={editing ? 'Status' : 'Status inicial'}
+                                            defaultValue={editing?.status ?? 'draft'}
+                                        >
+                                            <option value="active">Ativo</option>
+                                            <option value="draft">Rascunho</option>
+                                            <option value="inactive">Inativo</option>
+                                        </SelectField>
+                                    </div>
+                                    <label className="block text-[13px] font-semibold">
+                                        Descrição curta
+                                        <textarea
+                                            name="shortDescription"
+                                            defaultValue={editing?.shortDescription ?? ''}
+                                            placeholder="Explique brevemente o que o cliente recebe."
+                                            className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-border bg-[var(--control-bg)] p-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]"
+                                        />
+                                    </label>
+                                    <div className="text-[13px] font-semibold">
+                                        Imagem do produto
+                                        <div className="product-image-field mt-2 flex items-center gap-3 rounded-2xl border border-dashed border-border bg-[var(--control-bg)] p-3 transition focus-within:border-brand/70">
+                                            <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand-soft text-brand">
                                                 {selectedImageFile ? (
                                                     // eslint-disable-next-line @next/next/no-img-element
                                                     <img
@@ -526,17 +528,25 @@ export function ProductManager({
                                             <span className="min-w-0 flex-1">
                                                 <span className="block truncate text-[13px] font-semibold">
                                                     {selectedImageFile?.originalName ??
-                                                        'Selecionar imagem'}
+                                                        'Nenhuma imagem'}
                                                 </span>
-                                                <span className="mt-1 block text-[11px] font-normal text-muted">
-                                                    Escolha da biblioteca ou envie uma nova imagem
-                                                    de até 5 MB.
+                                                <span className="mt-0.5 block text-[11px] font-normal text-muted">
+                                                    JPG, PNG ou WebP de até 5 MB.
                                                 </span>
                                             </span>
+                                            <label className="ui-button inline-flex h-9 cursor-pointer items-center rounded-xl border border-border bg-[var(--control-bg)] px-3 text-[12px] font-semibold text-muted hover:bg-surface-muted hover:text-foreground">
+                                                Enviar
+                                                <input
+                                                    name="image"
+                                                    type="file"
+                                                    accept="image/jpeg,image/png,image/webp"
+                                                    className="sr-only"
+                                                />
+                                            </label>
                                             <Button
                                                 type="button"
                                                 variant="secondary"
-                                                className="h-9 px-3"
+                                                className="!h-9 px-3 text-[12px]"
                                                 onClick={() => setMediaPickerOpen(true)}
                                             >
                                                 Biblioteca
@@ -552,33 +562,97 @@ export function ProductManager({
                                                     <Icon name="close" className="size-3.5" />
                                                 </Button>
                                             )}
-                                        </span>
-                                        <span className="mt-3 block border-t border-border pt-3">
-                                            <input
-                                                name="image"
-                                                type="file"
-                                                accept="image/jpeg,image/png,image/webp"
-                                                className="w-full text-[11px] font-normal text-muted file:mr-2 file:rounded-lg file:border-0 file:bg-brand-soft file:px-3 file:py-2 file:font-semibold file:text-brand-strong"
-                                            />
-                                        </span>
-                                    </span>
-                                </label>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section className="flex min-h-0 flex-col border-t border-border bg-surface-muted/40 lg:border-l lg:border-t-0">
+                                    <div className="flex shrink-0 items-center justify-between gap-3 px-5 pb-3 pt-6 sm:px-7">
+                                        <div>
+                                            <h3 className="text-[14px] font-semibold">
+                                                Planos e preços
+                                            </h3>
+                                            <p className="mt-0.5 text-[12px] text-muted">
+                                                {recurringByDefault(productType)
+                                                    ? 'Ex.: Mensal e Anual, ou Básico e Pro.'
+                                                    : 'Um preço único ou opções do mesmo produto.'}
+                                            </p>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            className="!h-9 shrink-0 px-3 text-[12px]"
+                                            onClick={() =>
+                                                setPlans((current) => [
+                                                    ...current,
+                                                    newPlan(productType),
+                                                ])
+                                            }
+                                        >
+                                            <Icon name="plus" className="size-3.5" />
+                                            Adicionar plano
+                                        </Button>
+                                    </div>
+                                    <div className="min-h-0 flex-1 space-y-3 px-5 pb-6 sm:px-7 lg:overflow-y-auto">
+                                        {plans.map((plan, index) =>
+                                            plan.removed ? null : (
+                                                <PlanCard
+                                                    key={plan.key}
+                                                    plan={plan}
+                                                    index={index}
+                                                    removable={
+                                                        plans.filter((item) => !item.removed)
+                                                            .length > 1
+                                                    }
+                                                    onChange={(change) =>
+                                                        updatePlan(plan.key, change)
+                                                    }
+                                                    onRemove={() =>
+                                                        setPlans((current) =>
+                                                            plan.id
+                                                                ? current.map((item) =>
+                                                                      item.key === plan.key
+                                                                          ? {
+                                                                                ...item,
+                                                                                removed: true,
+                                                                            }
+                                                                          : item,
+                                                                  )
+                                                                : current.filter(
+                                                                      (item) =>
+                                                                          item.key !== plan.key,
+                                                                  ),
+                                                        )
+                                                    }
+                                                />
+                                            ),
+                                        )}
+                                    </div>
+                                </section>
                             </div>
 
-                            <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                                <Button type="button" variant="secondary" onClick={closeForm}>
-                                    Cancelar
-                                </Button>
-                                <Button variant="primary" disabled={loading} className="px-6">
-                                    {loading
-                                        ? editing
-                                            ? 'Salvando...'
-                                            : 'Criando...'
-                                        : editing
-                                          ? 'Salvar alterações'
-                                          : 'Criar produto'}
-                                </Button>
-                            </div>
+                            <footer className="flex shrink-0 flex-col-reverse gap-2 border-t border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+                                <p className="text-[12px] text-muted">
+                                    {plans.filter((plan) => !plan.removed).length}{' '}
+                                    {plans.filter((plan) => !plan.removed).length === 1
+                                        ? 'plano'
+                                        : 'planos'}
+                                </p>
+                                <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                                    <Button type="button" variant="secondary" onClick={closeForm}>
+                                        Cancelar
+                                    </Button>
+                                    <Button variant="primary" disabled={loading} className="px-6">
+                                        {loading
+                                            ? editing
+                                                ? 'Salvando...'
+                                                : 'Criando...'
+                                            : editing
+                                              ? 'Salvar alterações'
+                                              : 'Criar produto'}
+                                    </Button>
+                                </div>
+                            </footer>
                         </form>
                     </div>,
                     document.body,
@@ -1022,14 +1096,220 @@ function SelectField({
     );
 }
 
-function MoneyField({ name, label }: { name: string; label: string }) {
-    const [minor, setMinor] = useState(0);
+type PlanDraft = {
+    key: string;
+    /** Preço já salvo: só nome e valor podem mudar (a API não troca cobrança/periodicidade). */
+    id?: string;
+    version?: number;
+    name: string;
+    pricingType: 'one_time' | 'recurring';
+    amountMinor: number;
+    interval: 'week' | 'month' | 'year';
+    /** O nome foi escrito à mão: deixa de acompanhar cobrança e periodicidade. */
+    touched?: boolean;
+    removed?: boolean;
+    saved?: { name: string; amountMinor: number };
+};
+
+function recurringByDefault(type: Product['type']) {
+    return type === 'saas' || type === 'service';
+}
+
+function autoPlanName(plan: Pick<PlanDraft, 'pricingType' | 'interval'>) {
+    if (plan.pricingType === 'one_time') return 'Pagamento único';
+    return plan.interval === 'year'
+        ? 'Plano anual'
+        : plan.interval === 'week'
+          ? 'Plano semanal'
+          : 'Plano mensal';
+}
+
+function withAutoName(plan: PlanDraft): PlanDraft {
+    return plan.touched || plan.id ? plan : { ...plan, name: autoPlanName(plan) };
+}
+
+function newPlan(type: Product['type']): PlanDraft {
+    return withAutoName({
+        key: crypto.randomUUID(),
+        name: '',
+        pricingType: recurringByDefault(type) ? 'recurring' : 'one_time',
+        amountMinor: 0,
+        interval: 'month',
+    });
+}
+
+function planFromPrice(price: Price): PlanDraft {
+    return {
+        key: price.id,
+        id: price.id,
+        version: price.version,
+        name: price.name,
+        pricingType: price.pricingType === 'recurring' ? 'recurring' : 'one_time',
+        amountMinor: price.amountMinor,
+        interval:
+            price.recurringInterval === 'year' || price.recurringInterval === 'week'
+                ? price.recurringInterval
+                : 'month',
+        saved: { name: price.name, amountMinor: price.amountMinor },
+    };
+}
+
+/** Cria, atualiza ou remove um plano. Devolve a mensagem de erro, ou nada se deu certo. */
+async function savePlan(productId: string, plan: PlanDraft): Promise<string | undefined> {
+    const json = { 'content-type': 'application/json' };
+    let response: Response | undefined;
+    if (plan.id && plan.removed) {
+        response = await fetch(`/api/prices/${plan.id}`, { method: 'DELETE' });
+    } else if (plan.id) {
+        if (plan.saved?.name === plan.name.trim() && plan.saved.amountMinor === plan.amountMinor)
+            return undefined;
+        response = await fetch(`/api/prices/${plan.id}`, {
+            method: 'PATCH',
+            headers: json,
+            body: JSON.stringify({
+                name: plan.name.trim(),
+                amountMinor: plan.amountMinor,
+                version: plan.version,
+            }),
+        });
+    } else if (!plan.removed) {
+        const recurring = plan.pricingType === 'recurring';
+        response = await fetch(`/api/products/${productId}/prices`, {
+            method: 'POST',
+            headers: json,
+            body: JSON.stringify({
+                name: plan.name.trim(),
+                pricingType: plan.pricingType,
+                amountMinor: plan.amountMinor,
+                currency: 'BRL',
+                ...(recurring
+                    ? {
+                          recurringInterval: plan.interval,
+                          recurringIntervalCount: 1,
+                          billingMode: 'gateway_managed',
+                      }
+                    : {}),
+                status: 'active',
+                allowQuantity: false,
+                minimumQuantity: 1,
+                maximumQuantity: 1,
+                metadata: {},
+            }),
+        });
+    }
+    if (!response || response.ok) return undefined;
+    const body = (await response.json().catch(() => ({}))) as { detail?: string };
+    return body.detail ?? 'não foi possível salvar';
+}
+
+function PlanCard({
+    plan,
+    index,
+    removable,
+    onChange,
+    onRemove,
+}: {
+    plan: PlanDraft;
+    index: number;
+    removable: boolean;
+    onChange(change: Partial<PlanDraft>): void;
+    onRemove(): void;
+}) {
+    const saved = Boolean(plan.id);
     return (
-        <label className="text-[13px] font-semibold">
+        <article className="rounded-2xl border border-border bg-[var(--control-bg)] p-4">
+            <div className="flex items-end gap-2">
+                <label className="min-w-0 flex-1 text-[12px] font-semibold">
+                    Nome do plano
+                    <input
+                        value={plan.name}
+                        placeholder={`Plano ${String(index + 1)}`}
+                        onChange={(event) => onChange({ name: event.target.value, touched: true })}
+                        className="mt-1.5 h-10 w-full rounded-xl border border-border bg-surface px-3 text-[13px] font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)]"
+                    />
+                </label>
+                {removable && (
+                    <Button
+                        type="button"
+                        variant="icon"
+                        className="size-10 shrink-0"
+                        aria-label={`Remover ${plan.name || 'plano'}`}
+                        onClick={onRemove}
+                    >
+                        <Icon name="trash" className="size-3.5" />
+                    </Button>
+                )}
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <label className="text-[12px] font-semibold">
+                    Cobrança
+                    <div className="mt-1.5">
+                        <CustomSelect
+                            name={`pricing_${plan.key}`}
+                            value={plan.pricingType}
+                            disabled={saved}
+                            options={[
+                                { value: 'one_time', label: 'Pagamento único' },
+                                { value: 'recurring', label: 'Recorrente' },
+                            ]}
+                            onValueChange={(value) =>
+                                onChange({ pricingType: value as PlanDraft['pricingType'] })
+                            }
+                        />
+                    </div>
+                </label>
+                {plan.pricingType === 'recurring' ? (
+                    <label className="text-[12px] font-semibold">
+                        Periodicidade
+                        <div className="mt-1.5">
+                            <CustomSelect
+                                name={`interval_${plan.key}`}
+                                value={plan.interval}
+                                disabled={saved}
+                                options={[
+                                    { value: 'month', label: 'Mensal' },
+                                    { value: 'year', label: 'Anual' },
+                                    { value: 'week', label: 'Semanal' },
+                                ]}
+                                onValueChange={(value) =>
+                                    onChange({ interval: value as PlanDraft['interval'] })
+                                }
+                            />
+                        </div>
+                    </label>
+                ) : (
+                    <span className="hidden sm:block" />
+                )}
+                <MoneyInput
+                    label="Valor"
+                    value={plan.amountMinor}
+                    onChange={(amountMinor) => onChange({ amountMinor })}
+                />
+            </div>
+            {saved && (
+                <p className="mt-2.5 text-[11px] text-muted">
+                    Cobrança e periodicidade não mudam depois de criadas. Para outra, adicione um
+                    plano novo.
+                </p>
+            )}
+        </article>
+    );
+}
+
+function MoneyInput({
+    label,
+    value,
+    onChange,
+}: {
+    label: string;
+    value: number;
+    onChange(value: number): void;
+}) {
+    return (
+        <label className="text-[12px] font-semibold">
             {label}
-            <input type="hidden" name={name} value={minor} />
-            <div className="relative mt-2">
-                <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-[13px] text-muted">
+            <div className="relative mt-1.5">
+                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[12px] text-muted">
                     R$
                 </span>
                 <input
@@ -1037,9 +1317,9 @@ function MoneyField({ name, label }: { name: string; label: string }) {
                     value={new Intl.NumberFormat('pt-BR', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
-                    }).format(minor / 100)}
-                    onChange={(event) => setMinor(Number(event.target.value.replace(/\D/g, '')))}
-                    className="h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] pl-10 pr-3.5 font-normal tabular-nums outline-none transition focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)]"
+                    }).format(value / 100)}
+                    onChange={(event) => onChange(Number(event.target.value.replace(/\D/g, '')))}
+                    className="h-10 w-full rounded-xl border border-border bg-surface pl-9 pr-3 text-[13px] font-normal tabular-nums outline-none transition focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)]"
                 />
             </div>
         </label>

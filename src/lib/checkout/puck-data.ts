@@ -1,6 +1,16 @@
-import type { BuilderData, BuilderRootProps } from '@/components/checkout-builder/config';
+import {
+    captureCheckoutCustomPreset,
+    checkoutMatchesBrandPreset,
+    type BuilderData,
+    type BuilderRootProps,
+} from '@/components/checkout-builder/config';
 import type { CheckoutDocument, CheckoutSectionType } from '@/lib/api/types';
-import { resolveResultScreens } from '@astro/checkout-renderer/result-screens';
+import {
+    CHECKOUT_PAGE_ID,
+    defaultResultPage,
+    resolveCheckoutPages,
+    type CheckoutResultPageKind,
+} from '@astro/checkout-renderer/funnel';
 import {
     checkoutBlockStyle,
     checkoutFontPresets,
@@ -33,79 +43,128 @@ const supported = new Set<CheckoutSectionType>([
     'product_summary',
     'checkout_form',
     'payment_methods',
-    'card_payment',
-    'pix_payment',
-    'boleto_payment',
     'shipping_address',
     'shipping_methods',
     'coupon_field',
     'security_badges',
+    'cta_button',
+    'payment_status',
     'footer',
 ]);
 
-export function documentToPuck(document: CheckoutDocument): BuilderData {
+export function documentToPuck(
+    document: CheckoutDocument,
+    pageId: string = CHECKOUT_PAGE_ID,
+): BuilderData {
     const theme = document.theme;
     const layout = document.layout;
+    const brandPreset = stringValue(theme.brandPreset, '');
+    const props: BuilderRootProps = {
+        themeMode: themeModeValue(theme.themeMode ?? theme.themePreset),
+        grayTone: grayToneValue(theme.grayTone ?? theme.themePreset),
+        brandPreset,
+        customPreset: captureCheckoutCustomPreset(recordValue(theme.customPreset)),
+        fontFamily: fontValue(theme.fontFamily),
+        headingFontFamily:
+            theme.headingFontFamily === undefined || theme.headingFontFamily === 'inherit'
+                ? 'inherit'
+                : fontValue(theme.headingFontFamily),
+        buttonStyle: buttonStyleValue(theme.buttonStyle),
+        buttonShape: buttonShapeValue(theme.buttonShape),
+        headingFontWeight: fontWeightValue(theme.headingFontWeight, '700'),
+        bodyFontWeight: fontWeightValue(theme.bodyFontWeight, '400'),
+        backgroundColor: stringValue(theme.backgroundColor, '#f5f6f7'),
+        surfaceColor: stringValue(theme.surfaceColor, '#ffffff'),
+        textColor: stringValue(theme.textColor, '#101214'),
+        accentColor: stringValue(theme.accentColor, '#101214'),
+        radius: sizeValue(theme.radius),
+        shadow: shadowValue(theme.shadow),
+        maxWidth: widthValue(layout.maxWidth),
+        componentGap: sizeValue(layout.componentGap),
+        pagePadding: sizeValue(layout.pagePadding, 'lg'),
+        inputGroupStyle:
+            componentBackgroundStyleValue(layout.componentBackgroundStyle) === 'transparent'
+                ? 'outlined'
+                : 'filled',
+        componentBackgroundStyle: componentBackgroundStyleValue(layout.componentBackgroundStyle),
+        componentBorderStyle: componentBorderStyleValue(layout.componentBorderStyle),
+        componentShadowMode: componentShadowModeValue(layout.componentShadowMode),
+        blockStyle: checkoutBlockStyle(theme.blockStyle),
+        motion: checkoutMotion(theme.motion),
+        density: densityValue(layout.density),
+    };
+
+    // Documentos anteriores guardavam o nome do preset mesmo depois de alterações manuais.
+    // Ao detectar divergência, migra para a identidade personalizada sem perder o visual atual.
+    if (brandPreset === 'custom' || !checkoutMatchesBrandPreset(props, brandPreset)) {
+        props.brandPreset = 'custom';
+        props.customPreset = captureCheckoutCustomPreset(props);
+    }
+
     return {
-        root: {
-            props: {
-                themeMode: themeModeValue(theme.themeMode ?? theme.themePreset),
-                grayTone: grayToneValue(theme.grayTone ?? theme.themePreset),
-                brandPreset: stringValue(theme.brandPreset, ''),
-                fontFamily: fontValue(theme.fontFamily),
-                headingFontFamily:
-                    theme.headingFontFamily === undefined || theme.headingFontFamily === 'inherit'
-                        ? 'inherit'
-                        : fontValue(theme.headingFontFamily),
-                buttonStyle: buttonStyleValue(theme.buttonStyle),
-                buttonShape: buttonShapeValue(theme.buttonShape),
-                headingFontWeight: fontWeightValue(theme.headingFontWeight, '700'),
-                bodyFontWeight: fontWeightValue(theme.bodyFontWeight, '400'),
-                backgroundColor: stringValue(theme.backgroundColor, '#f5f6f7'),
-                surfaceColor: stringValue(theme.surfaceColor, '#ffffff'),
-                textColor: stringValue(theme.textColor, '#101214'),
-                accentColor: stringValue(theme.accentColor, '#101214'),
-                radius: sizeValue(theme.radius),
-                shadow: shadowValue(theme.shadow),
-                maxWidth: widthValue(layout.maxWidth),
-                componentGap: sizeValue(layout.componentGap),
-                pagePadding: sizeValue(layout.pagePadding, 'lg'),
-                inputGroupStyle:
-                    componentBackgroundStyleValue(layout.componentBackgroundStyle) === 'transparent'
-                        ? 'outlined'
-                        : 'filled',
-                componentBackgroundStyle: componentBackgroundStyleValue(
-                    layout.componentBackgroundStyle,
-                ),
-                componentBorderStyle: componentBorderStyleValue(layout.componentBorderStyle),
-                componentShadowMode: componentShadowModeValue(layout.componentShadowMode),
-                blockStyle: checkoutBlockStyle(theme.blockStyle),
-                motion: checkoutMotion(theme.motion),
-                density: densityValue(layout.density),
-                previewScreen: 'checkout',
-                ...resultScreenProps(document.settings?.resultScreens),
-            },
-        },
-        content: document.sections
-            .filter((section) => section.visible && supported.has(section.type))
+        root: { props },
+        content: pageSections(document, pageId)
+            .filter(
+                (section) =>
+                    section.visible && supported.has(section.type as CheckoutSectionType),
+            )
             .map((section) => ({
                 type: section.type,
-                props: { ...migrateDefaultTitles(section.type, section.props), id: section.id },
+                props: {
+                    ...migrateDefaultTitles(section.type as CheckoutSectionType, section.props),
+                    id: section.id,
+                },
             })),
     } as BuilderData;
 }
 
-export function puckToDocument(data: BuilderData, previous: CheckoutDocument): CheckoutDocument {
+export function puckToDocument(
+    data: BuilderData,
+    previous: CheckoutDocument,
+    pageId: string = CHECKOUT_PAGE_ID,
+): CheckoutDocument {
     const rootContainer = data.root as {
         props?: Partial<BuilderRootProps>;
     } & Partial<BuilderRootProps>;
     const root = rootContainer.props ?? rootContainer;
+    const sections = data.content
+        .filter((component) => supported.has(component.type as CheckoutSectionType))
+        .slice(0, 50)
+        .map((component, index) => {
+            const props = { ...component.props } as Record<string, unknown>;
+            const id = typeof props.id === 'string' ? props.id : `${component.type}-${index + 1}`;
+            delete props.id;
+            if (component.type === 'product_summary') {
+                delete props.buttonAction;
+                delete props.buttonUrl;
+                delete props.buttonSectionId;
+                delete props.buttonNewTab;
+            }
+            return { id, type: component.type as CheckoutSectionType, visible: true, props };
+        });
+    const currentPages = resolveCheckoutPages(previous) as NonNullable<CheckoutDocument['pages']>;
+    const activePage = currentPages.find((page) => page.id === pageId);
+    const nextPages =
+        pageId === CHECKOUT_PAGE_ID || !activePage
+            ? currentPages
+            : currentPages.map((page) =>
+                  page.id === pageId
+                      ? {
+                            ...page,
+                            sections: ensurePaymentStatus(
+                                page.kind as CheckoutResultPageKind | 'content',
+                                sections,
+                            ),
+                        }
+                      : page,
+              );
     return {
         schemaVersion: 1,
         theme: {
             themeMode: themeModeValue(root.themeMode),
             grayTone: grayToneValue(root.grayTone),
             brandPreset: typeof root.brandPreset === 'string' ? root.brandPreset : '',
+            customPreset: captureCheckoutCustomPreset(root.customPreset ?? {}),
             fontFamily: fontValue(root.fontFamily),
             headingFontFamily:
                 root.headingFontFamily === undefined || root.headingFontFamily === 'inherit'
@@ -138,36 +197,25 @@ export function puckToDocument(data: BuilderData, previous: CheckoutDocument): C
             componentBorderStyle: componentBorderStyleValue(root.componentBorderStyle),
             componentShadowMode: componentShadowModeValue(root.componentShadowMode),
         },
-        sections: data.content
-            .filter((component) => supported.has(component.type as CheckoutSectionType))
-            .slice(0, 50)
-            .map((component, index) => {
-                const props = { ...component.props } as Record<string, unknown>;
-                const id =
-                    typeof props.id === 'string' ? props.id : `${component.type}-${index + 1}`;
-                delete props.id;
-                if (component.type === 'product_summary') {
-                    delete props.buttonAction;
-                    delete props.buttonUrl;
-                    delete props.buttonSectionId;
-                    delete props.buttonNewTab;
-                }
-                return { id, type: component.type as CheckoutSectionType, visible: true, props };
-            }),
-        settings: {
-            ...previous.settings,
-            resultScreens: resolveResultScreens({
-                success: root.successScreen,
-                failure: root.failureScreen,
-            }),
-        },
+        sections: pageId === CHECKOUT_PAGE_ID ? sections : previous.sections,
+        pages: nextPages,
+        settings: previous.settings,
         seo: previous.seo,
     };
 }
 
-function resultScreenProps(value: unknown) {
-    const screens = resolveResultScreens(value);
-    return { successScreen: screens.success, failureScreen: screens.failure };
+function pageSections(document: CheckoutDocument, pageId: string) {
+    if (pageId === CHECKOUT_PAGE_ID) return document.sections;
+    return resolveCheckoutPages(document).find((page) => page.id === pageId)?.sections ?? [];
+}
+
+function ensurePaymentStatus(
+    kind: CheckoutResultPageKind | 'content',
+    sections: CheckoutDocument['sections'],
+) {
+    if (kind === 'content' || sections.some((section) => section.type === 'payment_status'))
+        return sections;
+    return [...defaultResultPage(kind).sections, ...sections] as CheckoutDocument['sections'];
 }
 
 function densityValue(value: unknown): BuilderRootProps['density'] {
@@ -176,6 +224,12 @@ function densityValue(value: unknown): BuilderRootProps['density'] {
 
 function stringValue(value: unknown, fallback: string) {
     return typeof value === 'string' ? value : fallback;
+}
+
+function recordValue(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : {};
 }
 
 function fontWeightValue(
@@ -284,7 +338,6 @@ function migrateDefaultTitles(type: CheckoutSectionType, props: Record<string, u
         product_summary: { 'Resumo da sua compra': 'Itens do carrinho' },
         checkout_form: { 'Seus dados': 'Dados pessoais' },
         payment_methods: { 'Como você quer pagar?': 'Formas de pagamento' },
-        card_payment: { 'Dados de pagamento': 'Dados do cartão' },
         shipping_address: { 'Endereço de entrega': 'Dados de entrega' },
         shipping_methods: { 'Escolha a entrega': 'Frete' },
     };

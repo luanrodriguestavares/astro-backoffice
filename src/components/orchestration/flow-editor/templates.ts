@@ -33,7 +33,7 @@ function gateway(id: string, connection: string | null): FlowNode {
     return { id, type: 'gateway', position: at, config: { gatewayConnectionId: connection } };
 }
 
-function simple(type: 'trigger' | 'checkout_default' | 'success' | 'failed', id: string): FlowNode {
+function simple(type: 'trigger' | 'success' | 'failed', id: string): FlowNode {
     return { id, type, position: at, config: {} };
 }
 
@@ -53,7 +53,7 @@ const routingTemplates: readonly RoutingTemplate[] = [
                     gateway('card_2', backup),
                     gateway('pix_1', primary),
                     gateway('boleto_1', primary),
-                    simple('checkout_default', 'checkout_1'),
+                    gateway('default_1', primary),
                     simple('success', 'success_1'),
                     simple('failed', 'failed_1'),
                 ],
@@ -67,7 +67,7 @@ const routingTemplates: readonly RoutingTemplate[] = [
                         sourceHandle: boleto?.id ?? '',
                         target: 'boleto_1',
                     },
-                    { id: 'e5', source: 'router', sourceHandle: 'otherwise', target: 'checkout_1' },
+                    { id: 'e5', source: 'router', sourceHandle: 'otherwise', target: 'default_1' },
                     { id: 'e6', source: 'card_1', sourceHandle: 'success', target: 'success_1' },
                     { id: 'e7', source: 'card_1', sourceHandle: 'failure', target: 'card_2' },
                     { id: 'e8', source: 'card_2', sourceHandle: 'success', target: 'success_1' },
@@ -78,13 +78,13 @@ const routingTemplates: readonly RoutingTemplate[] = [
                     { id: 'e13', source: 'boleto_1', sourceHandle: 'failure', target: 'failed_1' },
                     {
                         id: 'e14',
-                        source: 'checkout_1',
+                        source: 'default_1',
                         sourceHandle: 'success',
                         target: 'success_1',
                     },
                     {
                         id: 'e15',
-                        source: 'checkout_1',
+                        source: 'default_1',
                         sourceHandle: 'failure',
                         target: 'failed_1',
                     },
@@ -113,25 +113,25 @@ const routingTemplates: readonly RoutingTemplate[] = [
                     },
                     gateway('gateway_1', primary),
                     gateway('gateway_2', backup),
-                    simple('checkout_default', 'checkout_1'),
+                    gateway('default_1', primary),
                     simple('success', 'success_1'),
                     simple('failed', 'failed_1'),
                 ],
                 edges: [
                     { id: 'e1', source: 'trigger', sourceHandle: 'main', target: 'high_value' },
                     { id: 'e2', source: 'high_value', sourceHandle: 'true', target: 'gateway_1' },
-                    { id: 'e3', source: 'high_value', sourceHandle: 'false', target: 'checkout_1' },
+                    { id: 'e3', source: 'high_value', sourceHandle: 'false', target: 'default_1' },
                     { id: 'e4', source: 'gateway_1', sourceHandle: 'success', target: 'success_1' },
                     { id: 'e5', source: 'gateway_1', sourceHandle: 'failure', target: 'gateway_2' },
                     { id: 'e6', source: 'gateway_2', sourceHandle: 'success', target: 'success_1' },
                     { id: 'e7', source: 'gateway_2', sourceHandle: 'failure', target: 'failed_1' },
                     {
                         id: 'e8',
-                        source: 'checkout_1',
+                        source: 'default_1',
                         sourceHandle: 'success',
                         target: 'success_1',
                     },
-                    { id: 'e9', source: 'checkout_1', sourceHandle: 'failure', target: 'failed_1' },
+                    { id: 'e9', source: 'default_1', sourceHandle: 'failure', target: 'failed_1' },
                 ],
             };
         },
@@ -170,14 +170,14 @@ const routingTemplates: readonly RoutingTemplate[] = [
                             ),
                         },
                     },
-                    simple('checkout_default', 'checkout_1'),
+                    gateway('default_1', primary),
                     simple('success', 'success_1'),
                     simple('failed', 'failed_1'),
                 ],
                 edges: [
                     { id: 'e1', source: 'trigger', sourceHandle: 'main', target: 'is_pix' },
                     { id: 'e2', source: 'is_pix', sourceHandle: 'true', target: 'cheapest_1' },
-                    { id: 'e3', source: 'is_pix', sourceHandle: 'false', target: 'checkout_1' },
+                    { id: 'e3', source: 'is_pix', sourceHandle: 'false', target: 'default_1' },
                     {
                         id: 'e4',
                         source: 'cheapest_1',
@@ -187,11 +187,11 @@ const routingTemplates: readonly RoutingTemplate[] = [
                     { id: 'e5', source: 'cheapest_1', sourceHandle: 'failure', target: 'failed_1' },
                     {
                         id: 'e6',
-                        source: 'checkout_1',
+                        source: 'default_1',
                         sourceHandle: 'success',
                         target: 'success_1',
                     },
-                    { id: 'e7', source: 'checkout_1', sourceHandle: 'failure', target: 'failed_1' },
+                    { id: 'e7', source: 'default_1', sourceHandle: 'failure', target: 'failed_1' },
                 ],
             };
         },

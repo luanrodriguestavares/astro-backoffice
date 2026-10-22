@@ -40,19 +40,28 @@ export function CheckoutManager({
     catalog,
     canWrite,
     initialQuery = '',
+    initialTemplate,
     focusId,
 }: {
     checkouts: Checkout[];
     catalog: CheckoutCatalogOption[];
     canWrite: boolean;
     initialQuery?: string;
+    initialTemplate?: CheckoutTemplateId;
     focusId?: string;
 }) {
     const router = useRouter();
-    const [open, setOpen] = useState(false);
-    const [step, setStep] = useState<'template' | 'details' | 'appearance'>('template');
-    const [template, setTemplate] = useState<CheckoutTemplateId>();
-    const [priceId, setPriceId] = useState('');
+    const [open, setOpen] = useState(Boolean(canWrite && initialTemplate && catalog.length));
+    const [step, setStep] = useState<'template' | 'details' | 'appearance'>(
+        initialTemplate ? 'details' : 'template',
+    );
+    const [template, setTemplate] = useState<CheckoutTemplateId | undefined>(initialTemplate);
+    const [templateQuery, setTemplateQuery] = useState('');
+    const [templateCategory, setTemplateCategory] = useState<
+        'all' | 'sales' | 'checkout' | 'recurring'
+    >('all');
+    const [productId, setProductId] = useState('');
+    const [planIds, setPlanIds] = useState<string[]>([]);
     const [appearance, setAppearance] = useState<CheckoutAppearance>(defaultCheckoutAppearance);
     const [name, setName] = useState('');
     const [slug, setSlug] = useState('');
@@ -60,7 +69,9 @@ export function CheckoutManager({
     const [loading, setLoading] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<Checkout>();
     const [deleting, setDeleting] = useState(false);
-    const [missingProductAlert, setMissingProductAlert] = useState(false);
+    const [missingProductAlert, setMissingProductAlert] = useState(
+        Boolean(canWrite && initialTemplate && catalog.length === 0),
+    );
     const [query, setQuery] = useState(initialQuery);
     const filteredCheckouts = useMemo(() => {
         const term = normalize(query.trim());
@@ -69,6 +80,17 @@ export function CheckoutManager({
             normalize(`${checkout.name} ${checkout.slug} ${checkout.status}`).includes(term),
         );
     }, [checkouts, query]);
+    const visibleTemplates = useMemo(() => {
+        const term = normalize(templateQuery.trim());
+        return checkoutTemplates.filter(
+            (item) =>
+                (templateCategory === 'all' || item.category === templateCategory) &&
+                (!term ||
+                    normalize(
+                        `${item.name} ${item.description} ${item.audience} ${item.highlights.join(' ')}`,
+                    ).includes(term)),
+        );
+    }, [templateCategory, templateQuery]);
 
     useEffect(() => {
         if (!focusId) return;
@@ -86,7 +108,10 @@ export function CheckoutManager({
         }
         setStep('template');
         setTemplate(undefined);
-        setPriceId('');
+        setTemplateQuery('');
+        setTemplateCategory('all');
+        setProductId('');
+        setPlanIds([]);
         setAppearance(defaultCheckoutAppearance);
         setName('');
         setSlug('');
@@ -105,12 +130,31 @@ export function CheckoutManager({
         setOpen(false);
     }
 
-    const selectedPrice = catalog.find((item) => item.priceId === priceId);
+    // Um produto aparece uma vez; os preços dele são os planos que entram no checkout.
+    const catalogProducts = groupCatalog(orderedCatalog(catalog, template));
+    const productPlans = catalogProducts.find((item) => item.productId === productId)?.plans ?? [];
+    const chosenPlans = productPlans.filter((plan) => planIds.includes(plan.priceId));
+    const selectedPrice = chosenPlans[0];
+
+    function chooseProduct(id: string) {
+        setProductId(id);
+        const plans = catalogProducts.find((item) => item.productId === id)?.plans ?? [];
+        // Assinatura começa com os planos recorrentes; os outros modelos, com todos.
+        const recurring = plans.filter((plan) => plan.pricingType === 'recurring');
+        setPlanIds(
+            (template === 'subscription' && recurring.length ? recurring : plans).map(
+                (plan) => plan.priceId,
+            ),
+        );
+    }
 
     function continueToAppearance(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         if (!selectedPrice) {
-            showToast({ tone: 'warning', description: 'Selecione um produto e preço.' });
+            showToast({
+                tone: 'warning',
+                description: 'Selecione um produto e ao menos um plano.',
+            });
             return;
         }
         setStep('appearance');
@@ -120,11 +164,14 @@ export function CheckoutManager({
         const selected = selectedPrice;
         if (!selected) {
             setStep('details');
-            showToast({ tone: 'warning', description: 'Selecione um produto e preço.' });
+            showToast({
+                tone: 'warning',
+                description: 'Selecione um produto e ao menos um plano.',
+            });
             return;
         }
         setLoading(true);
-        const built = buildCheckoutFromTemplate(template ?? 'blank', selected, catalog, appearance);
+        const built = buildCheckoutFromTemplate(template ?? 'blank', chosenPlans, appearance);
         const response = await fetch('/api/checkouts', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
@@ -146,7 +193,7 @@ export function CheckoutManager({
             });
             return;
         }
-        router.push(`/checkouts/${body.data.id}/builder`);
+        router.push(`/checkouts/${body.data.id}`);
     }
 
     async function removeCheckout() {
@@ -251,7 +298,10 @@ export function CheckoutManager({
                                 step === 'appearance'
                                     ? // Assistente de aparência: ocupa a altura da tela e só os controles rolam.
                                       'flex h-[min(calc(100dvh-2rem),920px)] w-full max-w-6xl flex-col overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(16,18,20,.18)] sm:p-7'
-                                    : `my-6 w-full overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(16,18,20,.18)] sm:p-7 ${step === 'template' ? 'max-w-3xl' : 'max-w-xl'}`
+                                    : step === 'template'
+                                      ? // A galeria cresce na horizontal; apenas a lista de modelos rola.
+                                        'flex h-[min(calc(100dvh-2rem),920px)] w-full max-w-6xl flex-col overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(16,18,20,.18)] sm:p-7'
+                                      : 'my-6 w-full max-w-xl overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(16,18,20,.18)] sm:p-7'
                             }`}
                         >
                             <div className="flex shrink-0 items-start justify-between gap-5">
@@ -288,58 +338,108 @@ export function CheckoutManager({
 
                             {step === 'template' ? (
                                 <>
-                                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                                        {checkoutTemplates.map((item) => {
-                                            const selected = template === item.id;
-                                            return (
-                                                <button
-                                                    key={item.id}
+                                    <div className="mt-5 flex shrink-0 flex-col gap-3 border-b border-border pb-4 lg:flex-row lg:items-center lg:justify-between">
+                                        <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-[var(--control-bg)] px-3 lg:max-w-sm">
+                                            <Icon name="search" className="size-4 text-muted" />
+                                            <input
+                                                value={templateQuery}
+                                                onChange={(event) =>
+                                                    setTemplateQuery(event.target.value)
+                                                }
+                                                placeholder="Buscar templates de funil"
+                                                className="min-w-0 flex-1 bg-transparent text-[13px] font-normal outline-none placeholder:text-muted"
+                                            />
+                                        </label>
+                                        <div className="flex gap-1 overflow-x-auto">
+                                            {(
+                                                [
+                                                    ['all', 'Todos'],
+                                                    ['sales', 'Venda'],
+                                                    ['checkout', 'Checkout'],
+                                                    ['recurring', 'Recorrência'],
+                                                ] as const
+                                            ).map(([value, label]) => (
+                                                <Button
+                                                    key={value}
                                                     type="button"
-                                                    aria-pressed={selected}
-                                                    onClick={() => setTemplate(item.id)}
-                                                    onDoubleClick={() => {
-                                                        setTemplate(item.id);
-                                                        setStep('details');
-                                                    }}
-                                                    className={`checkout-template-card group grid gap-3 rounded-[20px] border p-2.5 text-left transition ${selected ? 'border-brand/45 bg-brand-soft/60 shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_10%,transparent)]' : 'border-border bg-[var(--control-bg)] hover:border-brand/25'}`}
+                                                    variant="secondary"
+                                                    aria-pressed={templateCategory === value}
+                                                    onClick={() => setTemplateCategory(value)}
+                                                    className={
+                                                        templateCategory === value
+                                                            ? 'border-brand/45 bg-brand-soft text-brand-strong'
+                                                            : ''
+                                                    }
                                                 >
-                                                    <TemplateThumb id={item.id} />
-                                                    <span className="grid gap-1 px-1.5 pb-1.5">
-                                                        <span className="flex items-center justify-between gap-2">
-                                                            <span className="text-sm font-semibold tracking-[-0.01em]">
-                                                                {item.name}
-                                                            </span>
-                                                            <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-semibold text-muted">
-                                                                {item.audience}
-                                                            </span>
-                                                        </span>
-                                                        <span className="text-[12px] leading-5 text-muted">
-                                                            {item.description}
-                                                        </span>
-                                                        <span className="mt-1 flex flex-wrap gap-1">
-                                                            {item.highlights.map((highlight) => (
-                                                                <span
-                                                                    key={highlight}
-                                                                    className="inline-flex items-center gap-1 rounded-md bg-surface-muted px-1.5 py-0.5 text-[10.5px] font-medium text-foreground/75"
-                                                                >
-                                                                    <Icon
-                                                                        name="check"
-                                                                        className="size-3"
-                                                                    />
-                                                                    {highlight}
-                                                                </span>
-                                                            ))}
-                                                        </span>
-                                                    </span>
-                                                </button>
-                                            );
-                                        })}
+                                                    {label}
+                                                </Button>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <p className="mt-4 text-[12px] leading-5 text-muted">
-                                        Depois do nome e do produto, você define cor, fonte e estilo
-                                        com uma prévia ao vivo.
-                                    </p>
-                                    <div className="mt-6 flex justify-end gap-2">
+                                    <div className="mt-6 min-h-0 flex-1 overflow-y-auto pr-1">
+                                        <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))]">
+                                            {visibleTemplates.map((item) => {
+                                                const selected = template === item.id;
+                                                return (
+                                                    <button
+                                                        key={item.id}
+                                                        type="button"
+                                                        aria-pressed={selected}
+                                                        onClick={() => setTemplate(item.id)}
+                                                        onDoubleClick={() => {
+                                                            setTemplate(item.id);
+                                                            setStep('details');
+                                                        }}
+                                                        className={`checkout-template-card group grid content-start gap-3 rounded-[20px] border p-2.5 text-left transition ${selected ? 'border-brand/55 bg-brand-soft/60 shadow-[inset_0_0_0_2px_color-mix(in_srgb,var(--brand)_14%,transparent)]' : 'border-border bg-[var(--control-bg)] hover:border-brand/25'}`}
+                                                    >
+                                                        <TemplateThumb id={item.id} />
+                                                        <span className="grid gap-1 px-1.5 pb-1.5">
+                                                            <span className="flex items-center justify-between gap-2">
+                                                                <span className="text-sm font-semibold tracking-[-0.01em]">
+                                                                    {item.name}
+                                                                </span>
+                                                                <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-semibold text-muted">
+                                                                    {item.flowSteps}{' '}
+                                                                    {item.flowSteps === 1
+                                                                        ? 'etapa'
+                                                                        : 'etapas'}
+                                                                </span>
+                                                            </span>
+                                                            <span className="text-[12px] leading-5 text-muted">
+                                                                {item.description}
+                                                            </span>
+                                                            <span className="mt-1 flex flex-wrap gap-1">
+                                                                {item.highlights.map(
+                                                                    (highlight) => (
+                                                                        <span
+                                                                            key={highlight}
+                                                                            className="inline-flex items-center gap-1 rounded-md bg-surface-muted px-1.5 py-0.5 text-[10.5px] font-medium text-foreground/75"
+                                                                        >
+                                                                            <Icon
+                                                                                name="check"
+                                                                                className="size-3"
+                                                                            />
+                                                                            {highlight}
+                                                                        </span>
+                                                                    ),
+                                                                )}
+                                                            </span>
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        {visibleTemplates.length === 0 && (
+                                            <div className="grid min-h-48 place-items-center rounded-2xl border border-dashed border-border text-center text-[13px] text-muted">
+                                                Nenhum template encontrado com esses filtros.
+                                            </div>
+                                        )}
+                                        <p className="mt-4 text-[12px] leading-5 text-muted">
+                                            Depois do nome e do produto, você define cor, fonte e
+                                            estilo com uma prévia ao vivo.
+                                        </p>
+                                    </div>
+                                    <div className="mt-5 flex shrink-0 justify-end gap-2 border-t border-border pt-5">
                                         <Button
                                             type="button"
                                             variant="secondary"
@@ -432,31 +532,81 @@ export function CheckoutManager({
                                             </span>
                                         </label>
                                         <label className="text-[13px] font-semibold">
-                                            {template === 'subscription'
-                                                ? 'Plano principal'
-                                                : 'Produto e preço'}
+                                            Produto
                                             <div className="mt-2">
                                                 <CustomSelect
-                                                    name="priceId"
+                                                    name="productId"
                                                     required
-                                                    value={priceId}
-                                                    onValueChange={setPriceId}
-                                                    placeholder="Selecione um produto e preço"
-                                                    options={orderedCatalog(catalog, template).map(
-                                                        (item) => ({
-                                                            value: item.priceId,
-                                                            label: `${item.productName} · ${item.priceName}`,
-                                                            badge: `${money(item.amountMinor, item.currency)}${periodLabel(item)}`,
-                                                        }),
-                                                    )}
+                                                    value={productId}
+                                                    onValueChange={chooseProduct}
+                                                    placeholder="Selecione um produto"
+                                                    options={catalogProducts.map((item) => ({
+                                                        value: item.productId,
+                                                        label: item.productName,
+                                                        badge:
+                                                            item.plans.length === 1 && item.plans[0]
+                                                                ? `${money(item.plans[0].amountMinor, item.plans[0].currency)}${periodLabel(item.plans[0])}`
+                                                                : `${String(item.plans.length)} planos`,
+                                                    }))}
                                                 />
                                             </div>
-                                            <span className="mt-1.5 block text-[11.5px] font-normal leading-4 text-muted">
-                                                {template === 'subscription'
-                                                    ? 'Os outros preços recorrentes do mesmo produto viram planos selecionáveis automaticamente.'
-                                                    : 'Você pode adicionar mais produtos e ofertas depois, no editor.'}
-                                            </span>
                                         </label>
+                                        {productPlans.length > 1 && (
+                                            <fieldset className="text-[13px] font-semibold">
+                                                <legend>Planos no checkout</legend>
+                                                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                                                    {productPlans.map((plan) => {
+                                                        const checked = planIds.includes(
+                                                            plan.priceId,
+                                                        );
+                                                        return (
+                                                            <label
+                                                                key={plan.priceId}
+                                                                data-checked={checked || undefined}
+                                                                className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-[var(--control-bg)] px-3.5 py-2.5 font-normal transition data-[checked]:border-brand/70 data-[checked]:bg-brand-soft/40"
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={checked}
+                                                                    onChange={() =>
+                                                                        setPlanIds((current) =>
+                                                                            checked
+                                                                                ? current.filter(
+                                                                                      (id) =>
+                                                                                          id !==
+                                                                                          plan.priceId,
+                                                                                  )
+                                                                                : [
+                                                                                      ...current,
+                                                                                      plan.priceId,
+                                                                                  ],
+                                                                        )
+                                                                    }
+                                                                    className="size-4 accent-[var(--brand)]"
+                                                                />
+                                                                <span className="min-w-0 flex-1">
+                                                                    <span className="block truncate font-semibold">
+                                                                        {plan.priceName}
+                                                                    </span>
+                                                                    <span className="block text-[11.5px] text-muted">
+                                                                        {money(
+                                                                            plan.amountMinor,
+                                                                            plan.currency,
+                                                                        )}
+                                                                        {periodLabel(plan)}
+                                                                    </span>
+                                                                </span>
+                                                            </label>
+                                                        );
+                                                    })}
+                                                </div>
+                                                <span className="mt-1.5 block text-[11.5px] font-normal leading-4 text-muted">
+                                                    {chosenPlans.length > 1
+                                                        ? 'O checkout já vem com o seletor de planos; o comprador escolhe um.'
+                                                        : 'Marque mais de um para o comprador poder escolher o plano.'}
+                                                </span>
+                                            </fieldset>
+                                        )}
                                     </div>
                                     <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                         <Button
@@ -591,11 +741,7 @@ function CheckoutCard({
             className={`checkout-list-card glass-panel group overflow-hidden rounded-[20px] p-3.5 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_48px_rgba(66,57,128,.08)] ${focused ? 'ring-2 ring-brand/35 shadow-[0_18px_48px_color-mix(in_srgb,var(--brand)_14%,transparent)]' : ''}`}
         >
             <Link
-                href={
-                    canWrite
-                        ? `/checkouts/${checkout.id}/builder`
-                        : `/checkouts/${checkout.id}/preview`
-                }
+                href={canWrite ? `/checkouts/${checkout.id}` : `/checkouts/${checkout.id}/preview`}
                 className="relative block h-32 overflow-hidden rounded-[14px] border border-[#dfddea]/70 bg-gradient-to-br from-[#f5f3ff] to-[#edf4ff]"
                 aria-label={`Abrir editor de ${checkout.name}`}
             >
@@ -666,13 +812,13 @@ function CheckoutCard({
                     <ButtonLink
                         href={
                             canWrite
-                                ? `/checkouts/${checkout.id}/builder`
+                                ? `/checkouts/${checkout.id}`
                                 : `/checkouts/${checkout.id}/preview`
                         }
                         variant="ghost"
                         className="h-8 rounded-lg px-2.5"
                     >
-                        {canWrite ? 'Editar' : 'Visualizar'}{' '}
+                        {canWrite ? 'Abrir' : 'Visualizar'}{' '}
                         <Icon name="arrow-right" className="size-3.5" />
                     </ButtonLink>
                 </div>
@@ -704,6 +850,24 @@ function money(value: number, currency: string) {
 const inputClass =
     'mt-2 h-11 w-full rounded-xl border border-border bg-[var(--control-bg)] px-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]';
 
+/** Agrupa os preços por produto, mantendo a ordem em que os produtos aparecem. */
+function groupCatalog(catalog: CheckoutCatalogOption[]) {
+    const groups = new Map<
+        string,
+        { productId: string; productName: string; plans: CheckoutCatalogOption[] }
+    >();
+    for (const item of catalog) {
+        const group = groups.get(item.productId) ?? {
+            productId: item.productId,
+            productName: item.productName,
+            plans: [],
+        };
+        group.plans.push(item);
+        groups.set(item.productId, group);
+    }
+    return [...groups.values()];
+}
+
 /** Assinatura mostra primeiro os preços recorrentes; os demais modelos mantêm a ordem. */
 function orderedCatalog(catalog: CheckoutCatalogOption[], template?: CheckoutTemplateId) {
     if (template !== 'subscription') return catalog;
@@ -713,7 +877,7 @@ function orderedCatalog(catalog: CheckoutCatalogOption[], template?: CheckoutTem
 }
 
 /** Miniatura do layout de cada modelo, desenhada com os tokens do painel (claro e escuro). */
-function TemplateThumb({ id }: { id: CheckoutTemplateId }) {
+export function TemplateThumb({ id }: { id: CheckoutTemplateId }) {
     const bar = 'block rounded-full bg-foreground/15';
     const card = 'rounded-[6px] border border-border bg-surface p-1.5';
     const button = 'block h-2.5 rounded-[4px] bg-brand';
@@ -722,6 +886,24 @@ function TemplateThumb({ id }: { id: CheckoutTemplateId }) {
             aria-hidden="true"
             className="relative block h-[118px] overflow-hidden rounded-[14px] border border-border bg-surface-muted p-2.5"
         >
+            {id === 'vsl' && (
+                <span className="grid h-full grid-cols-[1fr_1.25fr] gap-2">
+                    <span className="grid content-center justify-items-center gap-1.5 rounded-[7px] bg-[#111318] px-3">
+                        <span className="grid size-8 place-items-center rounded-full bg-brand text-white shadow-sm">
+                            <Icon name="play" className="ml-0.5 size-3.5" />
+                        </span>
+                        <span className="block h-1.5 w-14 rounded-full bg-white/65" />
+                        <span className="block h-1 w-9 rounded-full bg-white/25" />
+                    </span>
+                    <span className="grid content-center gap-1.5">
+                        <span className={`${bar} h-2 w-20 bg-foreground/30`} />
+                        <span className={`${bar} h-1 w-full`} />
+                        <span className={`${bar} h-1 w-4/5`} />
+                        <span className={`${button} mt-1`} />
+                        <span className="mx-auto block h-1 w-16 rounded-full bg-foreground/10" />
+                    </span>
+                </span>
+            )}
             {id === 'subscription' && (
                 <span className="grid h-full grid-cols-[1.3fr_1fr] gap-1.5">
                     <span className="grid content-start gap-1">
@@ -806,6 +988,63 @@ function TemplateThumb({ id }: { id: CheckoutTemplateId }) {
                                 <span className={`${bar} h-1.5 w-6 bg-foreground/35`} />
                             </span>
                             <span className={`${button} mt-1`} />
+                        </span>
+                    </span>
+                </span>
+            )}
+            {id === 'presell' && (
+                <span className="grid h-full grid-cols-[1.25fr_1fr] gap-2">
+                    <span className={`${card} grid content-start gap-1`}>
+                        <span className={`${bar} h-2 w-full bg-foreground/30`} />
+                        <span className={`${bar} h-1 w-full`} />
+                        <span className={`${bar} h-1 w-full`} />
+                        <span className={`${bar} h-1 w-3/4`} />
+                        <span className={`${bar} h-1 w-full`} />
+                        <span className={`${button} mt-1`} />
+                    </span>
+                    <span className={`${card} grid content-center gap-1`}>
+                        <span className={`${bar} h-1.5 w-10`} />
+                        <span className="block h-2 rounded-[3px] border border-border" />
+                        <span className={`${button} mt-1`} />
+                    </span>
+                </span>
+            )}
+            {id === 'pix-express' && (
+                <span className="grid h-full place-items-center">
+                    <span className={`${card} grid w-28 justify-items-center gap-1.5`}>
+                        <span className="grid size-9 grid-cols-3 gap-0.5 rounded-[4px] border border-border p-1">
+                            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((index) => (
+                                <span
+                                    key={index}
+                                    className={`rounded-[1px] ${index % 2 ? 'bg-foreground/10' : 'bg-foreground/45'}`}
+                                />
+                            ))}
+                        </span>
+                        <span className={`${bar} h-1.5 w-14`} />
+                        <span className={`${button} w-full`} />
+                        <span className="block h-1.5 w-10 rounded-full bg-[#91cf24]" />
+                    </span>
+                </span>
+            )}
+            {id === 'high-ticket' && (
+                <span className="grid h-full content-start gap-1.5">
+                    <span className="grid justify-items-center gap-1">
+                        <span className="block h-1.5 w-10 rounded-full bg-brand/40" />
+                        <span className={`${bar} h-2 w-24 bg-foreground/30`} />
+                    </span>
+                    <span className="grid grid-cols-[1.25fr_1fr] gap-1.5">
+                        <span className={`${card} grid gap-1`}>
+                            {[0, 1, 2].map((index) => (
+                                <span
+                                    key={index}
+                                    className="block h-2 rounded-[3px] border border-border"
+                                />
+                            ))}
+                        </span>
+                        <span className={`${card} grid content-start gap-1`}>
+                            <span className={`${bar} h-1.5 w-8`} />
+                            <span className={`${button} mt-1`} />
+                            <span className="block h-1.5 w-12 rounded-full bg-[#91cf24]" />
                         </span>
                     </span>
                 </span>

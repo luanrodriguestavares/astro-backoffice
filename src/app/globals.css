@@ -2581,16 +2581,16 @@ html.astro-dark-portals ::selection {
     background: linear-gradient(180deg, #212823 0%, #181d1b 100%) !important;
 }
 
-/* Formas prateadas discretas no topo da home, atrás do cabeçalho. */
+/* Formas prateadas discretas no topo de todas as páginas do painel. */
 .dashboard-home {
     position: relative;
     isolation: isolate;
 }
 
-.dashboard-home-decor {
+.dashboard-page-decor {
     position: absolute;
     top: -96px;
-    right: -40px;
+    right: 0;
     z-index: -1;
     width: min(720px, 62%);
     height: 340px;
@@ -2600,7 +2600,7 @@ html.astro-dark-portals ::selection {
     mask-image: linear-gradient(to bottom, #000 45%, transparent);
 }
 
-.dashboard-home-decor > span:not(.dashboard-home-star) {
+.dashboard-page-decor > span {
     position: absolute;
     border-radius: 46px;
     transform: rotate(-38deg);
@@ -2613,14 +2613,14 @@ html.astro-dark-portals ::selection {
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 70%);
 }
 
-.dashboard-home-decor > span:nth-child(1) {
+.dashboard-page-decor > span:nth-child(1) {
     top: -60px;
     right: 120px;
     width: 420px;
     height: 150px;
 }
 
-.dashboard-home-decor > span:nth-child(2) {
+.dashboard-page-decor > span:nth-child(2) {
     top: 30px;
     right: -70px;
     width: 360px;
@@ -2628,7 +2628,7 @@ html.astro-dark-portals ::selection {
     opacity: 0.75;
 }
 
-.dashboard-home-decor > span:nth-child(3) {
+.dashboard-page-decor > span:nth-child(3) {
     top: -110px;
     right: 360px;
     width: 220px;
@@ -2636,16 +2636,7 @@ html.astro-dark-portals ::selection {
     opacity: 0.5;
 }
 
-.dashboard-home-decor > .dashboard-home-star {
-    position: absolute;
-    top: 138px;
-    left: 4%;
-    width: 26px;
-    height: 26px;
-    opacity: 0.9;
-}
-
-.dashboard-dark .dashboard-home-decor > span:not(.dashboard-home-star) {
+.dashboard-dark .dashboard-page-decor > span {
     background: linear-gradient(
         135deg,
         rgb(255 255 255 / 0%) 0%,
@@ -2656,7 +2647,500 @@ html.astro-dark-portals ::selection {
 }
 
 @media (max-width: 767px) {
-    .dashboard-home-decor {
+    .dashboard-page-decor {
         display: none;
     }
+}
+
+/* Telas de login e cadastro: faixas de vidro renderizadas em 3D (scripts/auth-backdrop). */
+.auth-stage {
+    isolation: isolate;
+    background: #f4f5f4;
+}
+
+/* Fundo em camada própria: a opacidade controla o peso das faixas sem renderizar de novo. */
+.auth-stage::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: url('/images/auth-backdrop.webp') center / cover no-repeat;
+    /* Faixas discretas: o produto e o título são os protagonistas. */
+    opacity: 0.46;
+    filter: saturate(0.85);
+}
+
+/* Véu claro atrás do texto da vitrine, para a leitura não competir com as faixas. */
+/* Véu claro atrás do texto + grão fino (tira o aspecto "plástico" do degradê). */
+.auth-stage::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .045 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+        radial-gradient(ellipse 45% 50% at 22% 50%, rgb(255 255 255 / 60%), transparent 72%);
+    pointer-events: none;
+}
+
+/* Card do formulário: vidro fosco com borda especular (luz no topo) e sombra em camadas. */
+.auth-glass {
+    position: relative;
+    isolation: isolate;
+    background: linear-gradient(165deg, rgb(255 255 255 / 78%), rgb(255 255 255 / 58%));
+    /* Contato + sombra média + projeção ampla e difusa sobre o fundo e a prévia. */
+    box-shadow:
+        0 1px 1px rgb(16 18 20 / 2%),
+        0 12px 24px -12px rgb(16 18 20 / 8%),
+        0 40px 80px -32px rgb(16 18 20 / 12%),
+        0 70px 180px -30px rgb(16 18 20 / 9%),
+        -40px 30px 160px -20px rgb(16 18 20 / 5%);
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+    backdrop-filter: blur(24px) saturate(170%);
+}
+
+.auth-glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+        160deg,
+        rgb(255 255 255 / 100%),
+        rgb(255 255 255 / 55%) 30%,
+        rgb(16 18 20 / 6%) 70%,
+        rgb(255 255 255 / 70%)
+    );
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .auth-glass {
+        background: rgb(255 255 255 / 94%);
+    }
+}
+
+.auth-secondary {
+    border: 1px solid rgb(16 18 20 / 8%);
+    background: rgb(255 255 255 / 70%);
+    box-shadow: 0 1px 2px rgb(16 18 20 / 4%);
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.auth-secondary:hover {
+    border-color: rgb(16 18 20 / 12%);
+    background: #ffffff;
+    box-shadow: 0 4px 12px -4px rgb(16 18 20 / 10%);
+}
+
+/* Superfícies da prévia do produto: brancas, translúcidas e com sombra difusa. */
+.auth-preview-surface {
+    border: 1px solid rgb(255 255 255 / 85%);
+    background: linear-gradient(170deg, rgb(255 255 255 / 92%), rgb(250 251 250 / 82%));
+    box-shadow:
+        inset 0 1px 0 #fff,
+        0 50px 90px -30px rgb(16 18 20 / 16%),
+        0 18px 36px -18px rgb(16 18 20 / 10%);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    color: #101214;
+}
+
+.auth-feature-icon {
+    background: linear-gradient(160deg, #f6f7f6, #e8eae9);
+    box-shadow:
+        inset 0 1px 0 #fff,
+        0 1px 2px rgb(16 18 20 / 6%),
+        0 8px 18px -6px rgb(16 18 20 / 12%);
+}
+
+.auth-accent-text {
+    background: linear-gradient(100deg, #7fc21a 0%, #91cf24 45%, #b5e35c 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    padding-bottom: 0.08em;
+}
+
+.auth-typography {
+    font-family: var(--font-auth-text), 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+.auth-display {
+    font-family: var(--font-auth-display), var(--font-auth-text), system-ui, sans-serif;
+}
+
+/* Cada peça da prévia tem a própria inclinação, para a composição não pender só para um lado. */
+/*
+ * Prévia como uma cena 3D: um plano em perspectiva (inclinado pelo mouse via
+ * --auth-tilt-x/y) com as peças em profundidades diferentes (--z), o que dá
+ * paralaxe natural e um ângulo coerente entre elas.
+ */
+.auth-scene {
+    perspective: 2200px;
+}
+
+.auth-scene-plane {
+    transform-style: preserve-3d;
+    transform: rotateY(calc(-13deg + var(--auth-tilt-y, 0deg)))
+        rotateX(calc(7deg + var(--auth-tilt-x, 0deg))) rotateZ(2deg);
+    transition: transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: transform;
+}
+
+.auth-layer {
+    transform: translateZ(var(--z, 0px));
+    transform-style: preserve-3d;
+}
+
+/* Prévia do painel: sidebar escura do backoffice (#111514) com o conteúdo claro por cima. */
+.auth-preview-shell {
+    background: #ffffff;
+    box-shadow:
+        0 50px 90px -30px rgb(16 18 20 / 18%),
+        0 18px 36px -18px rgb(16 18 20 / 10%);
+}
+
+.auth-preview-panel {
+    position: relative;
+    background: linear-gradient(170deg, #ffffff, #f8f9f8);
+    color: #101214;
+}
+
+.auth-cta {
+    display: inline-flex;
+    height: 48px;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    border-radius: 9999px;
+    background: #15191a;
+    color: #ffffff;
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 8%),
+        0 1px 2px rgb(16 18 20 / 12%);
+    font-size: 14.5px;
+    font-weight: 600;
+    letter-spacing: 0.005em;
+    transition:
+        background-color 0.25s ease,
+        transform 0.25s ease;
+}
+
+.auth-cta:hover {
+    background: #22282a;
+}
+
+.auth-cta:active {
+    transform: scale(0.99);
+}
+
+.auth-cta svg {
+    color: #a3dc3a;
+    transition: transform 0.25s ease;
+}
+
+.auth-cta:hover svg {
+    transform: translateX(2px);
+}
+
+.auth-cta:disabled {
+    opacity: 0.6;
+}
+
+/* Troca animada entre login e cadastro: o conteúdo novo entra suave, sem piscar a tela. */
+@keyframes auth-swap-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+        filter: blur(6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+}
+
+.auth-swap {
+    animation: auth-swap-in 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.auth-morph {
+    transition: height 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-swap {
+        animation: none;
+    }
+
+    .auth-morph {
+        transition: none;
+    }
+}
+
+/* Saída da troca login ↔ cadastro (a entrada é o .auth-swap). */
+.auth-leave {
+    transition:
+        opacity 0.17s ease,
+        transform 0.17s ease,
+        filter 0.17s ease;
+}
+
+.auth-leave[data-leaving='true'] {
+    opacity: 0;
+    transform: translateY(-6px);
+    filter: blur(4px);
+}
+
+/* "Manter conectado": controle redondo, no lugar do checkbox quadrado. */
+.auth-radio {
+    appearance: none;
+    display: grid;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    place-items: center;
+    border: 1.5px solid #cfd3d7;
+    border-radius: 9999px;
+    background: #ffffff;
+    cursor: pointer;
+    transition:
+        border-color 0.2s ease,
+        background-color 0.2s ease;
+}
+
+.auth-radio::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: #7cbd1c;
+    transform: scale(0);
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.auth-radio:checked {
+    border-color: #7cbd1c;
+}
+
+.auth-radio:checked::after {
+    transform: scale(1);
+}
+
+.auth-radio:focus-visible {
+    outline: 2px solid rgb(124 189 28 / 45%);
+    outline-offset: 2px;
+}
+
+.auth-link {
+    color: #4b7d0f;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 3px;
+    transition:
+        color 0.2s ease,
+        text-decoration-color 0.2s ease;
+}
+
+.auth-link:hover {
+    color: #3b660a;
+    text-decoration-color: currentColor;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-leave {
+        transition: none;
+    }
+}
+
+/* Canvas em blocos da prévia (orquestrador e funil), no visual do editor. */
+.auth-flow-canvas {
+    background-color: #fbfbfa;
+    background-image: radial-gradient(rgb(16 18 20 / 9%) 0.8px, transparent 0.8px);
+    background-size: 12px 12px;
+}
+
+.auth-flow-edge {
+    fill: none;
+    stroke: #c9ced2;
+    stroke-width: 1.4;
+}
+
+.auth-flow-edge[data-tone='success'] {
+    stroke: #6cbf83;
+}
+
+.auth-flow-edge[data-tone='danger'] {
+    stroke: #e59aa7;
+    stroke-dasharray: 4 3;
+}
+
+.auth-flow-edge[data-tone='brand'] {
+    stroke: #a5a8f3;
+}
+
+/* Pulso de luz que percorre as rotas aprovadas: o fluxo "acontecendo". */
+.auth-flow-pulse {
+    fill: none;
+    stroke: #91cf24;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-dasharray: 9 91;
+    stroke-dashoffset: 100;
+    filter: drop-shadow(0 0 3px rgb(145 207 36 / 70%));
+    animation: auth-flow-pulse 2.8s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+
+@keyframes auth-flow-pulse {
+    from {
+        stroke-dashoffset: 100;
+        opacity: 0;
+    }
+    12% {
+        opacity: 1;
+    }
+    70% {
+        opacity: 1;
+    }
+    to {
+        stroke-dashoffset: 0;
+        opacity: 0;
+    }
+}
+
+.auth-flow-pill {
+    border: 1px solid #e3e6e9;
+    background: #ffffff;
+    color: #6a6e73;
+}
+
+.auth-flow-pill[data-tone='success'] {
+    border-color: #bfe3c9;
+    background: #f1faf3;
+    color: #2f8a4b;
+}
+
+.auth-flow-pill[data-tone='danger'] {
+    border-color: #f2c9d0;
+    background: #fdf2f4;
+    color: #c33b53;
+}
+
+.auth-flow-pill[data-tone='brand'] {
+    border-color: #d4d5fb;
+    background: #f4f4fe;
+    color: #5457d6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-flow-pulse {
+        animation: none;
+        opacity: 0;
+    }
+}
+
+/* Pontos de pegboard em algumas regiões das laterais, sumindo suavemente nas bordas. */
+.auth-dots {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: radial-gradient(rgb(16 18 20 / 16%) 1px, transparent 1.3px);
+    background-size: 22px 22px;
+    -webkit-mask-image:
+        radial-gradient(ellipse 22% 30% at 0% 18%, #000 0%, transparent 100%),
+        radial-gradient(ellipse 18% 26% at 100% 62%, #000 0%, transparent 100%),
+        radial-gradient(ellipse 24% 22% at 38% 100%, rgb(0 0 0 / 70%) 0%, transparent 100%);
+    mask-image:
+        radial-gradient(ellipse 22% 30% at 0% 18%, #000 0%, transparent 100%),
+        radial-gradient(ellipse 18% 26% at 100% 62%, #000 0%, transparent 100%),
+        radial-gradient(ellipse 24% 22% at 38% 100%, rgb(0 0 0 / 70%) 0%, transparent 100%);
+}
+
+/* Checkbox dos termos: quadrado arredondado com check, no lugar do nativo. */
+.auth-check {
+    appearance: none;
+    display: grid;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    place-items: center;
+    border: 1.5px solid #cfd3d7;
+    border-radius: 5px;
+    background: #ffffff;
+    cursor: pointer;
+    transition:
+        border-color 0.2s ease,
+        background-color 0.2s ease;
+}
+
+.auth-check::after {
+    content: '';
+    width: 8px;
+    height: 4.5px;
+    margin-top: -2px;
+    border-bottom: 1.8px solid #ffffff;
+    border-left: 1.8px solid #ffffff;
+    transform: rotate(-45deg) scale(0);
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.auth-check:checked {
+    border-color: #7cbd1c;
+    background: #7cbd1c;
+}
+
+.auth-check:checked::after {
+    transform: rotate(-45deg) scale(1);
+}
+
+.auth-check:focus-visible {
+    outline: 2px solid rgb(124 189 28 / 45%);
+    outline-offset: 2px;
+}
+
+/* Login e cadastro são sempre claros: anula o seletor escuro do painel. */
+.dashboard-dark .auth-stage .custom-select-trigger {
+    border-color: #e6e8eb !important;
+    background-color: rgb(255 255 255 / 75%) !important;
+    color: #111111;
+}
+
+.dashboard-dark .auth-stage .custom-select-trigger[aria-expanded='true'] {
+    border-color: #9fd34a !important;
+    background-color: #ffffff !important;
+}
+
+.astro-dark-portals:has(.auth-stage) .custom-select-popover {
+    border-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #111111 !important;
+}
+
+.astro-dark-portals:has(.auth-stage) .custom-select-popover [role='option'] {
+    color: #2b2e31 !important;
+}
+
+.astro-dark-portals:has(.auth-stage) .custom-select-popover [role='option']:hover {
+    background: #f2f3f4 !important;
+}
+
+.astro-dark-portals:has(.auth-stage) .custom-select-popover [role='option'][aria-selected='true'] {
+    background: #f1f8e4 !important;
+    color: #3b660a !important;
 }

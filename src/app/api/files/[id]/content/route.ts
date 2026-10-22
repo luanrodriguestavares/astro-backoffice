@@ -2,6 +2,16 @@ import { NextResponse } from 'next/server';
 
 import { apiFetchRaw, AstroApiError } from '@/lib/api/server';
 
+const inlineContentTypes = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'image/avif',
+    'application/pdf',
+    'text/plain',
+]);
+
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(request: Request, context: RouteContext) {
@@ -18,11 +28,30 @@ export async function GET(request: Request, context: RouteContext) {
             'content-length',
             'content-disposition',
             'cache-control',
-            'x-content-type-options',
         ]) {
             const value = response.headers.get(name);
             if (value) headers.set(name, value);
         }
+        // Defesa em profundidade na origem do backoffice: nada além de imagem raster, PDF e
+        // texto puro renderiza inline, e nunca com scripts.
+        const contentType = (headers.get('content-type') ?? '').split(';')[0]?.trim().toLowerCase();
+        if (!contentType || !inlineContentTypes.has(contentType)) {
+            headers.set('content-type', 'application/octet-stream');
+            headers.set(
+                'content-disposition',
+                (headers.get('content-disposition') ?? 'attachment').replace(
+                    /^\s*inline/i,
+                    'attachment',
+                ),
+            );
+        }
+        headers.set('x-content-type-options', 'nosniff');
+        headers.set(
+            'content-security-policy',
+            contentType === 'application/pdf'
+                ? "frame-ancestors 'self'"
+                : "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'",
+        );
         return new Response(response.body, { status: response.status, headers });
     } catch (error) {
         if (error instanceof AstroApiError) {

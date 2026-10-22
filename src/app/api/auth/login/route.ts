@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+import { forwardedClientIp } from '@/lib/api/client-ip';
 import { astroApiUrl } from '@/lib/api/config';
 import type { ApiEnvelope, ProblemDetails, SessionData } from '@/lib/api/types';
 import { authenticatedRedirect } from '@/lib/auth/session';
@@ -16,7 +17,11 @@ export async function POST(request: Request) {
     try {
         const response = await fetch(`${astroApiUrl()}/api/v1/auth/login`, {
             method: 'POST',
-            headers: { 'content-type': 'application/json', accept: 'application/json' },
+            headers: {
+                'content-type': 'application/json',
+                accept: 'application/json',
+                ...forwardedClientIp(request.headers),
+            },
             body: JSON.stringify({ email, password }),
             cache: 'no-store',
         });

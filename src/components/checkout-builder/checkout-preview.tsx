@@ -1,10 +1,18 @@
 'use client';
 
 import { Render } from '@puckeditor/core';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import {
+    CHECKOUT_PAGE_ID,
+    navigationTarget,
+    pageKindLabels,
+    resolveCheckoutPages,
+    type CheckoutNavigation,
+} from '@astro/checkout-renderer/funnel';
 
 import {
+    CheckoutBuilderPreviewContext,
     CheckoutBuilderProductsContext,
     CheckoutBuilderStaticContext,
     checkoutBuilderConfig,
@@ -84,6 +92,42 @@ function DesktopPreview({
     onDeviceChange(next: PreviewDevice): void;
 }) {
     const [previewRoot, setPreviewRoot] = useState<ShadowRoot | null>(null);
+    const pages = useMemo(() => resolveCheckoutPages(draft.document), [draft.document]);
+    const configuredStart = draft.document.settings.startPageId;
+    const initialScreen =
+        typeof configuredStart === 'string' &&
+        (configuredStart === CHECKOUT_PAGE_ID || pages.some((page) => page.id === configuredStart))
+            ? configuredStart
+            : CHECKOUT_PAGE_ID;
+    const [screen, setScreen] = useState(initialScreen);
+    const activePage = pages.find((page) => page.id === screen);
+    const previewContext = useMemo(
+        () => ({
+            screen,
+            pageKind:
+                screen === CHECKOUT_PAGE_ID
+                    ? ('checkout' as const)
+                    : (activePage?.kind ?? 'content'),
+            pages: [
+                { id: CHECKOUT_PAGE_ID, name: pageKindLabels.checkout, kind: 'checkout' as const },
+                ...pages.map((page) => ({
+                    id: page.id,
+                    name: page.name,
+                    kind: page.kind,
+                    next: page.next,
+                })),
+            ],
+            interactive: !staticMode,
+            navigate: (next: string) => {
+                if (next === CHECKOUT_PAGE_ID || pages.some((page) => page.id === next))
+                    setScreen(next);
+            },
+            follow: (navigation: CheckoutNavigation) =>
+                setScreen(navigationTarget(draft.document, screen, navigation)),
+            startPageId: initialScreen,
+        }),
+        [activePage?.kind, draft.document, initialScreen, pages, screen, staticMode],
+    );
     const mountPreview = useCallback((host: HTMLDivElement | null) => {
         if (!host) return;
 
@@ -99,10 +143,12 @@ function DesktopPreview({
                     <CheckoutBuilderStaticContext.Provider value={staticMode}>
                         {/* Produtos reais: nome e preço no resumo, como no checkout publicado. */}
                         <CheckoutBuilderProductsContext.Provider value={checkout.products ?? []}>
-                            <Render
-                                config={checkoutBuilderConfig}
-                                data={documentToPuck(draft.document)}
-                            />
+                            <CheckoutBuilderPreviewContext.Provider value={previewContext}>
+                                <Render
+                                    config={checkoutBuilderConfig}
+                                    data={documentToPuck(draft.document, screen)}
+                                />
+                            </CheckoutBuilderPreviewContext.Provider>
                         </CheckoutBuilderProductsContext.Provider>
                     </CheckoutBuilderStaticContext.Provider>,
                     previewRoot,

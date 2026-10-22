@@ -132,7 +132,7 @@ export async function getRecentNotifications(limit = 30) {
             title: checkout.status === 'published' ? 'Checkout publicado' : 'Checkout atualizado',
             description: checkout.name,
             createdAt: checkout.updatedAt,
-            href: `/checkouts/${checkout.id}/builder`,
+            href: `/checkouts/${checkout.id}`,
             icon: 'layout',
             tone: 'brand',
         });

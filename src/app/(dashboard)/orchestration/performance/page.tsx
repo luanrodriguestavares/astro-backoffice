@@ -3,19 +3,18 @@ import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { apiFetch } from '@/lib/api/server';
 import { currentPermissions } from '@/lib/auth/permissions';
-import type { GatewayConnection, GatewayFlow, GatewayInsights } from '@/lib/api/types';
+import type { GatewayConnection, GatewayInsights } from '@/lib/api/types';
 
 export const metadata = { title: 'Desempenho da orquestração' };
 
 export default async function OrchestrationPerformancePage() {
     const permissions = await currentPermissions();
     const canManage = permissions.has('gateway_connections.manage');
-    const [insights, connections, flow] = await Promise.all([
+    const [insights, connections] = await Promise.all([
         apiFetch<GatewayInsights>('/api/v1/gateway-insights?days=30'),
         canManage
             ? apiFetch<GatewayConnection[]>('/api/v1/gateway-connections')
             : Promise.resolve([] as GatewayConnection[]),
-        canManage ? apiFetch<GatewayFlow>('/api/v1/gateway-flow') : Promise.resolve(null),
     ]);
     const { summary } = insights;
     const live = connections.filter(
@@ -70,7 +69,7 @@ export default async function OrchestrationPerformancePage() {
                 />
             </section>
 
-            <OrchestrationOverview insights={insights} connections={live} flow={flow} />
+            <OrchestrationOverview insights={insights} connections={live} />
         </>
     );
 }

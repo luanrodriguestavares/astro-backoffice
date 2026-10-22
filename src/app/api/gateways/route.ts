@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 import { apiFetch, AstroApiError } from '@/lib/api/server';
 import { clientProblem } from '@/lib/api/problem';
-import { astroApiUrl } from '@/lib/api/config';
+import { publicAssetApiUrl } from '@/lib/api/config';
 import type { GatewayConnection } from '@/lib/api/types';
 
 export async function POST(request: Request) {
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
             data: {
                 ...connection,
-                webhookUrl: `${astroApiUrl()}/webhooks/v1/gateway-webhooks/${connection.provider}/${connection.webhookPathToken}`,
+                webhookUrl: `${publicAssetApiUrl()}/webhooks/v1/gateway-webhooks/${connection.provider}/${connection.webhookPathToken}`,
             },
         });
     } catch (error) {

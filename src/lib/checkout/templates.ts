@@ -1,4 +1,4 @@
-import { defaultResultScreens } from '@astro/checkout-renderer/result-screens';
+import { defaultResultPage, type CheckoutResultPageKind } from '@astro/checkout-renderer/funnel';
 import {
     appearanceToTheme,
     defaultCheckoutAppearance,
@@ -7,7 +7,6 @@ import {
 
 import type { CheckoutDocument } from '@/lib/api/types';
 
-/** Preço do catálogo usado para montar o modelo. */
 export type TemplatePrice = {
     productId: string;
     priceId: string;
@@ -20,26 +19,76 @@ export type TemplatePrice = {
     recurringIntervalCount?: number | null;
 };
 
-export type CheckoutTemplateId = 'blank' | 'subscription' | 'digital-product' | 'express';
+export type CheckoutTemplateId =
+    | 'blank'
+    | 'subscription'
+    | 'digital-product'
+    | 'express'
+    | 'vsl'
+    | 'presell'
+    | 'pix-express'
+    | 'high-ticket';
 
 export type CheckoutTemplate = {
     id: CheckoutTemplateId;
     name: string;
     description: string;
-    /** Para quem é: aparece como etiqueta no seletor. */
     audience: string;
     highlights: string[];
-    /** Preferir preços recorrentes ao sugerir o produto. */
+    category: 'sales' | 'checkout' | 'recurring';
+    flowSteps: number;
     prefersRecurring?: boolean;
 };
 
 export const checkoutTemplates: CheckoutTemplate[] = [
+    {
+        id: 'vsl',
+        name: 'Vídeo de vendas',
+        description:
+            'Página com o seu vídeo e o botão que aparece no momento da oferta. Depois, checkout em uma tela.',
+        audience: 'VSL',
+        category: 'sales',
+        flowSteps: 2,
+        highlights: ['Vídeo com som ao toque', 'Botão no momento certo', 'Checkout direto'],
+    },
+    {
+        id: 'presell',
+        name: 'Pré-venda',
+        description:
+            'Artigo que aquece o visitante com história, benefícios e depoimentos antes de levar ao checkout.',
+        audience: 'Advertorial',
+        category: 'sales',
+        flowSteps: 2,
+        highlights: ['Página de conteúdo', 'Prova social', 'Botão para o checkout'],
+    },
+    {
+        id: 'high-ticket',
+        name: 'Mentoria e high ticket',
+        description:
+            'Checkout consultivo com dados completos, depoimentos, garantia estendida e FAQ para ofertas de alto valor.',
+        audience: 'Alto valor',
+        category: 'sales',
+        flowSteps: 1,
+        highlights: ['Telefone e CPF', 'Garantia de 30 dias', 'Objeções no FAQ'],
+    },
+    {
+        id: 'pix-express',
+        name: 'Pix na hora',
+        description:
+            'Tela enxuta só com Pix: menos campos, aprovação imediata e ideal para low ticket.',
+        audience: 'Low ticket',
+        category: 'checkout',
+        flowSteps: 1,
+        highlights: ['Somente Pix', 'Aprovação imediata', 'Tela única'],
+    },
     {
         id: 'express',
         name: 'Checkout direto',
         description:
             'Banner, produto no topo e pagamento em uma tela. Ideal para tráfego pago no celular.',
         audience: 'Conversão rápida',
+        category: 'checkout',
+        flowSteps: 1,
         highlights: ['Tela única', 'Produto no topo', 'CTA com selo'],
     },
     {
@@ -48,6 +97,8 @@ export const checkoutTemplates: CheckoutTemplate[] = [
         description:
             'Planos lado a lado, cobrança recorrente clara e respostas sobre cancelamento.',
         audience: 'Recorrência',
+        category: 'recurring',
+        flowSteps: 1,
         highlights: ['Seletor de planos', 'Resumo recorrente', 'FAQ de cancelamento'],
         prefersRecurring: true,
     },
@@ -56,6 +107,8 @@ export const checkoutTemplates: CheckoutTemplate[] = [
         name: 'Produto digital',
         description: 'Página de venda completa para cursos, ebooks, mentorias e comunidades.',
         audience: 'Infoproduto',
+        category: 'sales',
+        flowSteps: 1,
         highlights: ['Apresentação', 'Prova social', 'Garantia com selo'],
     },
     {
@@ -63,18 +116,19 @@ export const checkoutTemplates: CheckoutTemplate[] = [
         name: 'Essencial',
         description: 'Só o necessário para vender: produto, dados, pagamento e resumo.',
         audience: 'Do zero',
+        category: 'checkout',
+        flowSteps: 1,
         highlights: ['Dados', 'Pagamento', 'Resumo'],
     },
 ];
 
 /**
- * Monta o documento e os produtos do checkout a partir do modelo, do preço escolhido e da
- * aparência definida no assistente de criação.
+ * Monta o checkout a partir do modelo e dos planos escolhidos de um produto. Com mais de um
+ * plano, o checkout já vem com o seletor de planos (cada um vinculado ao seu preço).
  */
 export function buildCheckoutFromTemplate(
     id: CheckoutTemplateId,
-    selected: TemplatePrice,
-    catalog: TemplatePrice[],
+    chosen: TemplatePrice[],
     appearance: CheckoutAppearance = defaultCheckoutAppearance,
 ): {
     document: CheckoutDocument;
@@ -86,38 +140,72 @@ export function buildCheckoutFromTemplate(
         maximumQuantity: number;
     }[];
 } {
-    const product = (price: TemplatePrice, isDefault: boolean) => ({
+    const plans = [...chosen].sort((a, b) => intervalWeight(a) - intervalWeight(b)).slice(0, 6);
+    const selected = plans[0] ?? chosen[0];
+    if (!selected) throw new Error('Escolha pelo menos um plano.');
+    const products = plans.map((price) => ({
         productId: price.productId,
         priceId: price.priceId,
-        isDefault,
+        isDefault: price.priceId === selected.priceId,
         minimumQuantity: 1,
         maximumQuantity: 1,
-    });
-    if (id === 'subscription') {
-        // Outros preços recorrentes do mesmo produto viram planos selecionáveis (mensal, anual...).
-        const plans = [
-            selected,
-            ...catalog.filter(
-                (price) =>
-                    price.productId === selected.productId &&
-                    price.priceId !== selected.priceId &&
-                    price.pricingType === 'recurring',
-            ),
-        ]
-            .slice(0, 4)
-            .sort((a, b) => intervalWeight(a) - intervalWeight(b));
-        return {
-            document: subscriptionDocument(selected, plans, appearance),
-            products: plans.map((price) => product(price, price.priceId === selected.priceId)),
-        };
-    }
+    }));
+    if (id === 'subscription')
+        return { document: subscriptionDocument(selected, plans, appearance), products };
     const document =
         id === 'digital-product'
             ? digitalProductDocument(selected, appearance)
             : id === 'express'
               ? expressDocument(selected, appearance)
-              : essentialDocument(selected, appearance);
-    return { document, products: [product(selected, true)] };
+              : id === 'vsl'
+                ? vslDocument(selected, appearance)
+                : id === 'presell'
+                  ? presellDocument(selected, appearance)
+                  : id === 'pix-express'
+                    ? pixExpressDocument(selected, appearance)
+                    : id === 'high-ticket'
+                      ? highTicketDocument(selected, appearance)
+                      : essentialDocument(selected, appearance);
+    return { document: plans.length > 1 ? withPlanPicker(document, plans) : document, products };
+}
+
+/** Seletor de planos no topo da primeira coluna da grade do checkout. */
+function withPlanPicker(document: CheckoutDocument, plans: TemplatePrice[]): CheckoutDocument {
+    return {
+        ...document,
+        sections: document.sections.map((item) =>
+            item.id === 'grid-template'
+                ? {
+                      ...item,
+                      props: {
+                          ...item.props,
+                          column1: [
+                              planPicker(plans, 'Escolha seu plano'),
+                              ...((item.props.column1 as Block[] | undefined) ?? []),
+                          ],
+                      },
+                  }
+                : item,
+        ),
+    };
+}
+
+function planPicker(plans: TemplatePrice[], title: string, description = '') {
+    return nested('plans-template', 'plan_comparison', {
+        layout: 'compact',
+        title,
+        description,
+        plans: plans.map((price, index) => ({
+            name: price.priceName,
+            priceId: price.priceId,
+            price: money(price.amountMinor, price.currency),
+            period: periodLabel(price),
+            originalPrice: '',
+            description: price.productName,
+            features: '',
+            featured: index === plans.length - 1,
+        })),
+    });
 }
 
 function base(
@@ -137,12 +225,65 @@ function base(
             ...layout,
         },
         sections,
-        settings: { resultScreens: defaultResultScreens },
+        pages: resultPages(),
+        settings: {},
         seo: { title: seoTitle, description: 'Finalize sua compra com segurança.' },
     };
 }
 
 type Block = { type: string; props: Record<string, unknown> };
+
+type CheckoutPages = NonNullable<CheckoutDocument['pages']>;
+
+function resultPages(): CheckoutPages {
+    const page = (kind: CheckoutResultPageKind, extra: CheckoutPages[number]['sections']) => {
+        const base = defaultResultPage(kind);
+        return { ...base, sections: [...base.sections, ...extra] } as CheckoutPages[number];
+    };
+    return [
+        page('pix', [
+            section('pix-trust', 'security_badges', {
+                layout: 'pills',
+                title: '',
+                showEncryption: true,
+                showGuarantee: true,
+                showPrivacy: false,
+            }),
+        ]),
+        page('boleto', []),
+        page('success', [
+            section('success-steps', 'benefits', {
+                layout: 'steps',
+                title: 'Seus próximos passos',
+                items: [
+                    {
+                        icon: 'mail',
+                        title: 'Confira seu e-mail',
+                        description: 'O acesso e o comprovante chegam em instantes.',
+                    },
+                    {
+                        icon: 'rocket',
+                        title: 'Comece agora',
+                        description: 'Entre na área do produto e dê o primeiro passo hoje.',
+                    },
+                    {
+                        icon: 'headset',
+                        title: 'Conte com o suporte',
+                        description: 'Responda o e-mail de confirmação se precisar de ajuda.',
+                    },
+                ],
+            }),
+        ]),
+        page('failure', [
+            section('failure-help', 'paragraph_text', {
+                content:
+                    'Nada foi cobrado. Se preferir, fale com o suporte respondendo o e-mail da compra.',
+                alignment: 'center',
+                size: 'sm',
+            }),
+        ]),
+    ];
+}
 
 function section(id: string, type: string, props: Record<string, unknown>) {
     return { id, type, visible: true, props } as CheckoutDocument['sections'][number];
@@ -164,12 +305,6 @@ function grid(id: string, column1: Block[], column2: Block[]) {
     });
 }
 
-/*
- * Peças comuns. Todo modelo segue a mesma ordem de leitura do celular: o que estou comprando
- * (banner e faixa do produto), quem sou eu (dados), como pago (formas e detalhes) e o
- * fechamento (resumo, CTA e selo). Os textos são curtos de propósito: no estilo compacto o
- * bloco mostra só o título; as descrições aparecem apenas no estilo completo.
- */
 const logo = (alignment: 'left' | 'center', overlapBanner = false) =>
     section('logo-template', 'logo', {
         url: '',
@@ -225,22 +360,6 @@ const paymentMethods = (
         showWallets: true,
     });
 
-const cardPayment = (showInstallments: boolean) =>
-    nested('card-template', 'card_payment', {
-        layout: 'compact',
-        title: 'Dados do cartão',
-        description: 'Criptografados e enviados direto ao processador.',
-        showInstallments,
-    });
-
-const pixPayment = () =>
-    nested('pix-template', 'pix_payment', {
-        layout: 'compact',
-        title: 'Pagamento via Pix',
-        description: 'O QR Code aparece logo depois de confirmar.',
-        expiresIn: '30 minutos',
-    });
-
 const summary = (props: {
     title?: string;
     buttonLabel: string;
@@ -281,12 +400,10 @@ function expressDocument(selected: TemplatePrice, appearance: CheckoutAppearance
                     productHeader(selected),
                     customerForm(),
                     paymentMethods('list', 'Pix aprova na hora.'),
-                    cardPayment(true),
-                    pixPayment(),
                 ],
                 [
                     summary({
-                        buttonLabel: 'Pagar agora',
+                        buttonLabel: 'Finalizar compra',
                         recurringLabel: recurringText(selected),
                     }),
                     nested('guarantee-template', 'guarantee', {
@@ -305,7 +422,124 @@ function expressDocument(selected: TemplatePrice, appearance: CheckoutAppearance
     );
 }
 
-function essentialDocument(selected: TemplatePrice, appearance: CheckoutAppearance) {
+function vslDocument(selected: TemplatePrice, appearance: CheckoutAppearance) {
+    const checkout = expressDocument(selected, appearance);
+    const videoPage: CheckoutPages[number] = {
+        id: 'video',
+        kind: 'content',
+        name: 'Vídeo de vendas',
+        sections: [
+            section('video-headline', 'heading_text', {
+                text: 'Assista ao vídeo até o fim: a oferta aparece logo abaixo',
+                alignment: 'center',
+                size: 'lg',
+            }),
+            section('video-player', 'video', {
+                url: '',
+                title: selected.productName,
+                caption: '',
+                posterUrl: '',
+                format: 'landscape',
+                autoplay: true,
+                controls: false,
+                resume: true,
+                ctaEnabled: true,
+                ctaLabel: 'Quero garantir minha vaga',
+                ctaSublabel: 'Acesso imediato · Garantia de 7 dias',
+                ctaReveal: 'time',
+                ctaSeconds: 60,
+                ctaAction: 'next',
+                ctaPageId: '',
+                ctaUrl: '',
+                ctaNewTab: false,
+                endAction: 'none',
+            }),
+            section('video-trust', 'security_badges', {
+                layout: 'pills',
+                title: '',
+                showEncryption: true,
+                showGuarantee: true,
+                showPrivacy: true,
+            }),
+        ],
+    };
+    return {
+        ...checkout,
+        pages: [videoPage, ...(checkout.pages ?? [])],
+        settings: { ...checkout.settings, startPageId: 'video' },
+        seo: { ...checkout.seo, title: selected.productName },
+    };
+}
+
+function presellDocument(selected: TemplatePrice, appearance: CheckoutAppearance) {
+    const checkout = expressDocument(selected, appearance);
+    const article: CheckoutPages[number] = {
+        id: 'presell',
+        kind: 'content',
+        name: 'Pré-venda',
+        sections: [
+            section('presell-headline', 'heading_text', {
+                text: 'Conte aqui a descoberta que muda o jogo para o seu leitor',
+                alignment: 'left',
+                size: 'lg',
+            }),
+            section('presell-story', 'paragraph_text', {
+                content:
+                    'Abra com a dor do leitor, apresente a virada e mostre por que esta solução funciona. Textos curtos e em primeira pessoa convertem melhor.',
+                alignment: 'left',
+                size: 'md',
+            }),
+            section('presell-benefits', 'benefits', {
+                layout: 'list',
+                title: 'Por que funciona',
+                items: [
+                    {
+                        icon: 'check',
+                        title: 'Benefício principal',
+                        description: 'O resultado mais desejado.',
+                    },
+                    {
+                        icon: 'check',
+                        title: 'Diferencial',
+                        description: 'O que ninguém mais oferece.',
+                    },
+                    { icon: 'check', title: 'Facilidade', description: 'Como é simples começar.' },
+                ],
+            }),
+            section('presell-testimonials', 'testimonials', {
+                layout: 'cards',
+                title: 'Quem testou aprovou',
+                items: [
+                    {
+                        quote: 'Escreva aqui um depoimento real de cliente.',
+                        name: 'Nome do cliente',
+                        role: 'Cidade',
+                        avatarUrl: '',
+                        rating: 5,
+                        verified: true,
+                    },
+                ],
+            }),
+            section('presell-cta', 'cta_button', {
+                label: 'Quero aproveitar a oferta',
+                sublabel: 'Condição especial por tempo limitado',
+                alignment: 'stretch',
+                variant: 'primary',
+                delaySeconds: 0,
+                action: 'checkout',
+                pageId: '',
+            }),
+        ],
+    };
+    return {
+        ...checkout,
+        pages: [article, ...(checkout.pages ?? [])],
+        settings: { ...checkout.settings, startPageId: 'presell' },
+        seo: { ...checkout.seo, title: selected.productName },
+    };
+}
+
+function pixExpressDocument(selected: TemplatePrice, appearance: CheckoutAppearance) {
     return base(
         [
             logo('center'),
@@ -314,10 +548,121 @@ function essentialDocument(selected: TemplatePrice, appearance: CheckoutAppearan
                 [
                     productHeader(selected),
                     customerForm(),
-                    paymentMethods('list'),
-                    cardPayment(true),
-                    pixPayment(),
+                    nested('payment-required', 'payment_methods', {
+                        layout: 'list',
+                        title: 'Pagamento via Pix',
+                        description: 'Aprovação na hora, sem taxa extra.',
+                        showCard: false,
+                        showPix: true,
+                        showBoleto: false,
+                        showWallets: false,
+                    }),
                 ],
+                [summary({ buttonLabel: 'Gerar Pix', badge: 'Aprovação imediata' }), trust()],
+            ),
+            footer(),
+        ],
+        'Pague com Pix',
+        appearance,
+        'md',
+    );
+}
+
+function highTicketDocument(selected: TemplatePrice, appearance: CheckoutAppearance) {
+    return base(
+        [
+            logo('center'),
+            section('hero-template', 'hero', {
+                layout: 'centered',
+                eyebrow: 'Vagas limitadas',
+                title: selected.productName,
+                description: 'Resuma a transformação e para quem esta oferta foi feita.',
+                buttonLabel: 'Quero garantir minha vaga',
+                buttonAction: 'payment',
+                buttonUrl: '',
+                buttonNewTab: false,
+                imageUrl: '',
+            }),
+            grid(
+                'grid-template',
+                [
+                    productHeader(selected),
+                    nested('form-required', 'checkout_form', {
+                        layout: 'card',
+                        title: 'Seus dados',
+                        description: 'Usamos para o contato do time e a emissão da nota.',
+                        showPhone: true,
+                        showDocument: true,
+                    }),
+                    paymentMethods('cards', 'Parcele no cartão ou pague via Pix.'),
+                ],
+                [
+                    summary({
+                        buttonLabel: 'Confirmar inscrição',
+                        badge: 'Vagas limitadas',
+                        layout: 'card',
+                    }),
+                    nested('guarantee-template', 'guarantee', {
+                        layout: 'horizontal',
+                        title: 'Garantia de 30 dias',
+                        description:
+                            'Participe e, se não for para você, devolvemos o valor integral.',
+                        days: 30,
+                    }),
+                    trust(),
+                ],
+            ),
+            section('testimonials-template', 'testimonials', {
+                layout: 'cards',
+                title: 'Resultados de quem participou',
+                items: [
+                    {
+                        quote: 'Descreva o resultado concreto que este cliente alcançou.',
+                        name: 'Nome do cliente',
+                        role: 'Empresa ou cargo',
+                        avatarUrl: '',
+                        rating: 5,
+                        verified: true,
+                    },
+                    {
+                        quote: 'Números e prazos tornam o depoimento mais forte.',
+                        name: 'Nome do cliente',
+                        role: 'Empresa ou cargo',
+                        avatarUrl: '',
+                        rating: 5,
+                        verified: true,
+                    },
+                ],
+            }),
+            section('faq-template', 'faq', {
+                layout: 'accordion',
+                title: 'Antes de decidir',
+                items: [
+                    {
+                        question: 'Para quem é?',
+                        answer: 'Descreva o perfil ideal de participante.',
+                    },
+                    {
+                        question: 'Como funciona o acompanhamento?',
+                        answer: 'Explique formato, duração e frequência.',
+                    },
+                    { question: 'Posso parcelar?', answer: 'Sim, no cartão de crédito.' },
+                ],
+            }),
+            footer(),
+        ],
+        selected.productName,
+        appearance,
+    );
+}
+
+function essentialDocument(selected: TemplatePrice, appearance: CheckoutAppearance) {
+    return base(
+        [
+            logo('center'),
+            grid(
+                'grid-template',
+                [productHeader(selected), customerForm(), paymentMethods('list')],
                 [
                     summary({
                         buttonLabel: 'Finalizar compra',
@@ -340,29 +685,8 @@ function subscriptionDocument(
 ) {
     const left: Block[] = [productHeader(selected)];
     if (plans.length > 1)
-        left.push(
-            nested('plans-template', 'plan_comparison', {
-                layout: 'compact',
-                title: 'Escolha seu plano',
-                description: 'Troque ou cancele quando quiser.',
-                plans: plans.map((price, index) => ({
-                    name: price.priceName,
-                    priceId: price.priceId,
-                    price: money(price.amountMinor, price.currency),
-                    period: periodLabel(price),
-                    originalPrice: '',
-                    description: price.productName,
-                    features: '',
-                    featured: index === plans.length - 1,
-                })),
-            }),
-        );
-    left.push(
-        customerForm(),
-        paymentMethods('list', 'A cobrança se renova automaticamente.'),
-        cardPayment(false),
-        pixPayment(),
-    );
+        left.push(planPicker(plans, 'Escolha seu plano', 'Troque ou cancele quando quiser.'));
+    left.push(customerForm(), paymentMethods('list', 'A cobrança se renova automaticamente.'));
     const right: Block[] = [
         summary({
             title: 'Sua assinatura',
@@ -455,16 +779,10 @@ function digitalProductDocument(selected: TemplatePrice, appearance: CheckoutApp
             }),
             grid(
                 'grid-template',
-                [
-                    productHeader(selected),
-                    customerForm(),
-                    paymentMethods('list'),
-                    cardPayment(true),
-                    pixPayment(),
-                ],
+                [productHeader(selected), customerForm(), paymentMethods('list')],
                 [
                     summary({
-                        buttonLabel: 'Quero meu acesso',
+                        buttonLabel: 'Finalizar compra',
                         badge: 'Acesso imediato',
                         layout: 'card',
                     }),

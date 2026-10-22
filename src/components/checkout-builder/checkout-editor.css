@@ -33,9 +33,11 @@
     --ce-lime-ink: #132000;
     --ce-lime-soft: #f1fadf;
     --ce-focus: 0 0 0 3px rgb(163 230 53 / 32%);
-    --ce-header-height: 64px;
+    /* Barra do workspace (abas) e barra de ferramentas da página no builder. */
+    --ce-bar-height: 60px;
+    --ce-header-height: 60px;
 
-    --puck-user-sidebar-left-width: 280px;
+    --puck-user-sidebar-left-width: 316px;
     --puck-user-sidebar-right-width: 320px;
     --puck-font-family: var(--font-sans), system-ui, sans-serif;
     --puck-color-surface: var(--ce-panel);
@@ -60,7 +62,11 @@
     --puck-color-selection-bg: transparent;
     --puck-radius-m: 10px;
     --puck-radius-l: 12px;
-    min-height: 100dvh;
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    position: relative;
+    isolation: isolate;
     overflow: hidden;
     background: var(--ce-workspace);
     color: var(--ce-text);
@@ -68,14 +74,14 @@
 
 @media (max-width: 1439px) {
     .astro-checkout-editor {
-        --puck-user-sidebar-left-width: 264px;
+        --puck-user-sidebar-left-width: 300px;
         --puck-user-sidebar-right-width: 304px;
     }
 }
 
 @media (max-width: 1199px) {
     .astro-checkout-editor {
-        --puck-user-sidebar-left-width: 244px;
+        --puck-user-sidebar-left-width: 280px;
         --puck-user-sidebar-right-width: 280px;
     }
 }
@@ -109,9 +115,12 @@
 .astro-checkout-editor [class*='_PuckLayout-header_'] {
     position: relative;
     z-index: 20;
+    display: flex;
+    height: 100%;
+    align-items: center;
     overflow: visible !important;
     border-bottom: 1px solid var(--ce-line);
-    border-radius: 24px 0 0;
+    border-radius: 24px 24px 0 0;
     background: var(--ce-panel);
 }
 
@@ -123,11 +132,12 @@
 
 .ce-header {
     display: flex;
-    height: var(--ce-header-height);
+    width: 100%;
+    height: 100%;
     min-width: 0;
     align-items: center;
     gap: 16px;
-    padding: 0 16px 0 18px;
+    padding: 0 20px;
 }
 
 .ce-header-brand {
@@ -145,6 +155,17 @@
 .ce-header-actions {
     margin-left: auto;
     flex: none;
+}
+
+.ce-library-toggle {
+    border-color: var(--ce-line);
+    background: var(--ce-panel);
+}
+
+.ce-library-toggle[data-active='true'] {
+    border-color: var(--ce-text);
+    background: var(--ce-text);
+    color: #fff;
 }
 
 .ce-crumbs {
@@ -463,7 +484,13 @@ html .astro-checkout-editor .ce-menu .ui-button svg {
     color: var(--ce-text, #111413);
     box-shadow: 0 18px 48px rgb(16 18 20 / 18%);
     backdrop-filter: blur(16px);
-    font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family:
+        Inter,
+        ui-sans-serif,
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        sans-serif;
     font-size: 14px;
 }
 
@@ -531,9 +558,18 @@ html .astro-checkout-editor .ce-menu .ui-button svg {
 }
 
 .astro-checkout-editor [class*='_ViewportControls-divider_'] {
+    align-self: center;
+    width: 0;
     height: 18px;
+    flex: none;
     margin: 0 4px;
     border-color: var(--ce-line-strong);
+}
+
+.astro-checkout-editor [class*='_ViewportControls-zoom_'] {
+    display: flex;
+    height: 30px;
+    align-items: center;
 }
 
 .astro-checkout-editor [class*='_ViewportButton-inner_'] {
@@ -599,8 +635,16 @@ html .astro-checkout-editor .ce-zoom-select .custom-select-trigger {
 
 .ce-toolbar-screen {
     position: relative;
-    width: 126px;
+    display: flex;
+    width: auto;
+    align-items: center;
+    gap: 2px;
     flex: none;
+}
+
+.ce-toolbar-screen > .custom-select {
+    width: 200px;
+    min-width: 200px;
 }
 
 html .astro-checkout-editor .ce-toolbar-screen .custom-select-trigger {
@@ -622,6 +666,715 @@ html .astro-checkout-editor .ce-toolbar-screen .custom-select-trigger[data-open=
     box-shadow: none !important;
 }
 
+.ce-funnel-overlay {
+    position: absolute;
+    z-index: 500;
+    inset: var(--ce-header-height) 0 0 var(--puck-user-sidebar-left-width);
+    display: grid;
+    background: var(--ce-workspace);
+    padding: 0;
+}
+
+.ce-funnel-popover {
+    display: flex;
+    width: min(1420px, calc(100vw - 40px));
+    height: min(860px, calc(100dvh - 40px));
+    flex-direction: column;
+    border: 1px solid var(--ce-line-strong);
+    border-radius: 20px;
+    background: var(--ce-panel);
+    color: var(--ce-text);
+    box-shadow: 0 30px 90px rgb(22 27 25 / 24%);
+    overflow: hidden;
+}
+
+.ce-funnel-popover-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    border-bottom: 1px solid var(--ce-line);
+    padding: 20px 22px;
+}
+
+.ce-funnel-popover-head > div:first-child {
+    display: grid;
+    gap: 3px;
+}
+
+.ce-funnel-popover-head strong {
+    font-size: 17px;
+    letter-spacing: -0.02em;
+}
+
+.ce-funnel-popover-head span {
+    color: var(--ce-text-secondary);
+    font-size: 12.5px;
+}
+
+.ce-funnel-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ce-funnel-edit {
+    display: inline-flex;
+    min-height: 34px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid var(--ce-line-strong);
+    border-radius: 9px;
+    background: var(--ce-panel);
+    padding: 0 12px;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 650;
+    cursor: pointer;
+    transition: 140ms ease;
+}
+
+.ce-funnel-edit:hover {
+    border-color: color-mix(in srgb, var(--ce-lime-strong) 48%, var(--ce-line));
+    background: var(--ce-lime-soft);
+}
+
+.ce-funnel-canvas {
+    min-height: 0;
+    flex: 1;
+    overflow: auto;
+    background-color: color-mix(in srgb, var(--ce-panel-raised) 78%, var(--ce-panel));
+    background-image: radial-gradient(var(--ce-line-strong) 0.8px, transparent 0.8px);
+    background-size: 18px 18px;
+}
+
+.ce-funnel-track {
+    display: flex;
+    width: max-content;
+    min-width: 100%;
+    min-height: 100%;
+    align-items: center;
+    justify-content: center;
+    padding: 44px;
+}
+
+.ce-funnel-node-wrap {
+    position: relative;
+    display: flex;
+    flex: none;
+    align-items: center;
+}
+
+.ce-funnel-node {
+    position: relative;
+    width: 286px;
+    flex: none;
+    overflow: hidden;
+    border: 1px solid var(--ce-line-strong);
+    border-radius: 16px;
+    background: var(--ce-panel);
+    box-shadow: 0 10px 28px rgb(22 27 25 / 8%);
+    transition: 150ms ease;
+}
+
+.ce-funnel-node:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 38px rgb(22 27 25 / 13%);
+}
+
+.ce-funnel-node[data-dragging='true'] {
+    opacity: 0.45;
+}
+
+.ce-funnel-node[data-drop-target='true'] {
+    border-color: var(--ce-lime-strong);
+    box-shadow:
+        0 0 0 3px var(--ce-lime-soft),
+        0 16px 38px rgb(22 27 25 / 13%);
+}
+
+.ce-funnel-node-preview {
+    position: relative;
+    display: grid;
+    height: 158px;
+    align-content: start;
+    overflow: hidden;
+    border-bottom: 1px solid var(--ce-line);
+    background: color-mix(in srgb, var(--ce-panel-raised) 82%, var(--ce-panel));
+    padding: 14px;
+}
+
+.ce-funnel-preview-bar {
+    display: flex;
+    height: 17px;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--ce-line);
+    border-radius: 5px 5px 3px 3px;
+    background: var(--ce-panel);
+    padding: 0 6px;
+}
+
+.ce-funnel-preview-bar i {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--ce-line-strong);
+}
+
+.ce-funnel-preview-content {
+    display: grid;
+    justify-items: center;
+    gap: 7px;
+    padding: 20px 10px 0;
+}
+
+.ce-funnel-preview-content > i:first-child {
+    width: 58%;
+    height: 7px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--ce-text) 30%, transparent);
+}
+
+.ce-funnel-preview-content > i:nth-child(2) {
+    width: 40%;
+    height: 5px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--ce-text) 14%, transparent);
+}
+
+.ce-funnel-preview-content > b {
+    width: 36%;
+    height: 18px;
+    border-radius: 6px;
+    background: var(--ce-lime-strong);
+}
+
+.ce-funnel-preview-content > span {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    margin-top: 4px;
+}
+
+.ce-funnel-preview-content > span i {
+    height: 28px;
+    border: 1px solid var(--ce-line);
+    border-radius: 6px;
+    background: var(--ce-panel);
+}
+
+.ce-funnel-node-badge {
+    position: absolute;
+    top: 22px;
+    right: 20px;
+    border-radius: 999px;
+    background: var(--ce-lime-soft);
+    padding: 3px 7px;
+    color: var(--ce-lime-ink);
+    font-size: 9.5px;
+    font-weight: 700;
+}
+
+.ce-funnel-node-body {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+}
+
+.ce-funnel-node-title-row {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+}
+
+.ce-funnel-node-title-row > div {
+    display: grid;
+    min-width: 0;
+    flex: 1;
+    gap: 3px;
+}
+
+.ce-funnel-node-title-row > div > span {
+    color: var(--ce-text-tertiary);
+    font-size: 10px;
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.ce-funnel-node-title-row strong,
+.ce-funnel-node-title-row input {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.ce-funnel-node-title-row input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    height: 28px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    padding: 0 4px;
+    color: inherit;
+    font: inherit;
+}
+
+.ce-funnel-node-title-row input:hover,
+.ce-funnel-node-title-row input:focus {
+    background: var(--ce-panel-raised);
+    outline: 1px solid var(--ce-line-strong);
+}
+
+.ce-funnel-node-icon {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    flex: none;
+    place-items: center;
+    border-radius: 10px;
+    background: var(--ce-lime-soft);
+    color: var(--ce-lime-ink);
+}
+
+.ce-funnel-node-body p {
+    margin: 0;
+    color: var(--ce-text-secondary);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.ce-funnel-node-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-top: 1px solid var(--ce-line);
+    padding: 10px 12px;
+}
+
+.ce-funnel-start {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--ce-text-secondary);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.ce-funnel-start input {
+    accent-color: var(--ce-lime-strong);
+}
+
+.ce-funnel-edit {
+    min-height: 30px;
+    border: 0;
+    padding: 0 5px;
+}
+
+.ce-funnel-drag {
+    position: absolute;
+    z-index: 2;
+    top: 20px;
+    left: 20px;
+    display: grid;
+    width: 25px;
+    height: 25px;
+    place-items: center;
+    border: 1px solid var(--ce-line);
+    border-radius: 7px;
+    background: var(--ce-panel);
+    color: var(--ce-text-tertiary);
+    cursor: grab;
+}
+
+.ce-funnel-drag:active {
+    cursor: grabbing;
+}
+
+.ce-funnel-connector {
+    position: relative;
+    display: flex;
+    width: 72px;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    color: var(--ce-lime-ink);
+}
+
+.ce-funnel-connector::before {
+    content: '';
+    position: absolute;
+    right: 8px;
+    left: 8px;
+    height: 2px;
+    background: var(--ce-lime-strong);
+}
+
+.ce-funnel-connector svg {
+    position: relative;
+    margin-left: auto;
+    margin-right: 3px;
+    background: color-mix(in srgb, var(--ce-panel-raised) 78%, var(--ce-panel));
+}
+
+.ce-funnel-checkout-preview {
+    background: color-mix(in srgb, var(--ce-lime-soft) 42%, var(--ce-panel-raised));
+}
+
+.ce-funnel-checkout-columns {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 7px;
+    padding-top: 13px;
+}
+
+.ce-funnel-checkout-columns > i {
+    display: grid;
+    height: 89px;
+    align-content: start;
+    gap: 7px;
+    border: 1px solid var(--ce-line);
+    border-radius: 7px;
+    background: var(--ce-panel);
+    padding: 9px;
+}
+
+.ce-funnel-checkout-columns b {
+    height: 12px;
+    border: 1px solid var(--ce-line);
+    border-radius: 4px;
+}
+
+.ce-funnel-checkout-columns strong {
+    height: 18px;
+    border-radius: 5px;
+    background: var(--ce-lime-strong);
+}
+
+.ce-funnel-results {
+    position: relative;
+    display: grid;
+    width: 260px;
+    flex: none;
+    gap: 9px;
+    border-left: 2px solid var(--ce-line-strong);
+    padding-left: 20px;
+}
+
+.ce-funnel-results-label {
+    margin-bottom: 2px;
+    color: var(--ce-text-tertiary);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.ce-funnel-result-node {
+    position: relative;
+    display: flex;
+    min-height: 68px;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--ce-line-strong);
+    border-radius: 12px;
+    background: var(--ce-panel);
+    padding: 10px;
+    color: inherit;
+    text-align: left;
+    box-shadow: 0 7px 18px rgb(22 27 25 / 7%);
+    cursor: pointer;
+}
+
+.ce-funnel-result-node::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    width: 21px;
+    height: 2px;
+    background: var(--ce-line-strong);
+}
+
+.ce-funnel-result-node > span:first-child {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    flex: none;
+    place-items: center;
+    border-radius: 9px;
+    background: var(--ce-lime-soft);
+    color: var(--ce-lime-ink);
+}
+
+.ce-funnel-result-node > span:nth-child(2) {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+}
+
+.ce-funnel-result-node small {
+    color: var(--ce-text-tertiary);
+    font-size: 9.5px;
+}
+
+.ce-funnel-result-node strong {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ce-funnel-legend {
+    display: flex;
+    min-height: 46px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 22px;
+    border-top: 1px solid var(--ce-line);
+    padding: 0 22px;
+    color: var(--ce-text-secondary);
+    font-size: 11px;
+}
+
+.ce-funnel-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.ce-funnel-legend i {
+    display: inline-block;
+    flex: none;
+}
+
+.ce-funnel-legend-entry {
+    width: 9px;
+    height: 9px;
+    border: 2px solid var(--ce-lime-strong);
+    border-radius: 50%;
+}
+
+.ce-funnel-legend-path {
+    width: 24px;
+    height: 2px;
+    background: var(--ce-lime-strong);
+}
+
+/* Canvas livre do funil: os cards e conexões usam o mesmo motor do orquestrador. */
+.ce-funnel-popover--free {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.ce-free-funnel {
+    position: relative;
+    min-height: 0;
+    flex: 1;
+    background: var(--ce-panel-raised);
+}
+
+.ce-flow-link-inspector {
+    position: absolute;
+    z-index: 12;
+    top: 64px;
+    right: 14px;
+    width: min(400px, calc(100% - 28px));
+    box-sizing: border-box;
+    overflow: hidden;
+    border: 1px solid var(--ce-line);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--ce-panel) 96%, transparent);
+    box-shadow: 0 18px 50px rgb(22 27 25 / 16%);
+    color: var(--ce-text);
+}
+
+.ce-flow-link-inspector > header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid var(--ce-line);
+    padding: 15px 16px;
+}
+
+.ce-flow-link-inspector > header div {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+}
+
+.ce-flow-link-inspector > header small,
+.ce-flow-link-inspector-label {
+    color: var(--ce-text-tertiary);
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.ce-flow-link-inspector > header strong {
+    overflow: hidden;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ce-flow-link-inspector > header button {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    flex: none;
+    place-items: center;
+    border: 1px solid var(--ce-line);
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.ce-flow-link-inspector-body {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+}
+
+.ce-flow-trigger-list {
+    display: grid;
+    gap: 7px;
+}
+
+.ce-flow-trigger-list label {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 9px;
+    border: 1px solid var(--ce-line);
+    border-radius: 10px;
+    padding: 10px;
+    cursor: pointer;
+}
+
+.ce-flow-trigger-list label:has(input:checked) {
+    border-color: var(--ce-lime-strong);
+    background: var(--ce-lime-soft);
+    box-shadow: inset 0 0 0 1px var(--ce-lime-strong);
+}
+
+.ce-flow-trigger-list input {
+    accent-color: var(--ce-lime-strong);
+}
+
+.ce-flow-trigger-list .ce-flow-trigger-content {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.ce-flow-trigger-list b {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ce-flow-trigger-list small {
+    max-width: 92px;
+    overflow: hidden;
+    color: var(--ce-text-secondary);
+    font-size: 11px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ce-flow-trigger-empty {
+    display: grid;
+    gap: 10px;
+    border: 1px dashed var(--ce-line-strong);
+    border-radius: 10px;
+    padding: 12px;
+    color: var(--ce-text-secondary);
+    font-size: 12px;
+}
+
+.ce-flow-trigger-empty button {
+    justify-self: start;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: var(--ce-text);
+    font: inherit;
+    font-weight: 750;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.ce-flow-link-inspector-body > p {
+    margin: 0;
+    color: var(--ce-text-tertiary);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.ce-free-funnel .react-flow__node {
+    width: 236px;
+}
+
+.ce-free-funnel .react-flow__minimap {
+    box-shadow: 0 8px 24px rgb(22 27 25 / 10%);
+}
+
+.ce-funnel-legend--free {
+    flex: none;
+}
+
+@media (max-width: 720px) {
+    .ce-funnel-overlay {
+        inset: 0;
+        padding: 8px;
+    }
+
+    .ce-funnel-popover {
+        width: calc(100vw - 16px);
+        height: calc(100dvh - 16px);
+        border-radius: 14px;
+    }
+
+    .ce-funnel-popover-head {
+        align-items: flex-start;
+        padding: 14px;
+    }
+
+    .ce-funnel-popover-head > div:first-child span {
+        display: none;
+    }
+
+    .ce-funnel-track {
+        justify-content: flex-start;
+        padding: 28px;
+    }
+
+    .ce-funnel-legend {
+        padding: 8px 14px;
+    }
+}
+
 html .astro-checkout-editor .ce-zoom-select .custom-select-trigger:hover,
 html .astro-checkout-editor .ce-zoom-select .custom-select-trigger[data-open='true'] {
     background: rgb(17 20 19 / 5%) !important;
@@ -632,20 +1385,215 @@ html .astro-checkout-editor .ce-zoom-select .custom-select-trigger[data-open='tr
     background-color: var(--ce-panel);
 }
 
-@media (min-width: 1440px) {
-    .astro-checkout-editor [class*='_PuckCanvas-controls_'] {
-        position: fixed;
-        z-index: 40;
-        top: calc((var(--ce-header-height) - 38px) / 2);
-        left: calc(
-            var(--puck-user-sidebar-left-width) + (100vw - var(--puck-user-sidebar-left-width)) / 2
-        );
-        padding: 0 !important;
-        transform: translateX(-50%);
+/* ------------------------------------------------------------------ Modo de teste */
+
+.ce-mode-toggle {
+    display: flex;
+    height: 30px;
+    flex: none;
+    align-items: center;
+    gap: 2px;
+}
+
+.ce-mode-option {
+    display: inline-flex;
+    height: 30px;
+    align-items: center;
+    gap: 6px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    padding: 0 10px;
+    color: var(--ce-text-muted);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color 120ms ease,
+        color 120ms ease;
+}
+
+.ce-mode-option:hover {
+    background: var(--ce-panel);
+    color: var(--ce-text);
+}
+
+.ce-mode-option[aria-checked='true'] {
+    background: var(--ce-text);
+    color: #fff;
+    box-shadow: 0 1px 2px rgb(17 20 19 / 18%);
+}
+
+.ce-mode-option[data-mode='interactive'][aria-checked='true'] {
+    background: var(--ce-lime);
+    color: var(--ce-lime-ink);
+}
+
+/* Moldura discreta na página: deixa claro que o clique agora é do comprador. */
+.ce-frame[data-preview-mode='interactive'] .ce-frame-page::after {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 2px var(--ce-lime-strong);
+    content: '';
+    pointer-events: none;
+}
+
+.ce-test-bar {
+    position: fixed;
+    z-index: 45;
+    bottom: 20px;
+    left: calc(
+        var(--puck-user-sidebar-left-width) +
+            (100vw - var(--puck-user-sidebar-left-width) - var(--puck-user-sidebar-right-width)) / 2
+    );
+    display: flex;
+    max-width: calc(
+        100vw - var(--puck-user-sidebar-left-width) - var(--puck-user-sidebar-right-width) - 32px
+    );
+    box-sizing: border-box;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--ce-ink-line-strong);
+    border-radius: 14px;
+    background: var(--ce-ink);
+    padding: 6px 6px 6px 14px;
+    color: var(--ce-ink-text);
+    font-size: 12.5px;
+    box-shadow: 0 18px 44px rgb(16 18 20 / 26%);
+    transform: translateX(-50%);
+    animation: ce-test-bar-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes ce-test-bar-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 8px);
     }
 }
 
-@media (max-width: 1439px) {
+.ce-test-bar-dot {
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--ce-lime);
+    box-shadow: 0 0 0 4px rgb(163 230 53 / 18%);
+}
+
+.ce-test-bar-text {
+    display: grid;
+    min-width: 0;
+    line-height: 1.25;
+}
+
+.ce-test-bar-text strong {
+    font-weight: 600;
+}
+
+.ce-test-bar-text span {
+    overflow: hidden;
+    color: var(--ce-ink-muted);
+    font-size: 11.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ce-test-bar-action,
+.ce-test-bar-exit {
+    display: inline-flex;
+    height: 32px;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    border: 0;
+    border-radius: 9px;
+    padding: 0 11px;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color 120ms ease,
+        color 120ms ease;
+}
+
+.ce-test-bar-action {
+    margin-left: 4px;
+    background: var(--ce-ink-raised);
+    color: var(--ce-ink-text);
+}
+
+.ce-test-bar-action:hover {
+    background: rgb(255 255 255 / 10%);
+}
+
+.ce-test-bar-exit {
+    background: var(--ce-lime);
+    color: var(--ce-lime-ink);
+}
+
+.ce-test-bar-exit:hover {
+    background: var(--ce-lime-hover);
+}
+
+.ce-test-bar-exit kbd {
+    border: 1px solid rgb(19 32 0 / 22%);
+    border-radius: 5px;
+    padding: 1px 5px;
+    font-family: inherit;
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+@media (max-width: 1199px) {
+    .ce-test-bar-text span,
+    .ce-test-bar-exit kbd {
+        display: none;
+    }
+}
+
+@media (max-width: 1679px) {
+    .ce-mode-option {
+        padding: 0 8px;
+    }
+}
+
+@media (max-width: 637px) {
+    .ce-test-bar {
+        left: 50%;
+        max-width: calc(100vw - 32px);
+    }
+}
+
+/*
+ * Dispositivo e zoom ficam no centro da barra branca da página (a barra de ferramentas do
+ * builder). Só em telas estreitas, sem espaço entre o título e as ações, voltam ao canvas.
+ */
+@media (min-width: 1100px) {
+    .astro-checkout-editor [class*='_PuckCanvas-controls_'] {
+        position: fixed;
+        z-index: 40;
+        top: calc(var(--ce-bar-height) + var(--ce-header-height) / 2);
+        left: calc(
+            var(--puck-user-sidebar-left-width) +
+                (
+                    100vw - var(--puck-user-sidebar-left-width) -
+                        var(--puck-user-sidebar-right-width)
+                ) /
+                2
+        );
+        padding: 0 !important;
+        transform: translate(-50%, -50%);
+    }
+}
+
+@media (max-width: 1099px) {
     .astro-checkout-editor [class*='_PuckCanvas-controls_'] {
         display: flex;
         justify-content: center;
@@ -699,25 +1647,137 @@ html .astro-checkout-editor .ce-zoom-select .custom-select-trigger[data-open='tr
     background: var(--ce-ink);
 }
 
-.ce-library-brand {
-    display: flex;
-    height: var(--ce-header-height);
-    flex: none;
-    align-items: center;
-    padding: 0 22px;
-}
-
-.ce-library-brand img {
-    height: 26px;
-}
-
-.ce-library > :not(.ce-library-brand) {
+.ce-library-panel {
     min-height: 0;
     flex: 1 1 auto;
+    padding-top: 12px;
     overflow-x: hidden;
     overflow-y: auto;
     scrollbar-color: #2c3330 transparent;
     scrollbar-width: thin;
+}
+
+.ce-flow-sidebar {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    padding: 0 14px 18px;
+}
+
+.ce-flow-sidebar-head {
+    padding: 2px 10px 12px;
+}
+
+.ce-flow-sidebar-head > span {
+    color: var(--ce-ink-text);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.ce-flow-sidebar-head p,
+.ce-flow-sidebar-help {
+    margin: 4px 0 0;
+    color: var(--ce-ink-muted);
+    font-size: 10.5px;
+    line-height: 1.45;
+}
+
+.ce-flow-sidebar-pages {
+    display: grid;
+    gap: 4px;
+}
+
+.ce-flow-sidebar-pages > button {
+    display: grid;
+    min-height: 48px;
+    grid-template-columns: 26px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 9px;
+    border: 1px solid var(--ce-ink-line);
+    border-radius: 10px;
+    background: var(--ce-ink-raised);
+    padding: 6px 8px;
+    color: var(--ce-ink-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.ce-flow-sidebar-pages > button:hover {
+    border-color: rgb(163 230 53 / 28%);
+}
+
+.ce-flow-sidebar-index {
+    display: grid;
+    width: 26px;
+    height: 26px;
+    place-items: center;
+    border-radius: 8px;
+    background: rgb(255 255 255 / 6%);
+    color: var(--ce-ink-muted);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.ce-flow-sidebar-pages > button > span:nth-child(2) {
+    display: grid;
+    min-width: 0;
+    gap: 1px;
+}
+
+.ce-flow-sidebar-pages strong,
+.ce-flow-sidebar-pages small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ce-flow-sidebar-pages strong {
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+.ce-flow-sidebar-pages small {
+    color: var(--ce-ink-muted);
+    font-size: 9.5px;
+}
+
+.ce-flow-sidebar-pages i {
+    border-radius: 999px;
+    background: rgb(163 230 53 / 12%);
+    padding: 3px 6px;
+    color: var(--ce-lime);
+    font-size: 8.5px;
+    font-style: normal;
+    font-weight: 700;
+}
+
+.ce-flow-sidebar-add {
+    display: flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin-top: 8px;
+    border: 1px dashed var(--ce-ink-line-strong);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--ce-ink-text);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ce-flow-sidebar-add:hover {
+    border-color: rgb(163 230 53 / 38%);
+    color: var(--ce-lime);
+}
+
+.ce-flow-sidebar-help {
+    margin-top: auto;
+    border-top: 1px solid var(--ce-ink-line);
+    padding: 14px 8px 0;
 }
 
 .ce-drawer {
@@ -730,6 +1790,49 @@ html .astro-checkout-editor .ce-zoom-select .custom-select-trigger[data-open='tr
     top: 0;
     background: var(--ce-ink);
     padding: 0 0 10px;
+}
+
+.ce-sidebar-page-switcher {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.ce-sidebar-page-switcher > .custom-select {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+html .astro-checkout-editor .ce-sidebar-page-switcher .custom-select-trigger {
+    width: 100%;
+    height: 36px !important;
+    border: 1px solid var(--ce-ink-line-strong) !important;
+    border-radius: 9px !important;
+    background: var(--ce-ink-raised) !important;
+    padding: 0 8px 0 10px !important;
+    color: var(--ce-ink-text) !important;
+    font-size: 11.5px !important;
+    box-shadow: none !important;
+}
+
+.ce-sidebar-page-action {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex: none;
+    place-items: center;
+    border: 1px solid var(--ce-ink-line-strong);
+    border-radius: 9px;
+    background: var(--ce-ink-raised);
+    color: var(--ce-ink-muted);
+    cursor: pointer;
+}
+
+.ce-sidebar-page-action:hover {
+    border-color: rgb(163 230 53 / 28%);
+    color: var(--ce-ink-text);
 }
 
 .ce-search {
@@ -813,6 +1916,12 @@ html .astro-checkout-editor .ce-zoom-select .custom-select-trigger[data-open='tr
 .ce-drawer-groups {
     display: grid;
     gap: 2px;
+}
+
+/* Modo de teste: a biblioteca descansa até voltar à edição. */
+.ce-drawer-groups[data-disabled='true'] {
+    opacity: 0.42;
+    transition: opacity 160ms ease;
 }
 
 .ce-drawer-empty {
@@ -1138,9 +2247,12 @@ html .astro-checkout-editor .ce-zoom-select .custom-select-trigger[data-open='tr
     scrollbar-width: none;
 }
 
-.astro-checkout-editor [class*='_PuckCanvas-root_']:has(.ce-frame[data-device='phone'])::-webkit-scrollbar,
-.astro-checkout-editor [class*='_PuckCanvas-root_']:has(.ce-frame[data-device='tablet'])::-webkit-scrollbar,
-.ce-frame:is([data-device='phone'], [data-device='tablet']) [class*='_PuckPreview-frame_']::-webkit-scrollbar {
+.astro-checkout-editor
+    [class*='_PuckCanvas-root_']:has(.ce-frame[data-device='phone'])::-webkit-scrollbar,
+.astro-checkout-editor
+    [class*='_PuckCanvas-root_']:has(.ce-frame[data-device='tablet'])::-webkit-scrollbar,
+.ce-frame:is([data-device='phone'], [data-device='tablet'])
+    [class*='_PuckPreview-frame_']::-webkit-scrollbar {
     display: none;
 }
 
@@ -1152,51 +2264,27 @@ html .astro-checkout-editor .ce-zoom-select .custom-select-trigger[data-open='tr
     container-type: inline-size;
 }
 
-.ce-frame[data-device='tablet'] {
-    height: auto;
-    min-height: 0;
-    align-items: center;
-    background: transparent;
-}
-
-.ce-frame[data-device='phone'] {
-    height: auto;
-    min-height: 0;
-    align-items: center;
-    background: transparent;
-}
-
-.ce-phone-fit {
-    --ce-phone-fit-scale: 0.9;
+.ce-frame:is([data-device='tablet'], [data-device='phone']) {
     width: 100%;
-    height: calc(868px * var(--ce-phone-fit-scale));
-    display: flex;
+    height: 100%;
+    min-height: 0;
+    align-items: center;
     justify-content: center;
+    background: transparent;
 }
 
-.ce-phone-fit > .phone-mockup-shell {
-    transform: scale(var(--ce-phone-fit-scale));
-    transform-origin: top center;
-}
-
-.ce-tablet-fit {
-    --ce-tablet-fit-scale: 0.78;
-    position: relative;
-    width: calc(768px * var(--ce-tablet-fit-scale));
-    height: calc(1024px * var(--ce-tablet-fit-scale));
-    flex: none;
-    overflow: hidden;
-    border-radius: calc(42px * var(--ce-tablet-fit-scale));
-    box-shadow: 0 28px 70px rgb(16 18 20 / 18%);
-    clip-path: inset(0 round calc(42px * var(--ce-tablet-fit-scale)));
+.ce-frame[data-device='phone'] > .phone-mockup-shell > div {
+    box-shadow:
+        0 0 0 1.5px #2c2e35,
+        0 2px 6px rgb(16 18 20 / 14%),
+        0 10px 20px -8px rgb(16 18 20 / 42%) !important;
 }
 
 .ce-tablet-shell {
-    position: absolute;
-    inset: 0 auto auto 0;
+    position: relative;
     display: flex;
-    width: 768px;
-    height: 1024px;
+    width: 100%;
+    height: 100%;
     box-sizing: border-box;
     flex: none;
     flex-direction: column;
@@ -1204,8 +2292,10 @@ html .astro-checkout-editor .ce-zoom-select .custom-select-trigger[data-open='tr
     border: 12px solid var(--ce-ink);
     border-radius: 42px;
     background: var(--ce-ink);
-    transform: scale(var(--ce-tablet-fit-scale));
-    transform-origin: top left;
+    box-shadow:
+        0 0 0 1.5px #2c2e35,
+        0 2px 6px rgb(16 18 20 / 14%),
+        0 10px 20px -8px rgb(16 18 20 / 42%);
 }
 
 .ce-frame[data-device='phone'] .phone-mockup-content,
@@ -1270,12 +2360,31 @@ html .astro-checkout-editor .ce-zoom-select .custom-select-trigger[data-open='tr
 }
 
 .ce-tablet-indicators b {
+    position: relative;
     width: 19px;
     height: 10px;
     margin-left: 4px;
     border: 1.5px solid currentColor;
     border-radius: 3px;
-    box-shadow: inset -3px 0 0 #f7f8f8;
+}
+
+.ce-tablet-indicators b::before {
+    position: absolute;
+    inset: 1.5px 4px 1.5px 1.5px;
+    border-radius: 1px;
+    background: currentColor;
+    content: '';
+}
+
+.ce-tablet-indicators b::after {
+    position: absolute;
+    top: 2px;
+    right: -3.5px;
+    width: 2px;
+    height: 4px;
+    border-radius: 0 1px 1px 0;
+    background: currentColor;
+    content: '';
 }
 
 .ce-tablet-browser {
@@ -1340,10 +2449,23 @@ html .astro-checkout-editor .ce-zoom-select .custom-select-trigger[data-open='tr
 
 .ce-frame[data-device='tablet'] .ce-frame-page {
     width: 100%;
-    height: 100%;
     overflow: hidden;
     border-radius: 0 0 28px 28px;
     background: #fff;
+}
+
+.ce-tablet-home-indicator {
+    position: absolute;
+    z-index: 5;
+    bottom: 8px;
+    left: 50%;
+    width: 108px;
+    height: 5px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: rgb(17 20 19 / 72%);
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 18%);
+    pointer-events: none;
 }
 
 .astro-checkout-editor [class*='_PuckPreview_'] {
@@ -1920,7 +3042,9 @@ html body:has(.astro-checkout-editor) .custom-select-popover [role='option'][ari
 }
 
 .checkout-size-slider input[type='range']:focus-visible::-webkit-slider-thumb {
-    box-shadow: var(--ce-focus), 0 1px 4px rgb(17 20 19 / 24%);
+    box-shadow:
+        var(--ce-focus),
+        0 1px 4px rgb(17 20 19 / 24%);
 }
 
 .checkout-size-slider-labels {
@@ -1977,7 +3101,9 @@ html body:has(.astro-checkout-editor) .custom-select-popover [role='option'][ari
 .checkout-preset[data-active='true'] {
     border-color: var(--ce-text, #111413);
     background: #fafbfa;
-    box-shadow: 0 0 0 1px var(--ce-text, #111413), 0 5px 14px rgb(17 20 19 / 7%);
+    box-shadow:
+        0 0 0 1px var(--ce-text, #111413),
+        0 5px 14px rgb(17 20 19 / 7%);
     transform: translateY(-1px);
 }
 
@@ -2011,6 +3137,23 @@ html body:has(.astro-checkout-editor) .custom-select-popover [role='option'][ari
     width: 42%;
     height: 11px;
     margin-top: 6px;
+}
+
+.checkout-preset-custom-swatch {
+    background: linear-gradient(135deg, #f4f1ff 0 48%, #e8f8ee 48% 100%);
+}
+
+.checkout-preset-custom-swatch .checkout-preset-surface {
+    background: rgb(255 255 255 / 88%);
+}
+
+.checkout-preset-custom-swatch .checkout-preset-line {
+    background: #3f3b4c;
+}
+
+.checkout-preset-custom-swatch .checkout-preset-button {
+    background: linear-gradient(90deg, #7c3aed, #16a36a);
+    border-radius: 999px;
 }
 
 .checkout-preset-name {
@@ -2068,8 +3211,1866 @@ html body:has(.astro-checkout-editor) .custom-select-popover [role='option'][ari
     .ce-actions {
         min-width: max-content;
     }
+}
 
-    .ce-library-brand {
+/* ------------------------------------------------------------------ Workspace do checkout */
+
+/*
+ * Uma tela, várias abas: o funil (macro) e, a partir dele, cada página no builder e o fluxo
+ * de nós do pagamento (micro). Salvar e publicar ficam na barra e valem para tudo.
+ */
+
+.ce-bar {
+    position: relative;
+    z-index: 30;
+    display: grid;
+    height: var(--ce-bar-height);
+    grid-template-columns: minmax(180px, auto) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 20px;
+    background: var(--ce-ink);
+    padding: 0 16px;
+    color: var(--ce-ink-text);
+}
+
+/*
+ * A barra é da mesma tinta da biblioteca: juntas formam a moldura escura do workspace, e o
+ * conteúdo de cada aba aparece como um painel claro encaixado nela.
+ */
+.ce-bar .ce-icon-button,
+.ce-bar .ce-button:not(.ce-button--primary) {
+    border-color: var(--ce-ink-line-strong);
+    background: var(--ce-ink-raised);
+    color: var(--ce-ink-muted);
+}
+
+.ce-bar .ce-icon-button:hover:not(:disabled),
+.ce-bar .ce-button:not(.ce-button--primary):hover:not(:disabled) {
+    border-color: rgb(255 255 255 / 14%);
+    background: #232a27;
+    color: var(--ce-ink-text);
+}
+
+.ce-bar .ce-attention-dot {
+    border-color: var(--ce-ink-raised);
+}
+
+.ce-bar .ce-tour .ui-button {
+    border-color: var(--ce-ink-line-strong);
+    background: var(--ce-ink-raised);
+    color: var(--ce-ink-muted);
+}
+
+.ce-bar .ce-tour .ui-button:hover {
+    border-color: rgb(255 255 255 / 14%);
+    color: var(--ce-ink-text);
+}
+
+.ce-bar .ce-status {
+    background: rgb(255 255 255 / 6%);
+    color: var(--ce-ink-muted);
+}
+
+.ce-bar .ce-status[data-state='saved'],
+.ce-bar .ce-status[data-state='published'] {
+    background: rgb(163 230 53 / 12%);
+    color: #c4f27a;
+}
+
+.ce-bar .ce-status[data-state='saved'] .ce-status-dot,
+.ce-bar .ce-status[data-state='published'] .ce-status-dot {
+    background: var(--ce-lime);
+}
+
+.ce-bar .ce-status[data-state='changed'] {
+    background: rgb(240 180 77 / 14%);
+    color: #f5c978;
+}
+
+.ce-bar .ce-status[data-state='error'] {
+    background: rgb(224 72 95 / 16%);
+    color: #ff9aab;
+}
+
+.ce-bar-identity {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+}
+
+.ce-bar-title {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+}
+
+.ce-bar-title h1 {
+    margin: 0;
+    max-width: 240px;
+    overflow: hidden;
+    color: var(--ce-ink-text);
+    font-size: 15px;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ce-tabs {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.ce-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.ce-tab {
+    position: relative;
+    display: flex;
+    height: 36px;
+    flex: none;
+    align-items: center;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    color: var(--ce-ink-muted);
+    cursor: grab;
+    transition:
+        background-color 140ms ease,
+        border-color 140ms ease,
+        color 140ms ease;
+}
+
+.ce-tab:active {
+    cursor: grabbing;
+}
+
+.ce-tab[data-dragging] {
+    opacity: 0.45;
+}
+
+.ce-tab[data-drop-target] {
+    border-color: rgb(163 230 53 / 55%);
+    box-shadow: -3px 0 0 var(--ce-lime);
+}
+
+.ce-tab:hover {
+    background: var(--ce-ink-hover);
+    color: var(--ce-ink-text);
+}
+
+.ce-tab[data-selected] {
+    border-color: rgb(163 230 53 / 22%);
+    background: rgb(163 230 53 / 10%);
+    color: var(--ce-ink-text);
+}
+
+.ce-tab > button:first-child {
+    display: inline-flex;
+    height: 100%;
+    max-width: 200px;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    background: transparent;
+    padding: 0 12px;
+    color: inherit;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ce-tab[data-kind='open'] > button:first-child {
+    padding-right: 4px;
+}
+
+.ce-tab > button:first-child span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ce-tab > button:first-child svg {
+    flex: none;
+    color: var(--ce-ink-faint);
+}
+
+.ce-tab[data-selected] > button:first-child svg {
+    color: var(--ce-lime);
+}
+
+/* Todas as abas pertencem à mesma faixa e podem trocar livremente de posição. */
+
+.ce-tab-close {
+    display: grid;
+    width: 22px;
+    height: 22px;
+    margin-right: 7px;
+    place-items: center;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    opacity: 0.55;
+    cursor: pointer;
+}
+
+.ce-tab-close:hover {
+    background: rgb(255 255 255 / 8%);
+    opacity: 1;
+}
+
+.ce-tab-alert {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #f0b44d;
+}
+
+.ce-stage {
+    position: relative;
+    height: calc(100dvh - var(--ce-bar-height));
+    min-height: 0;
+    overflow: hidden;
+    background: var(--ce-ink);
+}
+
+.ce-stage > [class*='_PuckLayout_'] {
+    height: 100% !important;
+    min-height: 0;
+}
+
+/* Funil e pagamento: o mesmo painel claro com o canto arredondado do builder. */
+.ce-board,
+.ce-payment-tab,
+.ce-payment-empty {
+    overflow: hidden;
+    border-radius: 24px 24px 0 0;
+}
+
+/* Builder dentro da aba: a barra de ferramentas da página. */
+.ce-page-toolbar-icon {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    flex: none;
+    place-items: center;
+    border-radius: 9px;
+    background: var(--ce-ink);
+    color: var(--ce-lime);
+}
+
+.ce-page-toolbar-title {
+    display: grid;
+    min-width: 0;
+    gap: 1px;
+}
+
+.ce-page-toolbar-title strong {
+    overflow: hidden;
+    font-size: 13.5px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ce-page-toolbar-title small {
+    color: var(--ce-text-muted);
+    font-size: 11px;
+}
+
+/* Aba Funil: o quadro ocupa a tela. */
+.ce-board {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    background: var(--ce-panel);
+}
+
+/* Tela cheia do funil, como no orquestrador: o quadro inteiro cobre a janela. */
+.ce-board[data-fullscreen] {
+    position: fixed;
+    z-index: 60;
+    inset: 0;
+    height: auto;
+}
+
+.ce-board-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    border-bottom: 1px solid var(--ce-line);
+    padding: 12px 20px;
+}
+
+.ce-funnel-workspace {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+.ce-funnel-workspace .ce-free-funnel {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.ce-funnel-library-shell {
+    width: 0;
+    height: 100%;
+    min-width: 0;
+    flex: none;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        width 220ms cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 160ms ease,
+        visibility 0s linear 220ms;
+}
+
+.ce-funnel-library-shell[data-open] {
+    width: 248px;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+        width 220ms cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 180ms ease,
+        visibility 0s linear 0s;
+}
+
+.ce-funnel-library {
+    display: flex;
+    width: 248px;
+    min-width: 248px;
+    height: 100%;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: 1px solid var(--ce-line);
+    background: var(--ce-panel);
+    transform: translateX(-12px);
+    transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ce-funnel-library-shell[data-open] .ce-funnel-library {
+    transform: translateX(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ce-funnel-library-shell,
+    .ce-funnel-library {
+        transition: none;
+    }
+}
+
+.ce-funnel-library-search {
+    padding: 12px;
+}
+
+.ce-funnel-library-list section + section {
+    margin-top: 16px;
+}
+
+.ce-funnel-library-search label {
+    position: relative;
+    display: block;
+}
+
+.ce-funnel-library-search label > svg {
+    position: absolute;
+    z-index: 1;
+    top: 50%;
+    left: 11px;
+    transform: translateY(-50%);
+    color: var(--ce-text-muted);
+    pointer-events: none;
+}
+
+.ce-funnel-library-search input {
+    width: 100%;
+    height: 38px;
+    box-sizing: border-box;
+    border: 1px solid var(--ce-line-strong);
+    border-radius: 12px;
+    background: var(--ce-panel);
+    padding: 0 10px 0 32px;
+    color: var(--ce-text);
+    font: inherit;
+    font-size: 12px;
+    outline: none;
+}
+
+.ce-funnel-library-search input:focus {
+    border-color: var(--ce-lime-strong);
+    box-shadow: var(--ce-focus);
+}
+
+.ce-funnel-library-list {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 12px 16px;
+}
+
+.ce-funnel-library-list h3 {
+    margin: 2px 4px 7px;
+    color: var(--ce-text-muted);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.ce-funnel-library-list ul {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ce-funnel-library-list li > button {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    padding: 8px;
+    color: var(--ce-text);
+    text-align: left;
+    cursor: pointer;
+    transition: 140ms ease;
+}
+
+.ce-funnel-library-list li > button:hover {
+    border-color: var(--ce-line);
+    background: var(--ce-panel-raised);
+}
+
+.ce-funnel-library-list li > button > span:first-child {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    flex: none;
+    place-items: center;
+    border-radius: 9px;
+}
+
+.ce-funnel-library-list li > button > span:nth-child(2) {
+    display: grid;
+    min-width: 0;
+    flex: 1;
+    gap: 2px;
+}
+
+.ce-funnel-library-list strong,
+.ce-funnel-library-list small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ce-funnel-library-list strong {
+    font-size: 12.5px;
+    font-weight: 650;
+}
+
+.ce-funnel-library-list small,
+.ce-funnel-library-list > p {
+    color: var(--ce-text-muted);
+    font-size: 11px;
+}
+
+.ce-funnel-library-list > p {
+    padding: 4px;
+}
+
+.ce-funnel-library-add {
+    flex: none;
+    color: var(--ce-text-muted);
+    opacity: 0;
+    transition: opacity 140ms ease;
+}
+
+.ce-funnel-library-list button:hover .ce-funnel-library-add {
+    opacity: 1;
+}
+
+/* Aba Pagamento: o editor de nós ocupa o palco. */
+.ce-payment-tab {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    background: var(--ce-panel);
+}
+
+.ce-payment-empty {
+    display: grid;
+    height: 100%;
+    place-items: center;
+    background: var(--ce-workspace);
+    padding: 24px;
+}
+
+.ce-payment-empty section {
+    display: grid;
+    width: min(520px, 100%);
+    justify-items: center;
+    gap: 12px;
+    border: 1px solid var(--ce-line);
+    border-radius: 22px;
+    background: var(--ce-panel);
+    padding: 36px 32px;
+    text-align: center;
+    box-shadow: 0 18px 50px rgb(22 27 25 / 8%);
+}
+
+.ce-payment-empty-icon {
+    display: grid;
+    width: 46px;
+    height: 46px;
+    place-items: center;
+    border-radius: 14px;
+    background: var(--ce-ink);
+    color: var(--ce-lime);
+}
+
+.ce-payment-empty h2 {
+    margin: 4px 0 0;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+}
+
+.ce-payment-empty p {
+    margin: 0;
+    color: var(--ce-text-secondary);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.ce-payment-empty small {
+    color: var(--ce-text-muted);
+    font-size: 11.5px;
+}
+
+.ce-payment-empty-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+/* Aba Relatórios. */
+.ce-reports-stage {
+    height: 100%;
+    overflow-y: auto;
+}
+
+.ce-reports {
+    width: min(1180px, 100%);
+    margin: 0 auto;
+    padding: 28px 24px 48px;
+}
+
+@media (max-width: 900px) {
+    .ce-bar {
+        height: auto;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        padding: 10px 12px;
+    }
+
+    .ce-tabs {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-content: flex-start;
+    }
+
+    .ce-stage {
+        height: calc(100dvh - 108px);
+    }
+}
+
+.ce-payment-source {
+    display: inline-flex;
+    height: 30px;
+    align-items: center;
+    border-radius: 999px;
+    background: var(--ce-panel-muted);
+    padding: 0 11px;
+    color: var(--ce-text-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+/* Checklist de publicação sempre visível ao lado de Publicar. */
+.ce-readiness {
+    display: inline-flex;
+    height: 34px;
+    align-items: center;
+    gap: 7px;
+    border-radius: 999px;
+    background: #fff1d6;
+    padding: 0 12px;
+    color: #8a5a00;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ce-readiness[data-ready] {
+    background: var(--ce-lime-soft);
+    color: var(--ce-lime-ink);
+}
+
+@media (max-width: 1100px) {
+    .ce-readiness span {
         display: none;
     }
+}
+
+.ce-payment-summary-head,
+.ce-payment-node-strategy {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Status com ícone e texto (não só cor): o mesmo no nó do funil e no dock. */
+.ce-payment-badge {
+    display: inline-flex;
+    height: 20px;
+    flex: none;
+    align-items: center;
+    gap: 4px;
+    border-radius: 999px;
+    padding: 0 8px;
+    font-size: 10.5px;
+    font-weight: 750;
+}
+
+.ce-payment-badge[data-tone='ready'] {
+    background: var(--ce-lime-soft);
+    color: #3f6a07;
+}
+
+.ce-payment-badge[data-tone='pending'] {
+    background: #fff1d6;
+    color: #8a5a00;
+}
+
+/* Rota: chips dos gateways na ordem em que a venda os encontra. */
+.ce-route {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ce-route-step {
+    display: flex;
+    min-width: 0;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.ce-route-arrow {
+    margin-bottom: 7px;
+    color: var(--ce-text-muted);
+}
+
+.ce-route-group {
+    display: grid;
+    min-width: 0;
+    gap: 4px;
+}
+
+.ce-route-group > small {
+    color: var(--ce-text-muted);
+    font-size: 10px;
+    font-weight: 650;
+}
+
+.ce-route-group > div,
+.ce-route-split {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.ce-route-chip {
+    display: inline-flex;
+    height: 26px;
+    max-width: 180px;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    border: 1px solid var(--ce-line);
+    border-radius: 999px;
+    background: var(--ce-panel);
+    padding: 0 10px 0 4px;
+    color: var(--ce-text);
+    font-size: 11.5px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ce-route-chip em {
+    display: grid;
+    min-width: 18px;
+    height: 18px;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--ce-lime-soft);
+    padding: 0 4px;
+    color: #3f6a07;
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 750;
+}
+
+.ce-route-chip:not(:has(em)) {
+    padding-left: 10px;
+}
+
+.ce-route[data-compact] .ce-route-chip {
+    height: 22px;
+    max-width: 120px;
+    font-size: 10.5px;
+}
+
+.ce-route[data-compact] .ce-route-arrow {
+    margin-bottom: 5px;
+}
+
+/* Nó Pagamento: o elemento crítico do funil, com destaque próprio. */
+.react-flow__node:has(.ce-payment-node-body) .flow-card {
+    border: 2px solid var(--ce-lime-strong);
+    box-shadow: 0 8px 24px rgb(127 194 26 / 18%);
+}
+
+.ce-payment-node-body {
+    display: grid;
+    gap: 8px;
+    margin: -6px 14px 12px;
+}
+
+.ce-payment-node-strategy b {
+    overflow: hidden;
+    font-size: 11.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ce-payment-node-cta {
+    display: inline-flex;
+    height: 28px;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 8px;
+    background: var(--ce-ink);
+    color: var(--ce-ink-text);
+    font-size: 11.5px;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+/* Editor avançado do pagamento: por cima do workspace, com volta ao funil. */
+.ce-payment-overlay {
+    position: absolute;
+    z-index: 40;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 24px 24px 0 0;
+    background: var(--ce-panel);
+    animation: ce-overlay-in 160ms ease-out;
+}
+
+.ce-payment-overlay .ce-payment-tab {
+    min-height: 0;
+    flex: 1;
+    border-radius: 0;
+}
+
+@keyframes ce-overlay-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+}
+
+/* ------------------------------------------------------------------ Dock */
+
+/*
+ * A barra vira um dock central: uma cápsula com grupos (identidade, áreas, ferramentas,
+ * publicação) separados por divisores. Ícones de 16px em alvos de 36px; o rótulo aparece no
+ * hover e no foco, e a área ativa mostra o próprio nome. Sem faixa atrás: o dock flutua
+ * sobre o editor, no centro do cabeçalho de cada área (onde não há controles).
+ */
+.ce-bar {
+    position: absolute;
+    z-index: 60;
+    top: 6px;
+    right: 0;
+    left: 0;
+    display: flex;
+    height: auto;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    padding: 0 12px;
+    pointer-events: none;
+}
+
+.ce-bar .ce-dock {
+    pointer-events: auto;
+}
+
+.ce-stage {
+    height: 100dvh;
+    background: var(--ce-panel);
+}
+
+/* Com o dock por cima, os painéis encostam no topo da tela: sem cantos arredondados. */
+.astro-checkout-editor [class*='_PuckLayout-header_'],
+.ce-board,
+.ce-payment-tab,
+.ce-payment-empty,
+.ce-payment-overlay {
+    border-radius: 0;
+}
+
+.ce-dock {
+    display: flex;
+    height: 48px;
+    max-width: 100%;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgb(255 255 255 / 9%);
+    border-radius: 24px;
+    background: color-mix(in srgb, var(--ce-ink-raised) 88%, transparent);
+    padding: 6px;
+    box-shadow:
+        0 1px 0 rgb(255 255 255 / 4%) inset,
+        0 8px 24px rgb(17 20 19 / 16%);
+    backdrop-filter: blur(16px);
+}
+
+.ce-dock-group {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 4px;
+}
+
+.ce-dock-sep {
+    width: 1px;
+    height: 20px;
+    flex: none;
+    margin: 0 4px;
+    background: rgb(255 255 255 / 10%);
+}
+
+.ce-dock-item,
+.ce-bar .ce-tab > button:first-child {
+    position: relative;
+    display: inline-flex;
+    width: 36px;
+    height: 36px;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 18px;
+    background: transparent;
+    padding: 0;
+    color: var(--ce-ink-muted);
+    cursor: pointer;
+    transition:
+        background-color 140ms ease,
+        color 140ms ease,
+        width 180ms ease;
+}
+
+.ce-dock-item:hover:not(:disabled),
+.ce-bar .ce-tab > button:first-child:hover {
+    background: rgb(255 255 255 / 8%);
+    color: var(--ce-ink-text);
+}
+
+.ce-dock-item:disabled {
+    cursor: progress;
+    opacity: 0.5;
+}
+
+.ce-dock-item svg,
+.ce-bar .ce-tab > button:first-child svg {
+    color: inherit;
+}
+
+.ce-dock-title {
+    display: grid;
+    min-width: 0;
+    gap: 1px;
+    padding: 0 8px 0 2px;
+}
+
+.ce-dock-title h1 {
+    margin: 0;
+    max-width: 180px;
+    overflow: hidden;
+    color: var(--ce-ink-text);
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ce-bar .ce-dock-title .ce-status {
+    height: auto;
+    background: transparent;
+    padding: 0;
+    font-size: 10.5px;
+    line-height: 14px;
+}
+
+.ce-bar .ce-dock-title .ce-status[data-state] {
+    background: transparent;
+}
+
+/* Áreas: só ícone; a ativa vira pílula com o nome (como a tab bar do iOS). */
+.ce-bar .ce-tabs {
+    gap: 2px;
+    overflow: visible;
+}
+
+.ce-bar .ce-tab {
+    height: 36px;
+    border: 0;
+    border-radius: 18px;
+    background: transparent;
+}
+
+.ce-bar .ce-tab:hover {
+    background: transparent;
+}
+
+.ce-bar .ce-tab[data-selected] > button:first-child {
+    width: auto;
+    background: var(--ce-lime);
+    padding: 0 14px 0 12px;
+    color: var(--ce-lime-ink);
+}
+
+.ce-bar .ce-tab[data-selected] > button:first-child svg {
+    color: var(--ce-lime-ink);
+}
+
+.ce-bar .ce-tab[data-drop-target] {
+    box-shadow: -3px 0 0 var(--ce-lime);
+}
+
+/* Páginas abertas: o X aparece sobre o ícone no hover, sem ocupar espaço. */
+.ce-bar .ce-tab[data-kind='open'] {
+    position: relative;
+}
+
+.ce-bar .ce-tab[data-kind='open'] > button:first-child {
+    padding-right: 0;
+}
+
+.ce-bar .ce-tab[data-kind='open'][data-selected] > button:first-child {
+    padding-right: 30px;
+}
+
+.ce-bar .ce-tab-close {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    border-radius: 999px;
+    background: #2b322f;
+    color: var(--ce-ink-text);
+    opacity: 0;
+    transition: opacity 120ms ease;
+}
+
+.ce-bar .ce-tab[data-selected] .ce-tab-close {
+    top: 10px;
+    right: 8px;
+    background: rgb(19 32 0 / 12%);
+    color: var(--ce-lime-ink);
+}
+
+.ce-bar .ce-tab:hover .ce-tab-close,
+.ce-bar .ce-tab:focus-within .ce-tab-close,
+.ce-bar .ce-tab[data-selected] .ce-tab-close {
+    opacity: 1;
+}
+
+.ce-bar .ce-tab-alert {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 7px;
+    height: 7px;
+    border: 1.5px solid var(--ce-ink-raised);
+}
+
+.ce-bar .ce-tab[data-selected] .ce-tab-alert {
+    position: static;
+    border: 0;
+}
+
+/* Rótulo no hover e no foco (não só no hover), com atraso curto. */
+.ce-bar [data-tip]::after {
+    position: absolute;
+    z-index: 90;
+    top: calc(100% + 10px);
+    left: 50%;
+    border-radius: 8px;
+    background: #0b0e0d;
+    padding: 5px 9px;
+    color: #f1f2ee;
+    content: attr(data-tip);
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -2px);
+    transition:
+        opacity 120ms ease,
+        transform 120ms ease;
+}
+
+.ce-bar [data-tip]:hover::after,
+.ce-bar [data-tip]:focus-visible::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    transition-delay: 250ms;
+}
+
+.ce-bar .ce-more {
+    position: relative;
+}
+
+.ce-bar .ce-attention-dot {
+    top: 6px;
+    right: 6px;
+}
+
+/* Publicação: pendências e Publicar na ponta direita. */
+.ce-bar .ce-readiness {
+    position: relative;
+    height: 36px;
+    min-width: 36px;
+    justify-content: center;
+    gap: 5px;
+    border: 0;
+    border-radius: 18px;
+    padding: 0 10px;
+    cursor: pointer;
+}
+
+.ce-bar .ce-readiness span {
+    display: inline;
+}
+
+.ce-dock-publish {
+    display: inline-flex;
+    height: 36px;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 18px;
+    background: var(--ce-lime);
+    padding: 0 14px 0 16px;
+    color: var(--ce-lime-ink);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 750;
+    cursor: pointer;
+    transition: background-color 120ms ease;
+}
+
+.ce-dock-publish:hover:not(:disabled) {
+    background: var(--ce-lime-hover);
+}
+
+.ce-dock-publish:disabled {
+    cursor: progress;
+    opacity: 0.6;
+}
+
+@media (max-width: 900px) {
+    .ce-bar {
+        padding: 0 8px;
+    }
+
+    .ce-dock-title,
+    .ce-dock-sep:first-of-type {
+        display: none;
+    }
+
+    .ce-stage {
+        height: 100dvh;
+    }
+}
+
+@media (max-width: 560px) {
+    .ce-dock-publish span {
+        display: none;
+    }
+
+    .ce-dock-publish {
+        width: 36px;
+        justify-content: center;
+        padding: 0;
+    }
+}
+
+/* ------------------------------------------------------------------ Prévias do dock */
+
+/* Cartão com miniatura animada de cada área (Funil, Checkout, Pagamento); hover e foco. */
+.ce-dock-slot,
+.ce-bar .ce-tab,
+.ce-bar .ce-more {
+    position: relative;
+    display: inline-flex;
+}
+
+.ce-dock-preview {
+    position: absolute;
+    z-index: 90;
+    top: calc(100% + 14px);
+    left: 50%;
+    display: grid;
+    width: 248px;
+    gap: 4px;
+    border: 1px solid var(--ce-line);
+    border-radius: 16px;
+    background: var(--ce-panel);
+    padding: 8px 8px 12px;
+    color: var(--ce-text);
+    box-shadow:
+        0 1px 2px rgb(17 20 19 / 6%),
+        0 18px 44px rgb(17 20 19 / 16%);
+    opacity: 0;
+    pointer-events: none;
+    text-align: left;
+    transform: translate(-50%, -4px) scale(0.98);
+    transform-origin: top center;
+    transition:
+        opacity 140ms ease,
+        transform 160ms ease;
+    visibility: hidden;
+}
+
+.ce-dock-preview b {
+    padding: 4px 6px 0;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.ce-dock-preview small {
+    padding: 0 6px;
+    color: var(--ce-text-muted);
+    font-size: 11.5px;
+    line-height: 1.4;
+}
+
+.ce-dock-preview-art {
+    display: block;
+    overflow: hidden;
+    border-radius: 10px;
+    background: var(--ce-panel-muted);
+}
+
+.ce-dock-preview-art svg {
+    display: block;
+    width: 100%;
+    height: 104px;
+}
+
+.ce-dock-slot:hover > .ce-dock-preview,
+.ce-dock-slot:focus-within > .ce-dock-preview,
+.ce-bar .ce-tab:hover > .ce-dock-preview,
+.ce-bar .ce-tab:focus-within > .ce-dock-preview,
+.ce-bar .ce-more:hover > .ce-dock-preview,
+.ce-bar .ce-more:focus-within > .ce-dock-preview {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+    transition-delay: 280ms;
+    visibility: visible;
+}
+
+/* Arrastando abas: sem prévia por cima do alvo. */
+.ce-bar .ce-tab[data-dragging] > .ce-dock-preview {
+    display: none;
+}
+
+/* Peças das ilustrações. */
+.ce-dock-preview-art .art-card {
+    fill: #fff;
+    stroke: var(--ce-line);
+}
+
+.ce-dock-preview-art .art-node {
+    fill: #fff;
+    stroke: var(--ce-line-strong);
+    stroke-width: 1.5;
+}
+
+.ce-dock-preview-art .art-node--brand {
+    fill: var(--ce-lime-soft);
+    stroke: var(--ce-lime-strong);
+}
+
+.ce-dock-preview-art .art-node--ok {
+    fill: #e9f8ef;
+    stroke: #3fb26b;
+}
+
+.ce-dock-preview-art .art-node--bad {
+    fill: #fdecef;
+    stroke: #e0485f;
+}
+
+.ce-dock-preview-art .art-line {
+    fill: none;
+    stroke: #9aa29e;
+    stroke-dasharray: 4 4;
+    stroke-width: 1.5;
+}
+
+.ce-dock-preview-art .art-line--fail {
+    stroke: #e0485f;
+}
+
+.ce-dock-preview-art .art-dot {
+    fill: var(--ce-lime-strong);
+}
+
+.ce-dock-preview-art .art-field {
+    fill: #e9ecea;
+}
+
+.ce-dock-preview-art .art-button {
+    fill: var(--ce-lime);
+}
+
+.ce-dock-preview-art .art-chip {
+    fill: #fff;
+    stroke: var(--ce-line-strong);
+    stroke-width: 1.5;
+}
+
+.ce-dock-preview-art .art-check {
+    fill: none;
+    stroke: #3f6a07;
+    stroke-dasharray: 24;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.5;
+}
+
+/* Animações: só rodam com a prévia visível e quando o sistema permite movimento. */
+@media (prefers-reduced-motion: no-preference) {
+    .ce-dock-preview .art-line {
+        animation: art-dash 1.2s linear infinite;
+    }
+
+    .ce-dock-preview .art-dot--funnel {
+        offset-path: path('M50 48 H84 L106 48 L128 48 C146 48 146 24 164 24');
+        animation: art-travel 2.4s ease-in-out infinite;
+    }
+
+    .ce-dock-preview .art-dot--payment {
+        offset-path: path('M26 48 H62 L90 40 L90 58 L118 68 H150 C164 68 164 48 178 48');
+        animation: art-travel 3s ease-in-out infinite;
+    }
+
+    .ce-dock-preview .art-chip--a {
+        animation: art-refuse 3s ease-in-out infinite;
+    }
+
+    .ce-dock-preview .art-chip--b {
+        animation: art-accept 3s ease-in-out infinite;
+    }
+
+    .ce-dock-preview .art-check,
+    .ce-dock-preview .art-check--late {
+        animation: art-draw 3s ease-in-out infinite;
+    }
+
+    .ce-dock-preview .art-field {
+        transform-box: fill-box;
+        transform-origin: left;
+        animation: art-fill 2.7s ease-in-out infinite;
+    }
+
+    .ce-dock-preview .art-field--2 {
+        animation-delay: 0.3s;
+    }
+
+    .ce-dock-preview .art-field--3 {
+        animation-delay: 0.6s;
+    }
+
+    .ce-dock-preview .art-button {
+        animation: art-pulse 1.6s ease-in-out infinite;
+    }
+}
+
+@keyframes art-dash {
+    to {
+        stroke-dashoffset: -16;
+    }
+}
+
+@keyframes art-travel {
+    0% {
+        offset-distance: 0%;
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        offset-distance: 100%;
+        opacity: 0;
+    }
+}
+
+/* O primeiro gateway recusa (pisca vermelho) e o reserva aprova. */
+@keyframes art-refuse {
+    0%,
+    25%,
+    60%,
+    100% {
+        fill: #fff;
+        stroke: var(--ce-line-strong);
+    }
+
+    35%,
+    50% {
+        fill: #fdecef;
+        stroke: #e0485f;
+    }
+}
+
+@keyframes art-accept {
+    0%,
+    60%,
+    100% {
+        fill: #fff;
+        stroke: var(--ce-line-strong);
+    }
+
+    70%,
+    92% {
+        fill: var(--ce-lime-soft);
+        stroke: var(--ce-lime-strong);
+    }
+}
+
+@keyframes art-draw {
+    0%,
+    55% {
+        stroke-dashoffset: 24;
+    }
+
+    75%,
+    100% {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes art-fill {
+    0% {
+        transform: scaleX(0.08);
+    }
+
+    40%,
+    100% {
+        transform: scaleX(1);
+    }
+}
+
+@keyframes art-pulse {
+    50% {
+        opacity: 0.55;
+    }
+}
+
+/* ------------------------------------------------------------------ Barra de cada área */
+
+/*
+ * Funil, página no construtor e pagamento usam a mesma barra: 60px, identidade à esquerda
+ * (ícone, nome e uma linha), ações à direita e o dock flutuando no centro.
+ */
+.ce-area-bar,
+.ce-page-toolbar,
+.ce-payment-overlay .flow-embedded-toolbar {
+    height: var(--ce-header-height);
+    min-height: var(--ce-header-height);
+    flex: none;
+    gap: 16px;
+    border-bottom: 1px solid var(--ce-line);
+    background: var(--ce-panel);
+    padding: 0 16px;
+}
+
+.ce-board-head.ce-area-bar {
+    padding: 0 16px;
+}
+
+/*
+ * O centro da barra é do dock (largura medida em --ce-dock-width). Cada lado fica com o que
+ * sobra: o nome corta com reticências e, sem espaço, as ações da direita viram só ícones.
+ */
+.astro-checkout-editor {
+    --ce-dock-side: calc(50vw - var(--ce-dock-width, 800px) / 2 - 28px);
+}
+
+.ce-area-bar,
+.ce-payment-overlay .flow-embedded-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ce-area-bar .ce-header-identity,
+.ce-payment-overlay .flow-embedded-toolbar > .ce-area-leading {
+    max-width: max(48px, var(--ce-dock-side));
+    flex: 0 1 auto;
+}
+
+/* No construtor a barra começa depois da biblioteca (e do botão que a mostra). */
+.ce-page-toolbar .ce-header-identity {
+    max-width: max(48px, calc(var(--ce-dock-side) - var(--puck-user-sidebar-left-width) - 56px));
+    flex: 0 1 auto;
+}
+
+.ce-area-actions,
+.ce-payment-overlay .flow-embedded-actions,
+.ce-page-toolbar .ce-header-actions {
+    display: flex;
+    width: max(0px, var(--ce-dock-side));
+    flex: none;
+    justify-content: flex-end;
+    margin-left: auto;
+    container: ce-area-actions / inline-size;
+}
+
+/* Pouco espaço: os botões das ações ficam só com o ícone (o texto vira tamanho zero) e o
+ * nome aparece num balão no hover ou foco, sem mudar o tamanho do botão. O texto do balão
+ * vem de data-area-tip, preenchido pelo editor. Itens de menus e popovers continuam com
+ * texto. */
+@container ce-area-actions (max-width: 460px) {
+    :is(button, a):not([role='menuitem'], li *, .ce-menu *, .custom-select *) {
+        position: relative;
+        gap: 0 !important;
+        font-size: 0 !important;
+    }
+
+    :is(button, a):not([role='menuitem'], li *, .ce-menu *, .custom-select *) > span {
+        font-size: 0 !important;
+    }
+
+    :is(button, a)[data-area-tip]:not(
+            [role='menuitem'],
+            li *,
+            .ce-menu *,
+            .custom-select *
+        )::after {
+        position: absolute;
+        z-index: 90;
+        top: calc(100% + 8px);
+        right: 0;
+        border-radius: 8px;
+        background: #0b0e0d;
+        padding: 5px 9px;
+        color: #f1f2ee;
+        content: attr(data-area-tip);
+        font-size: 11.5px;
+        font-weight: 600;
+        line-height: 1.3;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-2px);
+        transition:
+            opacity 120ms ease,
+            transform 120ms ease;
+    }
+
+    :is(button, a)[data-area-tip]:not([role='menuitem'], li *, .ce-menu *, .custom-select *):is(
+            :hover,
+            :focus-visible
+        )::after {
+        opacity: 1;
+        transform: none;
+        transition-delay: 200ms;
+    }
+}
+
+/* O título padrão do editor de nós usa grade; a identidade daqui é uma linha. */
+.ce-payment-overlay .flow-embedded-toolbar > .ce-area-leading {
+    display: flex;
+    gap: 10px;
+}
+
+.ce-payment-overlay .flow-embedded-toolbar .ce-page-toolbar-title strong {
+    font-size: 13.5px;
+    letter-spacing: normal;
+}
+
+.ce-payment-overlay .flow-embedded-toolbar .ce-page-toolbar-title small {
+    color: var(--ce-text-muted);
+    font-size: 11px;
+}
+
+.ce-page-toolbar-title small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ce-area-leading {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+}
+
+.ce-area-leading .ce-header-identity {
+    min-width: 0;
+}
+
+/* No construtor, a linha de baixo já vem do cabeçalho do Puck que envolve a barra. */
+.ce-page-toolbar {
+    border-bottom: 0;
+}
+
+/*
+ * Barras limpas: o dock é a única peça escura. Nas três áreas o ícone fica num quadrado
+ * claro, o botão da biblioteca ativo é cinza e Editar/Testar é um segmento claro.
+ */
+.ce-header-identity .ce-page-toolbar-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: var(--ce-panel-muted);
+    color: var(--ce-text-secondary);
+}
+
+.ce-library-toggle[data-active='true'] {
+    border-color: var(--ce-line);
+    background: var(--ce-panel-muted);
+    color: var(--ce-text);
+}
+
+:is(.ce-page-toolbar, [class*='_ViewportControls-actionsInner_']) .ce-mode-toggle {
+    height: 36px;
+    border-radius: 10px;
+    background: var(--ce-panel-muted);
+    padding: 3px;
+}
+
+:is(.ce-page-toolbar, [class*='_ViewportControls-actionsInner_']) .ce-mode-option:hover {
+    background: rgb(255 255 255 / 70%);
+}
+
+:is(.ce-page-toolbar, [class*='_ViewportControls-actionsInner_'])
+    .ce-mode-option[aria-checked='true'] {
+    background: var(--ce-panel);
+    color: var(--ce-text);
+    box-shadow:
+        0 1px 2px rgb(17 20 19 / 8%),
+        0 0 0 1px var(--ce-line);
+}
+
+:is(.ce-page-toolbar, [class*='_ViewportControls-actionsInner_'])
+    .ce-mode-option[data-mode='interactive'][aria-checked='true'] {
+    background: var(--ce-lime-soft);
+    color: #3f6a07;
+}
+
+/* Pendências no dock escuro: sem fundo claro; o ícone carrega o estado. */
+.ce-bar .ce-readiness {
+    background: rgb(240 180 77 / 16%);
+    color: #f5c978;
+}
+
+.ce-bar .ce-readiness[data-ready] {
+    background: transparent;
+    color: var(--ce-lime);
+}
+
+.ce-bar .ce-readiness:hover {
+    background: rgb(255 255 255 / 8%);
+}
+
+/*
+ * Áreas do dock (Funil, Checkout, Pagamento e páginas abertas): no hover ou foco, o item
+ * abre o nome e fica verde-limão; a área ativa fica sempre aberta. O nome anima de 0fr a 1fr
+ * (largura exata do texto). O dock fica preso pela borda esquerda (posição de repouso), então
+ * só cresce para a direita: o item sob o cursor não sai do lugar e não há tremor.
+ */
+.ce-bar {
+    justify-content: flex-start;
+}
+
+.ce-bar .ce-dock {
+    --ce-dock-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    margin-left: max(0px, calc(50vw - 12px - var(--ce-dock-width, 800px) / 2));
+    transition: margin-left 320ms var(--ce-dock-ease);
+}
+
+.ce-bar .ce-dock .ce-tab > button:first-child {
+    width: auto;
+    min-width: 36px;
+    justify-content: center;
+    gap: 0;
+    padding: 0 10px;
+    transition:
+        background-color 220ms ease,
+        color 220ms ease,
+        gap 260ms var(--ce-dock-ease) 70ms,
+        padding 260ms var(--ce-dock-ease) 70ms;
+}
+
+/*
+ * Coreografia do nome: ao abrir, o espaço cresce e o texto entra logo depois (fade + leve
+ * deslize); ao fechar, o texto sai primeiro e só então o espaço recolhe. O texto nunca
+ * aparece recortado letra a letra.
+ */
+.ce-bar .ce-dock .ce-dock-label {
+    display: inline-block;
+    max-width: 0;
+    overflow: hidden;
+    transition: max-width 260ms var(--ce-dock-ease) 70ms;
+}
+
+.ce-bar .ce-dock .ce-dock-label > span {
+    display: block;
+    width: max-content;
+    font-size: 12.5px;
+    font-weight: 650;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition:
+        opacity 90ms ease,
+        transform 90ms ease;
+}
+
+.ce-bar .ce-dock .ce-tab > button:first-child:is(:hover, :focus-visible),
+.ce-bar .ce-dock .ce-tab[data-selected] > button:first-child {
+    gap: 9px;
+    background: rgb(163 230 53 / 16%);
+    padding: 0 18px 0 14px;
+    color: #d9f99d;
+    transition:
+        background-color 220ms ease,
+        color 220ms ease,
+        gap 300ms var(--ce-dock-ease),
+        padding 300ms var(--ce-dock-ease);
+}
+
+.ce-bar .ce-dock .ce-tab > button:first-child:is(:hover, :focus-visible) .ce-dock-label,
+.ce-bar .ce-dock .ce-tab[data-selected] > button:first-child .ce-dock-label {
+    max-width: var(--label-w, 120px);
+    transition: max-width 300ms var(--ce-dock-ease);
+}
+
+.ce-bar .ce-dock .ce-tab > button:first-child:is(:hover, :focus-visible) .ce-dock-label > span,
+.ce-bar .ce-dock .ce-tab[data-selected] > button:first-child .ce-dock-label > span {
+    opacity: 1;
+    transform: none;
+    transition:
+        opacity 200ms ease 120ms,
+        transform 260ms var(--ce-dock-ease) 120ms;
+}
+
+.ce-bar .ce-dock .ce-tab > button:first-child svg {
+    flex: none;
+    color: inherit;
+}
+
+/* Página aberta ativa: espaço para o X à direita. */
+.ce-bar .ce-dock .ce-tab[data-kind='open'][data-selected] > button:first-child {
+    padding-right: 34px;
+}
+
+/* Ferramentas: só ícone, realce discreto e o nome no rótulo do hover. */
+.ce-bar .ce-dock .ce-dock-item {
+    width: 36px;
+    padding: 0;
+}
+
+.ce-bar .ce-dock .ce-readiness {
+    gap: 5px;
+    padding: 0 10px;
+}
+
+.ce-bar .ce-dock .ce-readiness:hover {
+    background: rgb(255 255 255 / 8%);
+}
+
+.ce-bar .ce-dock .ce-readiness:not([data-ready]):hover {
+    background: rgb(240 180 77 / 24%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ce-bar .ce-dock,
+    .ce-bar .ce-dock .ce-tab > button:first-child,
+    .ce-bar .ce-dock .ce-dock-label,
+    .ce-bar .ce-dock .ce-dock-label > span {
+        transition: none !important;
+    }
+}
+
+/* Ativa x hover: a área atual é verde sólido; o hover só abre o nome num verde translúcido. */
+.ce-bar .ce-dock .ce-tab[data-selected] > button:first-child,
+.ce-bar .ce-dock .ce-tab[data-selected] > button:first-child:is(:hover, :focus-visible) {
+    background: var(--ce-lime);
+    color: var(--ce-lime-ink);
+}
+
+/*
+ * Dock secundário do construtor (dispositivo, zoom e tela): como a barra de abas de um
+ * celular, colado na borda de baixo, reto embaixo e arredondado em cima; centralizado sobre a
+ * prévia, entre a biblioteca e as propriedades.
+ */
+.astro-checkout-editor [class*='_PuckCanvas-controls_'] {
+    position: fixed !important;
+    z-index: 40;
+    top: auto !important;
+    bottom: 0;
+    left: calc(
+        var(--puck-user-sidebar-left-width) +
+            (100vw - var(--puck-user-sidebar-left-width) - var(--puck-user-sidebar-right-width)) / 2
+    );
+    display: flex;
+    padding: 0 !important;
+    transform: translateX(-50%) !important;
+}
+
+.astro-checkout-editor [class*='_ViewportControls-actionsInner_'] {
+    border: 1px solid var(--ce-line);
+    border-bottom: 0;
+    border-radius: 20px 20px 0 0;
+    background: var(--ce-panel);
+    padding: 7px 10px 9px;
+    box-shadow: 0 -8px 28px rgb(17 20 19 / 10%);
+}
+
+.astro-checkout-editor [class*='_ViewportControls-actionsInner_'] button {
+    border-radius: 999px !important;
+}
+
+html .astro-checkout-editor .ce-zoom-select .custom-select-trigger,
+html .astro-checkout-editor .ce-toolbar-screen .custom-select-trigger {
+    border-radius: 999px !important;
+}
+
+/*
+ * Construtor sem cabeçalho branco: o dock escuro flutua em cima da prévia e os controles da
+ * página (biblioteca, desfazer, Editar/Testar, mais) ficam no dock branco de baixo.
+ */
+.astro-checkout-editor [class*='_PuckLayout-header_'] {
+    display: none !important;
+}
+
+@media (min-width: 638px) {
+    html .astro-checkout-editor [class*='_PuckLayout_'] [class*='_PuckLayout-inner_'] {
+        grid-template-rows: 0 minmax(0, 1fr);
+    }
+}
+
+/* Respiro para os dois docks não cobrirem o topo e o fim da página. */
+.astro-checkout-editor [class*='_PuckCanvas_'] {
+    padding: 70px 24px 70px !important;
+}
+
+/* No dock de baixo: a biblioteca abre o dock e os menus abrem para cima. */
+[class*='_ViewportControls-actionsInner_'] .ce-dock-lead {
+    display: flex;
+    order: -1;
+    align-items: center;
+    gap: 2px;
+}
+
+[class*='_ViewportControls-actionsInner_'] .ce-menu {
+    top: auto;
+    bottom: calc(100% + 12px);
+}
+
+[class*='_ViewportControls-actionsInner_'] .ce-library-toggle,
+[class*='_ViewportControls-actionsInner_'] .ce-dock-lead button,
+[class*='_ViewportControls-actionsInner_'] .ce-more > button {
+    width: 34px;
+    height: 34px;
+    border: 0;
+    background: transparent;
+}
+
+[class*='_ViewportControls-actionsInner_'] .ce-library-toggle[data-active='true'] {
+    background: var(--ce-panel-muted);
+    color: var(--ce-text);
+}
+
+/* Opções do seletor de tela: ícone do tipo + nome inteiro. */
+.ce-screen-option {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
+}
+
+.ce-screen-option > svg {
+    flex: none;
+    color: var(--ce-text-muted);
+}
+
+.ce-screen-option > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

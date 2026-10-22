@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+import { forwardedClientIp } from '@/lib/api/client-ip';
 import { astroApiUrl } from '@/lib/api/config';
 import type { ApiEnvelope, ProblemDetails } from '@/lib/api/types';
 
@@ -17,7 +18,11 @@ export async function POST(request: Request) {
     try {
         const response = await fetch(`${astroApiUrl()}/api/v1/auth/email-verification/request`, {
             method: 'POST',
-            headers: { 'content-type': 'application/json', accept: 'application/json' },
+            headers: {
+                'content-type': 'application/json',
+                accept: 'application/json',
+                ...forwardedClientIp(request.headers),
+            },
             body: JSON.stringify({ email }),
             cache: 'no-store',
         });
