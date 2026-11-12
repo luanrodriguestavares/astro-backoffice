@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { usePathname } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -16,23 +17,31 @@ import {
     toneColor,
 } from '@/lib/orchestration/flow';
 
+import { FlowAiChat } from '@/components/ai/flow-ai-chat';
+import { SparkleIcon } from '@/components/ai/ai-chat';
+
 import { flowTemplates, type FlowTemplate, type TemplateReferences } from './templates';
 
-export type TemplateFilter = 'all' | FlowTemplate['kind'];
+export type TemplateFilter = 'all' | FlowTemplate['kind'] | 'ai';
 
 /** Modal de modelos: miniatura do fluxo, etapas e o efeito de usar cada um. */
 export function TemplateGallery({
     references,
     initialFilter = 'all',
     onUse,
+    onUseAi,
     onClose,
 }: {
     references: TemplateReferences;
     initialFilter?: TemplateFilter;
     onUse(template: FlowTemplate, graph: FlowGraph): void;
+    /** Fluxo gerado no chat de IA: substitui o quadro, como um modelo de roteamento. */
+    onUseAi(graph: FlowGraph): void;
     onClose(): void;
 }) {
     const [filter, setFilter] = useState<TemplateFilter>(initialFilter);
+    // Mesma conversa do assistente flutuante nesta tela.
+    const pathname = usePathname();
     const [query, setQuery] = useState('');
     const built = useMemo(
         () => flowTemplates.map((template) => ({ template, graph: template.build(references) })),
@@ -41,7 +50,7 @@ export function TemplateGallery({
     const term = query.trim().toLowerCase();
     const visible = built.filter(
         ({ template }) =>
-            (filter === 'all' || template.kind === filter) &&
+            (filter === 'all' || filter === 'ai' || template.kind === filter) &&
             (!term || `${template.title} ${template.description}`.toLowerCase().includes(term)),
     );
 
@@ -56,7 +65,7 @@ export function TemplateGallery({
 
     return createPortal(
         <div
-            className="fixed inset-0 z-[90] grid place-items-center bg-[rgb(17_20_19/42%)] p-6 backdrop-blur-[2px]"
+            className="fixed inset-0 z-[90] grid place-items-center bg-[rgb(17_20_19/42%)] p-6 ui-overlay"
             onPointerDown={(event) => {
                 if (event.target === event.currentTarget) onClose();
             }}
@@ -71,13 +80,15 @@ export function TemplateGallery({
                     <div className="min-w-0 flex-1">
                         <h2 className="text-[18px] font-semibold tracking-[-0.02em]">Modelos</h2>
                         <p className="mt-0.5 text-[12.5px] text-muted">
-                            Comece de um fluxo pronto e ajuste depois. Nada muda nas vendas até você
-                            publicar.
+                            {filter === 'ai'
+                                ? 'Descreva o roteamento e a IA monta o fluxo. Nada muda nas vendas até você publicar.'
+                                : 'Comece de um fluxo pronto e ajuste depois. Nada muda nas vendas até você publicar.'}
                         </p>
                     </div>
                     <div className="ui-tabs" role="radiogroup" aria-label="Tipo de modelo">
                         {(
                             [
+                                ['ai', 'Descrever com IA'],
                                 ['all', 'Todos'],
                                 ['routing', 'Roteamento'],
                                 ['automation', 'Automações'],
@@ -90,13 +101,14 @@ export function TemplateGallery({
                                 aria-checked={filter === value}
                                 data-active={filter === value}
                                 onClick={() => setFilter(value)}
-                                className="ui-tab whitespace-nowrap px-3.5 py-1 text-[12px] font-semibold"
+                                className="ui-tab inline-flex items-center gap-1.5 whitespace-nowrap px-3.5 py-1 text-[12px] font-semibold"
                             >
+                                {value === 'ai' && <SparkleIcon className="size-3.5" />}
                                 {label}
                             </Button>
                         ))}
                     </div>
-                    <label className="relative block w-[220px]">
+                    <label className={`relative block w-[220px] ${filter === 'ai' ? 'invisible' : ''}`}>
                         <Icon
                             name="search"
                             className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted"
@@ -120,6 +132,11 @@ export function TemplateGallery({
                     </Button>
                 </header>
 
+                {filter === 'ai' ? (
+                    <div className="min-h-0 flex-1">
+                        <FlowAiChat onApply={onUseAi} storageKey={`payment_flow:${pathname}`} />
+                    </div>
+                ) : (
                 <div className="min-h-0 flex-1 overflow-y-auto p-6">
                     {visible.length === 0 ? (
                         <p className="text-[13px] text-muted">Nenhum modelo encontrado.</p>
@@ -137,6 +154,7 @@ export function TemplateGallery({
                         </ul>
                     )}
                 </div>
+                )}
             </section>
         </div>,
         document.body,

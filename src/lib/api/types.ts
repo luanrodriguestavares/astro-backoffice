@@ -119,6 +119,14 @@ export interface PlatformBillingSummary {
         priceMinor: number;
         currency: string;
         billingInterval: string;
+        /** Faixa do plano; null é ilimitado. */
+        limits: {
+            /** Vendas por mês, em centavos de BRL. */
+            monthlySalesMinor: number | null;
+            publishedCheckouts: number | null;
+            customDomains: number | null;
+            connectedGateways: number | null;
+        };
     }>;
     usage: Array<{
         feature: string;
@@ -231,7 +239,7 @@ export interface Organization {
 
 export interface GatewayConnection {
     id: string;
-    provider: 'mock' | 'stripe' | 'mercado_pago' | 'abacate_pay';
+    provider: 'mock' | 'stripe' | 'mercado_pago' | 'abacate_pay' | 'asaas' | 'paypal';
     name: string;
     environment: 'sandbox' | 'production';
     status: string;
@@ -375,6 +383,8 @@ export interface Payment {
     capturedMinor: number;
     refundedMinor: number;
     paymentMethod: string;
+    /** Cobrança de assinatura. */
+    recurring?: boolean;
     approvedAt: string | null;
     createdAt: string;
     routing?: PaymentRoutingDecision;
@@ -582,6 +592,8 @@ export interface Refund {
     currency: string;
     status: string;
     reason: string | null;
+    failureCode?: string | null;
+    failureMessage?: string | null;
     completedAt: string | null;
     createdAt: string;
     updatedAt: string;

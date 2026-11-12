@@ -32,3 +32,21 @@ export function applySessionCookies(response: NextResponse, session: SessionData
     });
     return response;
 }
+
+export const LOGIN_EMAIL_COOKIE = 'astro_login_email';
+
+/** "Manter conectado" also remembers who signed in, so the login form comes back filled with that e-mail. */
+export function rememberLoginEmail(response: NextResponse, email: string, remember: boolean) {
+    if (!remember) {
+        response.cookies.delete(LOGIN_EMAIL_COOKIE);
+        return response;
+    }
+    response.cookies.set(LOGIN_EMAIL_COOKIE, email, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        maxAge: 365 * 24 * 60 * 60,
+    });
+    return response;
+}

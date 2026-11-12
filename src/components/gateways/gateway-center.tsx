@@ -16,27 +16,12 @@ type Filter = 'all' | 'connected' | 'available';
 
 const catalog = [
     {
-        name: 'PayPal',
-        initials: 'P',
-        color: 'bg-[#003087]',
-        logo: '/gateways/paypal.png',
-        description: 'Carteiras e pagamentos internacionais.',
-    },
-    {
         name: 'Pagar.me',
         initials: 'P',
         color: 'bg-[#54c7a0]',
         logo: '/gateways/pagar-me.png',
         logoFill: true,
         description: 'Cartões, Pix e boleto.',
-    },
-    {
-        name: 'Asaas',
-        initials: 'A',
-        color: 'bg-[#1769e0]',
-        logo: '/gateways/asaas.png',
-        logoFill: true,
-        description: 'Boleto, Pix e cartão.',
     },
     {
         name: 'Cielo',
@@ -231,6 +216,8 @@ function providerName(provider: GatewayConnection['provider']) {
         stripe: 'Stripe',
         mercado_pago: 'Mercado Pago',
         abacate_pay: 'AbacatePay',
+        asaas: 'Asaas',
+        paypal: 'PayPal',
     }[provider];
 }
 

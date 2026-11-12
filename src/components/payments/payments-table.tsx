@@ -7,7 +7,10 @@ import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
 import { TableActionButton } from '@/components/ui/table-action-button';
-import type { Customer, GatewayConnection, Payment } from '@/lib/api/types';
+import { canRefund as refundable, RefundModal } from '@/components/payments/refund-modal';
+import { hasReceipt, ReceiptModal } from '@/components/payments/receipt-modal';
+import type { Customer, GatewayConnection, Payment, Refund } from '@/lib/api/types';
+import { refundableMinor, refundStatusLabels } from '@/lib/payments/refunds';
 import { declineLabel, retryAdviceFor, retryAdviceLabels } from '@/lib/payments/decline';
 import { paymentStatusLabel, paymentStatusLabels } from '@/lib/commerce-status';
 
@@ -19,12 +22,16 @@ export function PaymentsTable({
     gateways,
     highlightedPaymentId,
     initialQuery = '',
+    canRefund = false,
+    refunds = [],
 }: {
     payments: Payment[];
     customers: Customer[];
     gateways: GatewayConnection[];
     highlightedPaymentId?: string;
     initialQuery?: string;
+    canRefund?: boolean;
+    refunds?: Refund[];
 }) {
     const customerById = useMemo(
         () => new Map(customers.map((item) => [item.id, item])),
@@ -32,6 +39,8 @@ export function PaymentsTable({
     );
     const gatewayById = useMemo(() => new Map(gateways.map((item) => [item.id, item])), [gateways]);
     const [selected, setSelected] = useState<Payment>();
+    const [refundTarget, setRefundTarget] = useState<Payment>();
+    const [receiptTarget, setReceiptTarget] = useState<Payment>();
     const [query, setQuery] = useState(initialQuery);
     const [status, setStatus] = useState('all');
     const [pageSize, setPageSize] = useState(10);
@@ -169,11 +178,29 @@ export function PaymentsTable({
                                             {dateTime(payment.createdAt)}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <TableActionButton
-                                                label="Visualizar pagamento"
-                                                icon="eye"
-                                                onClick={() => setSelected(payment)}
-                                            />
+                                            <span className="inline-flex gap-1">
+                                                {hasReceipt(payment) && (
+                                                    <TableActionButton
+                                                        label="Comprovante"
+                                                        icon="download"
+                                                        onClick={() => setReceiptTarget(payment)}
+                                                    />
+                                                )}
+                                                {canRefund &&
+                                                    refundable(payment) &&
+                                                    refundableMinor(payment, refunds) > 0 && (
+                                                        <TableActionButton
+                                                            label="Reembolsar"
+                                                            icon="refund"
+                                                            onClick={() => setRefundTarget(payment)}
+                                                        />
+                                                    )}
+                                                <TableActionButton
+                                                    label="Visualizar pagamento"
+                                                    icon="eye"
+                                                    onClick={() => setSelected(payment)}
+                                                />
+                                            </span>
                                         </td>
                                     </tr>
                                 );
@@ -348,15 +375,82 @@ export function PaymentsTable({
                                     }
                                 />
                             </DetailSection>
+                            {refunds.some((refund) => refund.paymentId === selected.id) && (
+                                <DetailSection title="Reembolsos">
+                                    {refunds
+                                        .filter((refund) => refund.paymentId === selected.id)
+                                        .map((refund) => (
+                                            <Detail
+                                                key={refund.id}
+                                                label={`${money(refund.amountMinor, refund.currency)} · ${dateTime(refund.createdAt)}`}
+                                                value={
+                                                    refundStatusLabels[refund.status] ??
+                                                    refund.status
+                                                }
+                                                detail={
+                                                    refund.status === 'failed'
+                                                        ? (refund.failureMessage ??
+                                                          'O gateway recusou o reembolso.')
+                                                        : refund.status === 'succeeded'
+                                                          ? (refund.reason ?? undefined)
+                                                          : refund.failureCode ===
+                                                              'refund_outcome_unknown'
+                                                            ? (refund.failureMessage ??
+                                                              'O gateway não confirmou o reembolso. O valor fica reservado; confira no painel do gateway.')
+                                                            : 'Aguardando a confirmação do gateway; atualiza sozinho.'
+                                                }
+                                            />
+                                        ))}
+                                </DetailSection>
+                            )}
+                            {selected.status === 'disputed' && (
+                                <p className="mt-4 rounded-xl border border-[#f2cbd0] bg-[#fff6f7] p-3 text-[12px] leading-5 text-danger">
+                                    Pagamento em disputa (chargeback). Responda pelo painel do
+                                    gateway: reembolsar agora faria você perder o valor duas vezes.
+                                </p>
+                            )}
                         </ModalBody>
                         <ModalFooter>
                             <Button variant="secondary" onClick={() => setSelected(undefined)}>
                                 Fechar
                             </Button>
+                            {hasReceipt(selected) && (
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => {
+                                        setReceiptTarget(selected);
+                                        setSelected(undefined);
+                                    }}
+                                >
+                                    <Icon name="download" className="size-3.5" /> Comprovante
+                                </Button>
+                            )}
+                            {canRefund &&
+                                refundable(selected) &&
+                                refundableMinor(selected, refunds) > 0 && (
+                                    <Button
+                                        variant="primary"
+                                        onClick={() => {
+                                            setRefundTarget(selected);
+                                            setSelected(undefined);
+                                        }}
+                                    >
+                                        <Icon name="refund" className="size-3.5" /> Reembolsar
+                                    </Button>
+                                )}
                         </ModalFooter>
                     </>
                 )}
             </Modal>
+            <RefundModal
+                payment={refundTarget}
+                availableMinor={refundTarget ? refundableMinor(refundTarget, refunds) : 0}
+                customerName={
+                    refundTarget ? customerById.get(refundTarget.customerId)?.name : undefined
+                }
+                onClose={() => setRefundTarget(undefined)}
+            />
+            <ReceiptModal payment={receiptTarget} onClose={() => setReceiptTarget(undefined)} />
         </>
     );
 }

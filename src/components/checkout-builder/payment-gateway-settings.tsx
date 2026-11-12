@@ -348,6 +348,8 @@ function providerLabel(provider: GatewayConnection['provider']) {
         stripe: 'Stripe',
         mercado_pago: 'Mercado Pago',
         abacate_pay: 'AbacatePay',
+        asaas: 'Asaas',
+        paypal: 'PayPal',
         mock: 'Mock',
     }[provider];
 }

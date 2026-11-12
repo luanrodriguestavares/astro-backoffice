@@ -73,7 +73,7 @@ export function AdminShell({ user, children }: { user: CurrentUser; children: Re
             {mobileOpen && (
                 <Button
                     aria-label="Fechar menu"
-                    className="fixed inset-0 z-30 bg-[#111111]/35 backdrop-blur-sm lg:hidden"
+                    className="fixed inset-0 z-30 bg-[#111111]/35 ui-overlay lg:hidden"
                     onClick={() => setMobileOpen(false)}
                 />
             )}

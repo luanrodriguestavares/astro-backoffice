@@ -1,5 +1,7 @@
 import { ResourceStatus, ResourceTable } from '@/components/ui/resource-table';
 
+import { WebhookTestButton } from './webhook-test-button';
+
 export type WebhookEndpointRow = {
     id: string;
     name?: string;
@@ -27,6 +29,11 @@ export function WebhookEndpointTable({ endpoints }: { endpoints: WebhookEndpoint
                     value: (row) => row.status,
                     render: (row: WebhookEndpointRow) => <ResourceStatus value={row.status} />,
                 },
+                {
+                    label: 'Teste',
+                    value: () => '',
+                    render: (row: WebhookEndpointRow) => <WebhookTestButton id={row.id} />,
+                },
             ]}
         />
     );
@@ -38,6 +45,8 @@ function eventLabel(value: string) {
         'payment.failed': 'Pagamento falhou',
         'payment.canceled': 'Pagamento cancelado',
         'payment.refunded': 'Pagamento reembolsado',
+        'payment.partially_refunded': 'Pagamento reembolsado em parte',
+        'payment.disputed': 'Pagamento contestado (chargeback)',
         'subscription.created': 'Assinatura criada',
         'subscription.activated': 'Assinatura ativada',
         'subscription.renewed': 'Assinatura renovada',

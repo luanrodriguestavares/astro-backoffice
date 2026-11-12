@@ -20,11 +20,11 @@ export default async function VerifyEmailPage({
 }) {
     const { token = '', email = '', error, message } = await searchParams;
     return (
-        <div className="relative grid min-h-screen place-items-center overflow-hidden bg-background px-4 py-10">
+        <div className="auth-stage relative grid min-h-screen place-items-center overflow-hidden px-4 py-10">
             <AuthToast message={error ?? message} tone={error ? 'error' : 'info'} />
             <section className="relative w-full max-w-[430px]">
                 <div className="mb-6 flex justify-center">
-                    <Brand href="/login" tone="dark" />
+                    <Brand href="/login" tone="light" />
                 </div>
                 <div className="rounded-[30px] border border-border bg-surface p-7 shadow-[0_24px_72px_rgb(16_18_20_/_8%)] sm:p-9">
                     <span className="grid size-10 place-items-center rounded-2xl bg-brand-soft text-brand-strong">
@@ -72,7 +72,7 @@ export default async function VerifyEmailPage({
                                         required
                                         defaultValue={email}
                                         autoComplete="email"
-                                        className="mt-2 h-11 w-full rounded-xl border border-[#e2e2e2] bg-white/75 px-3.5 text-[13px] outline-none focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]"
+                                        className="mt-2 h-11 w-full rounded-full border border-[#e2e2e2] bg-white/75 px-4 text-[13px] outline-none focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]"
                                     />
                                 </label>
                                 <Button type="submit" variant="secondary" className="w-full">

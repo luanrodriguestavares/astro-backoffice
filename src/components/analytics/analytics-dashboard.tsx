@@ -441,7 +441,7 @@ function ReportVisualization({ kind, result }: { kind: ChartKind; result: Report
                             : 310,
                 }}
             >
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" debounce={250}>
                     <Chart
                         data={result.rows}
                         layout={kind === 'bar' ? 'vertical' : 'horizontal'}

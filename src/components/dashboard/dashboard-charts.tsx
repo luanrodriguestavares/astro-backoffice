@@ -27,6 +27,26 @@ type RevenuePoint = { date: string; label: string; value: number };
 
 type Period = DashboardPeriod;
 
+/*
+ * Gráficos só se redimensionam no fim de uma mudança de largura (ex.: recolher a sidebar), e não
+ * a cada quadro da transição: re-renderizar o SVG do Recharts por quadro travava a animação.
+ */
+const chartResizeDebounce = 250;
+
+/*
+ * O Recharts reanima a série inteira em JavaScript sempre que os pontos mudam de posição, o que
+ * inclui cada redimensionamento. A entrada anima uma vez por conjunto de dados (`key`); depois,
+ * mudanças só de largura redesenham direto, sem 850ms de animação quadro a quadro.
+ */
+function useEntranceAnimation(key: unknown) {
+    const [state, setState] = useState({ key, done: false });
+    if (state.key !== key) setState({ key, done: false });
+    return {
+        isAnimationActive: !(state.key === key && state.done),
+        onAnimationEnd: () => setState({ key, done: true }),
+    };
+}
+
 export function RevenueAreaChart({
     points,
     hourlyPoints,
@@ -50,6 +70,7 @@ export function RevenueAreaChart({
         [hourlyPoints, period, points],
     );
     const empty = data.every((point) => point.value === 0);
+    const entrance = useEntranceAnimation(data);
     const selectedRange = useMemo(
         () => (selection ? rangeSummary(data, selection.start, selection.end) : null),
         [data, selection],
@@ -77,7 +98,7 @@ export function RevenueAreaChart({
     return (
         <div className="mt-5">
             <div className="dashboard-chart relative h-[260px] w-full select-none sm:h-[290px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" debounce={chartResizeDebounce}>
                     <AreaChart
                         data={data}
                         margin={{ top: 12, right: 8, left: -18, bottom: 0 }}
@@ -155,6 +176,7 @@ export function RevenueAreaChart({
                             strokeWidth={2.2}
                             fill="url(#revenueArea)"
                             animationDuration={850}
+                            {...entrance}
                             activeDot={{
                                 r: 4.5,
                                 fill: 'var(--chart-primary)',
@@ -331,7 +353,7 @@ const gatewayColors = ['var(--chart-primary)', '#2bb5a0', '#b9b3f5', '#c9c9c9', 
 const ring = { inner: 0.64, outer: 0.88 };
 const ringGradientId = 'gateway-ring-gradient';
 
-/** Preenchimento do primeiro gateway: lima com variação tonal suave e sem relevo. */
+/** Preenchimento do primeiro gateway: menta com variação tonal suave e sem relevo. */
 const primaryRingFill = `url(#${ringGradientId})`;
 
 /**
@@ -344,12 +366,12 @@ function RingGradient() {
             <linearGradient id={ringGradientId} x1="0%" y1="20%" x2="100%" y2="80%">
                 <stop
                     offset="0%"
-                    style={{ stopColor: 'color-mix(in srgb, var(--chart-primary) 76%, #dfff72)' }}
+                    style={{ stopColor: 'color-mix(in srgb, var(--chart-primary) 76%, #7ff0b0)' }}
                 />
                 <stop offset="48%" style={{ stopColor: 'var(--chart-primary)' }} />
                 <stop
                     offset="72%"
-                    style={{ stopColor: 'color-mix(in srgb, var(--chart-primary) 72%, #dfff72)' }}
+                    style={{ stopColor: 'color-mix(in srgb, var(--chart-primary) 72%, #7ff0b0)' }}
                 />
                 <stop
                     offset="100%"
@@ -362,6 +384,7 @@ function RingGradient() {
 
 export function GatewayDonut({ data, currency }: { data: GatewayDatum[]; currency: string }) {
     const total = data.reduce((sum, item) => sum + item.value, 0);
+    const entrance = useEntranceAnimation(`${data.length}:${total}`);
     const chartData = data.length
         ? data
         : [{ id: 'empty', name: 'Sem vendas', provider: 'other', value: 1 }];
@@ -369,7 +392,7 @@ export function GatewayDonut({ data, currency }: { data: GatewayDatum[]; currenc
     return (
         <div className="mt-4 grid min-h-[280px] flex-1 content-center items-center gap-5 sm:grid-cols-[minmax(180px,.95fr)_minmax(180px,1.05fr)]">
             <div className="dashboard-chart relative z-10 mx-auto h-[230px] w-full max-w-[250px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" debounce={chartResizeDebounce}>
                     <PieChart>
                         {data.length > 0 && <RingGradient />}
                         <Pie
@@ -383,6 +406,7 @@ export function GatewayDonut({ data, currency }: { data: GatewayDatum[]; currenc
                             // Com uma fatia só, a borda vira um risco no início do anel.
                             strokeWidth={data.length > 1 ? 2 : 0}
                             animationDuration={900}
+                            {...entrance}
                         >
                             {chartData.map((item, index) => (
                                 <Cell
@@ -487,30 +511,29 @@ export function MetricChart({
     const data = values.map((value, index) => ({ index, value }));
     return (
         <div className="dashboard-chart h-10 w-[86px] shrink-0 opacity-85 transition group-hover:opacity-100">
-            <ResponsiveContainer width="100%" height="100%">
-                {type === 'bar' ? (
-                    <BarChart data={data} barCategoryGap={3}>
-                        <Bar
-                            dataKey="value"
-                            fill={color}
-                            radius={[2, 2, 0, 0]}
-                            animationDuration={650}
-                        />
-                    </BarChart>
-                ) : (
-                    <AreaChart data={data}>
-                        <Area
-                            type="monotone"
-                            dataKey="value"
-                            stroke={color}
-                            strokeWidth={1.7}
-                            fill="none"
-                            dot={false}
-                            animationDuration={650}
-                        />
-                    </AreaChart>
-                )}
-            </ResponsiveContainer>
+            {/* Tamanho fixo: sem ResponsiveContainer, o mini gráfico não reage a redimensionamentos. */}
+            {type === 'bar' ? (
+                <BarChart width={86} height={40} data={data} barCategoryGap={3}>
+                    <Bar
+                        dataKey="value"
+                        fill={color}
+                        radius={[2, 2, 0, 0]}
+                        animationDuration={650}
+                    />
+                </BarChart>
+            ) : (
+                <AreaChart width={86} height={40} data={data}>
+                    <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke={color}
+                        strokeWidth={1.7}
+                        fill="none"
+                        dot={false}
+                        animationDuration={650}
+                    />
+                </AreaChart>
+            )}
         </div>
     );
 }
@@ -565,7 +588,11 @@ function gatewayInitial(provider: string) {
           ? 'MP'
           : provider === 'abacate_pay'
             ? 'A'
-            : '＋';
+            : provider === 'asaas'
+              ? 'AS'
+              : provider === 'paypal'
+                ? 'PP'
+                : '＋';
 }
 
 function compactMoney(value: number, currency: string) {

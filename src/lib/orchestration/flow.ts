@@ -603,7 +603,7 @@ export function nodeColor(type: FlowNodeType) {
     switch (type) {
         case 'trigger':
         case 'event_trigger':
-            return '#a3e635';
+            return '#2ee37f';
         case 'condition':
         case 'switch':
         case 'split':

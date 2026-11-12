@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
+import { AiAssistantProvider } from '@/components/ai/ai-assistant';
 import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { apiFetch, AstroApiError } from '@/lib/api/server';
 import { currentOrganization, currentUser } from '@/lib/auth/permissions';
@@ -14,6 +15,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             .map((entitlement) => entitlement.feature),
     };
     return (
+        <AiAssistantProvider>
         <DashboardShell
             user={user}
             organization={organization}
@@ -22,6 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         >
             {children}
         </DashboardShell>
+        </AiAssistantProvider>
     );
 }
 

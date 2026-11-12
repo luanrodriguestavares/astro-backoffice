@@ -63,7 +63,7 @@ export function ProfileMenu({
                         : 'shell-profile shell-header-control group flex min-h-11 items-center gap-2.5 rounded-2xl px-1.5 py-1 text-left transition hover:-translate-y-0.5'
                 }
             >
-                <span className="shell-avatar grid size-9 shrink-0 place-items-center rounded-full bg-highlight text-[10px] font-bold text-highlight-contrast">
+                <span className="shell-avatar grid size-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[.05] text-[10px] font-semibold text-foreground">
                     {initials(user.name)}
                 </span>
                 <span

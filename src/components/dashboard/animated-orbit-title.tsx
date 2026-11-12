@@ -28,18 +28,12 @@ export function AnimatedOrbitTitle() {
             </motion.span>
             <motion.span
                 aria-hidden="true"
-                className="relative isolate inline-block"
+                className="astro-title-highlight inline-block"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.06, duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
             >
-                <motion.span
-                    className="absolute inset-x-[-0.08em] bottom-[0.06em] top-[0.18em] -z-10 origin-left rounded-[0.12em] bg-highlight"
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ delay: 0.12, duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-                />
-                <span className="relative text-highlight-contrast">sob controle.</span>
+                sob controle.
             </motion.span>
         </span>
     );

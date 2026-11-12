@@ -9,8 +9,8 @@
 
 .astro-checkout-editor {
     /* Superfície escura da biblioteca. */
-    --ce-ink: #111514;
-    --ce-ink-raised: #1b201e;
+    --ce-ink: #131313;
+    --ce-ink-raised: #1c1c1c;
     --ce-ink-hover: rgb(255 255 255 / 4.5%);
     --ce-ink-line: rgb(255 255 255 / 7%);
     --ce-ink-line-strong: rgb(255 255 255 / 8%);
@@ -27,12 +27,12 @@
     --ce-text-secondary: #464d4a;
     --ce-text-muted: #737b77;
     /* Lima da marca: seleção, indicadores e a ação principal. */
-    --ce-lime: #a3e635;
-    --ce-lime-hover: #b5ef55;
-    --ce-lime-strong: #7fc21a;
-    --ce-lime-ink: #132000;
-    --ce-lime-soft: #f1fadf;
-    --ce-focus: 0 0 0 3px rgb(163 230 53 / 32%);
+    --ce-lime: #2ee37f;
+    --ce-lime-hover: #5ef09e;
+    --ce-lime-strong: #22c46c;
+    --ce-lime-ink: #04170c;
+    --ce-lime-soft: #e6fbef;
+    --ce-focus: 0 0 0 3px rgb(46 227 127 / 32%);
     /* Barra do workspace (abas) e barra de ferramentas da página no builder. */
     --ce-bar-height: 60px;
     --ce-header-height: 60px;
@@ -57,7 +57,7 @@
     --puck-color-interactive-soft-hover: var(--ce-panel-muted);
     --puck-color-interactive-subtle: var(--ce-panel-muted);
     --puck-color-interactive-neutral-hover: var(--ce-panel-muted);
-    --puck-color-focus-ring: rgb(127 194 26 / 55%);
+    --puck-color-focus-ring: rgb(46 227 127 / 55%);
     --puck-color-selection-border: var(--ce-lime-strong);
     --puck-color-selection-bg: transparent;
     --puck-radius-m: 10px;
@@ -1481,7 +1481,7 @@ html .astro-checkout-editor .ce-zoom-select .custom-select-trigger[data-open='tr
     flex: none;
     border-radius: 50%;
     background: var(--ce-lime);
-    box-shadow: 0 0 0 4px rgb(163 230 53 / 18%);
+    box-shadow: 0 0 0 4px rgb(46 227 127 / 18%);
 }
 
 .ce-test-bar-text {
@@ -1704,7 +1704,7 @@ html .astro-checkout-editor .ce-zoom-select .custom-select-trigger[data-open='tr
 }
 
 .ce-flow-sidebar-pages > button:hover {
-    border-color: rgb(163 230 53 / 28%);
+    border-color: rgb(46 227 127 / 28%);
 }
 
 .ce-flow-sidebar-index {
@@ -1744,7 +1744,7 @@ html .astro-checkout-editor .ce-zoom-select .custom-select-trigger[data-open='tr
 
 .ce-flow-sidebar-pages i {
     border-radius: 999px;
-    background: rgb(163 230 53 / 12%);
+    background: rgb(46 227 127 / 12%);
     padding: 3px 6px;
     color: var(--ce-lime);
     font-size: 8.5px;
@@ -1770,7 +1770,7 @@ html .astro-checkout-editor .ce-zoom-select .custom-select-trigger[data-open='tr
 }
 
 .ce-flow-sidebar-add:hover {
-    border-color: rgb(163 230 53 / 38%);
+    border-color: rgb(46 227 127 / 38%);
     color: var(--ce-lime);
 }
 
@@ -1831,7 +1831,7 @@ html .astro-checkout-editor .ce-sidebar-page-switcher .custom-select-trigger {
 }
 
 .ce-sidebar-page-action:hover {
-    border-color: rgb(163 230 53 / 28%);
+    border-color: rgb(46 227 127 / 28%);
     color: var(--ce-ink-text);
 }
 
@@ -1851,8 +1851,8 @@ html .astro-checkout-editor .ce-sidebar-page-switcher .custom-select-trigger {
 }
 
 .ce-search:focus-within {
-    border-color: rgb(163 230 53 / 55%);
-    box-shadow: 0 0 0 3px rgb(163 230 53 / 12%);
+    border-color: rgb(46 227 127 / 55%);
+    box-shadow: 0 0 0 3px rgb(46 227 127 / 12%);
     color: var(--ce-ink-text);
 }
 
@@ -2158,7 +2158,7 @@ html .astro-checkout-editor .ce-sidebar-page-switcher .custom-select-trigger {
 .ce-block-badge {
     flex: none;
     border-radius: 999px;
-    background: rgb(163 230 53 / 12%);
+    background: rgb(46 227 127 / 12%);
     padding: 3px 7px;
     color: var(--ce-lime);
     font-size: 10px;
@@ -2177,7 +2177,7 @@ html .astro-checkout-editor .ce-sidebar-page-switcher .custom-select-trigger {
 /* Cópia que acompanha o cursor durante o arraste. */
 [data-dnd-overlay] [data-puck-drawer-item],
 [data-dnd-dragging][data-puck-drawer-item] {
-    border: 1px solid rgb(163 230 53 / 55%) !important;
+    border: 1px solid rgb(46 227 127 / 55%) !important;
     border-radius: 10px;
     background: var(--ce-ink-hover, #1d2220) !important;
     box-shadow: 0 14px 34px rgb(0 0 0 / 28%);
@@ -2188,6 +2188,8 @@ html .astro-checkout-editor .ce-sidebar-page-switcher .custom-select-trigger {
 
 .astro-checkout-editor [class*='_PuckCanvas_'] {
     background: var(--ce-workspace) !important;
+    /* Os dois cantos junto da barra escura arredondam igual (antes só o de baixo). */
+    border-top-left-radius: 24px;
     border-bottom-left-radius: 24px;
     padding: 20px 24px 24px !important;
 }
@@ -2417,7 +2419,7 @@ html .astro-checkout-editor .ce-sidebar-page-switcher .custom-select-trigger {
 
 .ce-tablet-url svg {
     flex: none;
-    color: #7fc21a;
+    color: #22c46c;
 }
 
 .ce-tablet-url span {
@@ -2564,7 +2566,7 @@ html .astro-checkout-editor .ce-sidebar-page-switcher .custom-select-trigger {
     --puck-field-color-text-active: var(--ce-text);
     --puck-field-color-border: #dadedc;
     --puck-field-color-border-hover: #c3c9c6;
-    --puck-field-color-border-focus: rgb(163 230 53 / 45%);
+    --puck-field-color-border-focus: rgb(46 227 127 / 45%);
     --puck-field-radius: 10px;
     --puck-field-font-size: 12.5px;
     --puck-field-space-y: 10px;
@@ -2956,7 +2958,7 @@ html body:has(.astro-checkout-editor) .custom-select-popover [role='option']:hov
 }
 
 html body:has(.astro-checkout-editor) .custom-select-popover [role='option'][aria-selected='true'] {
-    background: #f1fadf !important;
+    background: #e6fbef !important;
     color: #2f5304 !important;
 }
 
@@ -3171,7 +3173,7 @@ html body:has(.astro-checkout-editor) .custom-select-popover [role='option'][ari
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--ce-lime-strong, #7fc21a);
+    background: var(--ce-lime-strong, #22c46c);
 }
 
 .checkout-preset-description {
@@ -3273,7 +3275,7 @@ html body:has(.astro-checkout-editor) .custom-select-popover [role='option'][ari
 
 .ce-bar .ce-status[data-state='saved'],
 .ce-bar .ce-status[data-state='published'] {
-    background: rgb(163 230 53 / 12%);
+    background: rgb(46 227 127 / 12%);
     color: #c4f27a;
 }
 
@@ -3357,7 +3359,7 @@ html body:has(.astro-checkout-editor) .custom-select-popover [role='option'][ari
 }
 
 .ce-tab[data-drop-target] {
-    border-color: rgb(163 230 53 / 55%);
+    border-color: rgb(46 227 127 / 55%);
     box-shadow: -3px 0 0 var(--ce-lime);
 }
 
@@ -3367,8 +3369,8 @@ html body:has(.astro-checkout-editor) .custom-select-popover [role='option'][ari
 }
 
 .ce-tab[data-selected] {
-    border-color: rgb(163 230 53 / 22%);
-    background: rgb(163 230 53 / 10%);
+    border-color: rgb(46 227 127 / 22%);
+    background: rgb(46 227 127 / 10%);
     color: var(--ce-ink-text);
 }
 
@@ -3966,7 +3968,7 @@ html body:has(.astro-checkout-editor) .custom-select-popover [role='option'][ari
 /* Nó Pagamento: o elemento crítico do funil, com destaque próprio. */
 .react-flow__node:has(.ce-payment-node-body) .flow-card {
     border: 2px solid var(--ce-lime-strong);
-    box-shadow: 0 8px 24px rgb(127 194 26 / 18%);
+    box-shadow: 0 8px 24px rgb(46 227 127 / 18%);
 }
 
 .ce-payment-node-body {
@@ -4903,9 +4905,9 @@ html body:has(.astro-checkout-editor) .custom-select-popover [role='option'][ari
 .ce-bar .ce-dock .ce-tab > button:first-child:is(:hover, :focus-visible),
 .ce-bar .ce-dock .ce-tab[data-selected] > button:first-child {
     gap: 9px;
-    background: rgb(163 230 53 / 16%);
+    background: rgb(46 227 127 / 16%);
     padding: 0 18px 0 14px;
-    color: #d9f99d;
+    color: #b7f5d0;
     transition:
         background-color 220ms ease,
         color 220ms ease,

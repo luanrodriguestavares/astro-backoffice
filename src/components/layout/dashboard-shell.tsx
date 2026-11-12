@@ -4,19 +4,19 @@ import { Button } from '@/components/ui/button';
 
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 import { Brand } from '@/components/brand';
 import { isHiddenInV1 } from '@/lib/features/release';
 import { AppearanceOnboarding } from '@/components/dashboard/appearance-onboarding';
-import { setAccentTheme } from '@/components/layout/accent-theme-controller';
 import { HeaderSearch } from '@/components/layout/header-search';
 import { NotificationCenter } from '@/components/layout/notification-center';
 import { ProfileMenu } from '@/components/layout/profile-menu';
 import { ShellActionsProvider } from '@/components/layout/shell-actions';
 import { WorkspaceSwitcher } from '@/components/layout/workspace-switcher';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { ScrollThumb } from '@/components/ui/scroll-thumb';
 import type { CurrentUser, Organization } from '@/lib/api/types';
 import { canAccessNavigationItem } from '@/lib/navigation/access';
 
@@ -303,6 +303,16 @@ export function DashboardShell({
     const appearanceOnboarding = searchParams.get('onboarding') === 'appearance';
     const [open, setOpen] = useState(false);
     const [collapsed, setCollapsed] = useState(false);
+    // Na troca recolher/expandir os grupos abrem e fecham sem animar a altura: animar todos de
+    // uma vez, junto com a largura da sidebar, refazia o layout do menu a cada quadro.
+    const [collapseChanging, setCollapseChanging] = useState(false);
+    const collapseTimer = useRef(0);
+    function toggleCollapsed() {
+        setCollapseChanging(true);
+        setCollapsed((value) => !value);
+        window.clearTimeout(collapseTimer.current);
+        collapseTimer.current = window.setTimeout(() => setCollapseChanging(false), 260);
+    }
     const dashboardTheme = useSyncExternalStore(
         subscribeDashboardTheme,
         getDashboardTheme,
@@ -340,6 +350,7 @@ export function DashboardShell({
             pathname,
         );
     const dashboardDark = dashboardTheme === 'dark';
+    const scrollArea = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         document.documentElement.classList.toggle('astro-dark-portals', dashboardDark);
@@ -349,10 +360,6 @@ export function DashboardShell({
             document.documentElement.classList.remove('dashboard-dark');
         };
     }, [dashboardDark]);
-
-    useEffect(() => {
-        setAccentTheme(organization.accentTheme ?? 'astro');
-    }, [organization.accentTheme]);
 
     useEffect(() => {
         if (inaccessibleRoute !== undefined) router.replace('/settings?view=plan');
@@ -398,14 +405,14 @@ export function DashboardShell({
                 <Button
                     type="button"
                     aria-label="Fechar menu"
-                    className="fixed inset-0 z-30 bg-[#111111]/20 backdrop-blur-sm lg:hidden"
+                    className="fixed inset-0 z-30 bg-[#111111]/20 ui-overlay lg:hidden"
                     onClick={() => setOpen(false)}
                 />
             )}
 
             <aside
                 data-tour="main-navigation"
-                className={`astro-sidebar fixed inset-y-0 left-0 z-40 flex w-[280px] flex-col px-4 py-5 transition-all duration-200 ease-out max-lg:border-r max-lg:border-border max-lg:bg-surface/96 max-lg:shadow-[18px_0_50px_rgb(16_18_20_/_8%)] max-lg:backdrop-blur-md lg:sticky lg:top-0 lg:h-screen lg:w-auto ${collapsed ? 'lg:px-2.5' : ''} ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+                className={`astro-sidebar fixed inset-y-0 left-0 z-40 flex w-[280px] flex-col px-4 py-5 transition-[transform,padding] duration-200 ease-out max-lg:border-r max-lg:border-border max-lg:bg-surface/96 max-lg:shadow-[18px_0_50px_rgb(16_18_20_/_8%)] max-lg:backdrop-blur-md lg:sticky lg:top-0 lg:h-screen lg:w-auto ${collapsed ? 'lg:px-2.5' : ''} ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
             >
                 <Button
                     type="button"
@@ -413,7 +420,7 @@ export function DashboardShell({
                     aria-expanded={!collapsed}
                     title={collapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
                     className="sidebar-collapse-control shell-header-control absolute -right-3 top-[50px] z-10 hidden size-7 place-items-center rounded-full text-muted shadow-[0_8px_22px_color-mix(in_srgb,var(--brand)_10%,transparent)] transition hover:scale-105 hover:text-brand lg:grid"
-                    onClick={() => setCollapsed((value) => !value)}
+                    onClick={toggleCollapsed}
                 >
                     <Icon
                         name="arrow-right"
@@ -458,6 +465,7 @@ export function DashboardShell({
                             expanded={collapsed || expandedGroup === group.label}
                             containsActive={activeGroup === group.label}
                             collapsed={collapsed}
+                            instant={collapseChanging}
                             onToggle={() =>
                                 setExpandedGroup((current) =>
                                     current === group.label ? null : group.label,
@@ -499,7 +507,11 @@ export function DashboardShell({
 
             <div className="astro-shell-panel relative z-10 min-w-0 lg:h-screen lg:overflow-hidden lg:rounded-l-[24px]">
                 <AmbientBackground />
-                <div className="astro-shell-scroll relative lg:h-full lg:overflow-y-auto">
+                <ScrollThumb target={scrollArea} />
+                <div
+                    ref={scrollArea}
+                    className="astro-shell-scroll relative lg:h-full lg:overflow-y-auto"
+                >
                     <header className="astro-topbar sticky top-0 z-20 flex h-16 items-center gap-3 bg-gradient-to-b from-background/95 via-background/75 to-transparent px-4 backdrop-blur-xl sm:px-6 lg:hidden">
                         <Button
                             type="button"
@@ -554,6 +566,7 @@ function NavGroup({
     expanded,
     containsActive,
     collapsed,
+    instant,
     onToggle,
     children,
 }: {
@@ -562,11 +575,12 @@ function NavGroup({
     expanded: boolean;
     containsActive: boolean;
     collapsed: boolean;
+    instant: boolean;
     onToggle: () => void;
     children: React.ReactNode;
 }) {
     const reduceMotion = useReducedMotion();
-    const transition = reduceMotion ? { duration: 0 } : navGroupTransition;
+    const transition = reduceMotion || instant ? { duration: 0 } : navGroupTransition;
 
     return (
         <div className="astro-nav-group" data-collapsed={collapsed}>
@@ -647,7 +661,7 @@ function NavItem({
                 title={collapsed ? `${label}${badge ? ` · ${badge}` : ''}` : undefined}
                 aria-label={collapsed ? label : undefined}
                 data-active={active}
-                className={`astro-nav-item group relative flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-medium text-muted transition-all duration-200 hover:bg-foreground/[0.04] hover:text-foreground ${collapsed ? 'lg:justify-center lg:gap-0 lg:px-2' : ''}`}
+                className={`astro-nav-item group relative flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-medium text-muted transition-[background-color,color,box-shadow] duration-200 hover:bg-foreground/[0.04] hover:text-foreground ${collapsed ? 'lg:justify-center lg:gap-0 lg:px-2' : ''}`}
             >
                 <motion.span
                     className="grid shrink-0 place-items-center"

@@ -6,7 +6,6 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { showToast } from '@/components/ui/toast';
-import { accentThemes, type AccentTheme } from '@/components/layout/accent-theme-controller';
 import type { Organization } from '@/lib/api/types';
 
 export function WorkspaceSwitcher({
@@ -70,7 +69,7 @@ export function WorkspaceSwitcher({
     return (
         <div
             ref={root}
-            className={`organization-card relative mt-7 rounded-[20px] transition-all duration-300 ${collapsed ? 'lg:p-1.5' : 'p-2'}`}
+            className={`organization-card relative mt-7 rounded-[20px] transition-[padding,border-color,box-shadow] duration-200 ${collapsed ? 'lg:p-1.5' : 'p-2'}`}
         >
             <Button
                 type="button"
@@ -81,7 +80,7 @@ export function WorkspaceSwitcher({
                 onClick={() => setOpen((value) => !value)}
                 className={`flex w-full items-center gap-2.5 rounded-xl text-left ${collapsed ? 'lg:justify-center lg:gap-0' : 'px-1 py-0.5'}`}
             >
-                <WorkspaceAvatar name={currentName} accentTheme={current.accentTheme} active />
+                <WorkspaceAvatar name={currentName} active />
                 <span className={`min-w-0 flex-1 ${collapsed ? 'lg:hidden' : ''}`}>
                     <span className="shell-organization-name block truncate text-xs font-semibold text-[#1a1a1a]">
                         {currentName}
@@ -146,12 +145,7 @@ export function WorkspaceSwitcher({
                                         onClick={() => switchWorkspace(organization)}
                                         className="workspace-option flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition hover:bg-white/55 disabled:cursor-wait disabled:opacity-65"
                                     >
-                                        <WorkspaceAvatar
-                                            name={name}
-                                            accentTheme={organization.accentTheme}
-                                            active={active}
-                                            compact
-                                        />
+                                        <WorkspaceAvatar name={name} active={active} compact />
                                         <span className="min-w-0 flex-1">
                                             <span className="block truncate text-[11px] font-semibold">
                                                 {name}
@@ -182,29 +176,16 @@ export function WorkspaceSwitcher({
 
 function WorkspaceAvatar({
     name,
-    accentTheme = 'astro',
     active = false,
     compact = false,
 }: {
     name: string;
-    accentTheme?: AccentTheme;
     active?: boolean;
     compact?: boolean;
 }) {
-    const accent = accentThemes.find(({ value }) => value === accentTheme)?.color ?? '#6d5df4';
-    const color = active ? 'var(--brand)' : accent;
     return (
         <span
-            style={{
-                background: `linear-gradient(145deg, color-mix(in srgb, ${color} 78%, white), ${color})`,
-                color: active
-                    ? 'var(--brand-contrast)'
-                    : accentTheme === 'astro'
-                      ? '#1a1a00'
-                      : '#ffffff',
-                boxShadow: `0 8px 18px color-mix(in srgb, ${color} 24%, transparent)`,
-            }}
-            className={`grid shrink-0 place-items-center rounded-xl font-bold ${compact ? 'size-8 text-[9px]' : 'size-9 text-[10px]'}`}
+            className={`grid shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[.05] font-semibold ${active ? 'text-highlight' : 'text-muted'} ${compact ? 'size-8 text-[9px]' : 'size-9 text-[10px]'}`}
         >
             {initials(name)}
         </span>

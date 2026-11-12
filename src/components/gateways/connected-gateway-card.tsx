@@ -209,7 +209,7 @@ export function providerPresentation(value: GatewayConnection['provider']) {
             color: 'bg-[#009ee3]',
             logo: '/gateways/mercado-pago.png',
             logoFill: false,
-            methods: 'Cartões, boleto, Pix e carteira',
+            methods: 'Pix, cartão e assinaturas',
         },
         abacate_pay: {
             name: 'AbacatePay',
@@ -217,7 +217,23 @@ export function providerPresentation(value: GatewayConnection['provider']) {
             color: 'bg-[#79b943]',
             logo: '/gateways/abacate-pay.png',
             logoFill: false,
-            methods: 'Pix, cartões e boleto',
+            methods: 'Pix e boleto',
+        },
+        asaas: {
+            name: 'Asaas',
+            initials: 'AS',
+            color: 'bg-[#0030b9]',
+            logo: '/gateways/asaas.png',
+            logoFill: true,
+            methods: 'Pix, boleto, cartão e assinaturas',
+        },
+        paypal: {
+            name: 'PayPal',
+            initials: 'PP',
+            color: 'bg-[#003087]',
+            logo: '/gateways/paypal.png',
+            logoFill: false,
+            methods: 'Carteira PayPal, cartão e assinaturas',
         },
         mock: {
             name: 'Ambiente de testes',

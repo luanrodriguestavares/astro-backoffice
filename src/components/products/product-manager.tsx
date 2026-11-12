@@ -16,6 +16,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 
 import { MediaPicker } from '@/components/files/media-picker';
+import { mediaLibraryEnabled } from '@/lib/features/release';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { CustomSelect, type SelectOption } from '@/components/ui/custom-select';
 import { showToast } from '@/components/ui/toast';
@@ -415,7 +416,7 @@ export function ProductManager({
                         onMouseDown={(event) => {
                             if (event.target === event.currentTarget) closeForm();
                         }}
-                        className="fixed inset-0 z-[100] grid place-items-center bg-black/20 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] grid place-items-center bg-black/20 p-4 ui-overlay"
                     >
                         {/* Altura fixa: o cabeçalho e o rodapé ficam parados e só o conteúdo rola. */}
                         <form
@@ -510,60 +511,63 @@ export function ProductManager({
                                             className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-border bg-[var(--control-bg)] p-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]"
                                         />
                                     </label>
-                                    <div className="text-[13px] font-semibold">
-                                        Imagem do produto
-                                        <div className="product-image-field mt-2 flex items-center gap-3 rounded-2xl border border-dashed border-border bg-[var(--control-bg)] p-3 transition focus-within:border-brand/70">
-                                            <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand-soft text-brand">
-                                                {selectedImageFile ? (
-                                                    // eslint-disable-next-line @next/next/no-img-element
-                                                    <img
-                                                        src={`/api/files/${encodeURIComponent(selectedImageFile.id)}/content`}
-                                                        alt=""
-                                                        className="size-full object-cover"
+                                    {/* Upload depende da biblioteca de mídia, desligada na V1. */}
+                                    {mediaLibraryEnabled && (
+                                        <div className="text-[13px] font-semibold">
+                                            Imagem do produto
+                                            <div className="product-image-field mt-2 flex items-center gap-3 rounded-2xl border border-dashed border-border bg-[var(--control-bg)] p-3 transition focus-within:border-brand/70">
+                                                <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand-soft text-brand">
+                                                    {selectedImageFile ? (
+                                                        // eslint-disable-next-line @next/next/no-img-element
+                                                        <img
+                                                            src={`/api/files/${encodeURIComponent(selectedImageFile.id)}/content`}
+                                                            alt=""
+                                                            className="size-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <Icon name="image" className="size-4" />
+                                                    )}
+                                                </span>
+                                                <span className="min-w-0 flex-1">
+                                                    <span className="block truncate text-[13px] font-semibold">
+                                                        {selectedImageFile?.originalName ??
+                                                            'Nenhuma imagem'}
+                                                    </span>
+                                                    <span className="mt-0.5 block text-[11px] font-normal text-muted">
+                                                        JPG, PNG ou WebP de até 5 MB.
+                                                    </span>
+                                                </span>
+                                                <label className="ui-button inline-flex h-9 cursor-pointer items-center rounded-xl border border-border bg-[var(--control-bg)] px-3 text-[12px] font-semibold text-muted hover:bg-surface-muted hover:text-foreground">
+                                                    Enviar
+                                                    <input
+                                                        name="image"
+                                                        type="file"
+                                                        accept="image/jpeg,image/png,image/webp"
+                                                        className="sr-only"
                                                     />
-                                                ) : (
-                                                    <Icon name="image" className="size-4" />
-                                                )}
-                                            </span>
-                                            <span className="min-w-0 flex-1">
-                                                <span className="block truncate text-[13px] font-semibold">
-                                                    {selectedImageFile?.originalName ??
-                                                        'Nenhuma imagem'}
-                                                </span>
-                                                <span className="mt-0.5 block text-[11px] font-normal text-muted">
-                                                    JPG, PNG ou WebP de até 5 MB.
-                                                </span>
-                                            </span>
-                                            <label className="ui-button inline-flex h-9 cursor-pointer items-center rounded-xl border border-border bg-[var(--control-bg)] px-3 text-[12px] font-semibold text-muted hover:bg-surface-muted hover:text-foreground">
-                                                Enviar
-                                                <input
-                                                    name="image"
-                                                    type="file"
-                                                    accept="image/jpeg,image/png,image/webp"
-                                                    className="sr-only"
-                                                />
-                                            </label>
-                                            <Button
-                                                type="button"
-                                                variant="secondary"
-                                                className="!h-9 px-3 text-[12px]"
-                                                onClick={() => setMediaPickerOpen(true)}
-                                            >
-                                                Biblioteca
-                                            </Button>
-                                            {selectedImageFileId && (
+                                                </label>
                                                 <Button
                                                     type="button"
-                                                    variant="icon"
-                                                    className="size-9"
-                                                    onClick={() => setSelectedImageFileId(null)}
-                                                    aria-label="Remover imagem do produto"
+                                                    variant="secondary"
+                                                    className="!h-9 px-3 text-[12px]"
+                                                    onClick={() => setMediaPickerOpen(true)}
                                                 >
-                                                    <Icon name="close" className="size-3.5" />
+                                                    Biblioteca
                                                 </Button>
-                                            )}
+                                                {selectedImageFileId && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="icon"
+                                                        className="size-9"
+                                                        onClick={() => setSelectedImageFileId(null)}
+                                                        aria-label="Remover imagem do produto"
+                                                    >
+                                                        <Icon name="close" className="size-3.5" />
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </section>
 
                                 <section className="flex min-h-0 flex-col border-t border-border bg-surface-muted/40 lg:border-l lg:border-t-0">
@@ -968,7 +972,7 @@ function DeleteProductModal({
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget) onCancel();
             }}
-            className="fixed inset-0 z-[110] grid place-items-center bg-black/25 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[110] grid place-items-center bg-black/25 p-4 ui-overlay"
         >
             <section
                 role="alertdialog"

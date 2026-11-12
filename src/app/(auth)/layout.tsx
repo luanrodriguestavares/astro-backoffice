@@ -1,12 +1,12 @@
-import { Inter, Manrope } from 'next/font/google';
+import { Manrope, Sora } from 'next/font/google';
 
-// Títulos em Manrope e textos em Inter, só nas telas de autenticação.
-const display = Manrope({
+// Mesmas fontes da landing: títulos em Sora e textos em Manrope.
+const display = Sora({
     subsets: ['latin'],
     weight: ['600', '700', '800'],
     variable: '--font-auth-display',
 });
-const text = Inter({ subsets: ['latin'], variable: '--font-auth-text' });
+const text = Manrope({ subsets: ['latin'], variable: '--font-auth-text' });
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
     return (

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="186 350 280 280" role="img" aria-label="Astro">
+<rect id="astro-fundo" x="186" y="350" width="280" height="280" rx="64" fill="#141414"/>
+<path id="letra-A" fill="#F3EFEC" d="M 431 451 L 360 451 C 348 451 338 458 329 468 L 207 600 L 256 600 L 359 491 C 369 482 377 483 391 483 L 391 600 L 431 600 Z"/>
+<path id="astro-estrela" fill="#6FE6A0" transform="translate(418 406) scale(0.72) translate(-1232 -436)" d="M 1232 389 C 1236 420 1247 432 1279 436 C 1247 440 1236 452 1232 483 C 1228 452 1217 440 1187 436 C 1217 432 1228 420 1232 389 Z"/>
+</svg>

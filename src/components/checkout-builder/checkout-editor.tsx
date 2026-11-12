@@ -68,6 +68,8 @@ import { guidedTourStartEvent } from '@/components/layout/guided-tour-trigger';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { CustomSelect, type SelectOption } from '@/components/ui/custom-select';
 import { showToast } from '@/components/ui/toast';
+import { AiTargetRegistration } from '@/components/ai/ai-assistant';
+import { markAiApplied } from '@/components/ai/ai-chat';
 import { documentToPuck, puckToDocument } from '@/lib/checkout/puck-data';
 import {
     checkoutReadinessIssues,
@@ -1364,14 +1366,14 @@ function CheckoutBrowserBar() {
  */
 const editorFrameStyles = `
 :root {
-  --puck-color-selection-border: #7fc21a;
+  --puck-color-selection-border: #22c46c;
   --puck-color-selection-bg: transparent;
-  --puck-slot-color-border: #7fc21a;
+  --puck-slot-color-border: #22c46c;
   --puck-slot-color-bg: transparent;
-  --puck-slot-component-color-border-dragging: #7fc21a;
-  --puck-slot-component-color-overlay-border: rgb(127 194 26 / 60%);
-  --puck-slot-component-color-border-selected: #7fc21a;
-  --puck-slot-component-color-placeholder: #a3e635;
+  --puck-slot-component-color-border-dragging: #22c46c;
+  --puck-slot-component-color-overlay-border: rgb(46 227 127 / 70%);
+  --puck-slot-component-color-border-selected: #22c46c;
+  --puck-slot-component-color-placeholder: #2ee37f;
   --puck-actionbar-color-bg: #121514;
   --puck-actionbar-color-text: #ffffff;
   --puck-actionbar-color-separator: rgb(255 255 255 / 14%);
@@ -1447,7 +1449,7 @@ body::-webkit-scrollbar-thumb:hover { background: rgb(17 20 19 / 36%); }
 [data-dnd-dragging] [data-puck-drawer-item] {
   display: inline-flex;
   max-width: 300px;
-  border: 1px solid rgb(163 230 53 / 60%);
+  border: 1px solid rgb(46 227 127 / 60%);
   border-radius: 10px;
   background: #161a18;
   padding: 6px 14px 6px 6px;
@@ -1469,7 +1471,7 @@ body::-webkit-scrollbar-thumb:hover { background: rgb(17 20 19 / 36%); }
 [data-dnd-dragging] .ce-block { display: flex; align-items: center; gap: 10px; }
 [data-dnd-dragging] .ce-block-icon {
   display: grid; width: 30px; height: 30px; flex: none; place-items: center;
-  border-radius: 8px; background: #1f2422; color: #a3e635;
+  border-radius: 8px; background: #1f2422; color: #2ee37f;
 }
 [data-dnd-dragging] .ce-block-icon svg { width: 16px; height: 16px; }
 [data-dnd-dragging] .ce-block-content > span {
@@ -2858,6 +2860,36 @@ export function CheckoutEditor({
         setState('changed');
     }
 
+    /** Checkout gerado pelo assistente: troca tema, layout e blocos; mantém páginas e pagamento. */
+    function applyAiDocument(generated: CheckoutDocument, generationId: string) {
+        // A confirmação acontece no cartão do assistente, antes de chegar aqui.
+        const nextDocument: CheckoutDocument = {
+            ...document.current,
+            theme: generated.theme,
+            layout: generated.layout,
+            sections: generated.sections,
+            seo: { ...document.current.seo, ...generated.seo },
+        };
+        const nextData = documentToPuck(nextDocument, CHECKOUT_PAGE_ID);
+        document.current = nextDocument;
+        current.current = nextData;
+        setPreviewScreen(CHECKOUT_PAGE_ID);
+        setEditorData(nextData);
+        setEditorGeneration((generation) => generation + 1);
+        setTab(CHECKOUT_WORKSPACE_TAB);
+        setBuilderContent(nextData.content);
+        setEnabledMethods(enabledPaymentMethods(nextData.content));
+        setPresentComponents(presentRequiredComponents(nextData.content));
+        setPublicationError(null);
+        setState('changed');
+        markAiApplied(generationId);
+        showToast({
+            tone: 'success',
+            title: 'Checkout da IA aplicado',
+            description: 'Revise no editor e salve para manter. Nada muda nas vendas até publicar.',
+        });
+    }
+
     function restoreVersion(restoredDraft: CheckoutDraft, version: CheckoutVersion) {
         const restoredData = documentToPuck(restoredDraft.document);
         const restoredEnvironment = restoredDraft.document.settings.environment ?? 'sandbox';
@@ -3522,6 +3554,26 @@ export function CheckoutEditor({
                     openPaymentAdvanced();
                 }}
                 onClose={() => setPaymentSettingsOpen(false)}
+            />
+            <AiTargetRegistration
+                target={
+                    (checkout.products ?? []).length === 0
+                        ? null
+                        : {
+                              kind: 'checkout',
+                              label: `${checkout.name} · aplica na página do checkout`,
+                              productName: checkout.products?.[0]?.productName ?? checkout.name,
+                              prices: (checkout.products ?? []).map((item) => ({
+                                  priceId: item.priceId,
+                                  priceName: item.priceName,
+                                  amountMinor: item.amountMinor,
+                                  currency: item.currency,
+                                  pricingType: item.pricingType,
+                                  recurringInterval: item.recurringInterval,
+                              })),
+                              apply: applyAiDocument,
+                          }
+                }
             />
             {versionHistoryOpen && (
                 <CheckoutVersionHistory

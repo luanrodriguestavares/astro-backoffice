@@ -5,9 +5,10 @@ import { FormEvent, useRef, useState } from 'react';
 import { PasswordInput } from '@/components/auth/password-input';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
+import { privacyUrl, termsUrl } from '@/lib/legal/terms';
 
 const inputClass =
-    'h-11 w-full rounded-xl border border-[#e6e8eb] bg-white/75 px-3.5 text-[13.5px] font-normal text-[#111111] outline-none transition duration-200 placeholder:text-[#a9adb1] hover:border-[#d9dde1] focus:border-[#9fd34a] focus:bg-white focus:shadow-[0_0_0_4px_rgb(145_207_36_/_12%)]';
+    'h-11 w-full rounded-full border border-[#e6e8eb] bg-white/75 px-4 text-[13.5px] font-normal text-[#111111] outline-none transition duration-200 placeholder:text-[#a9adb1] hover:border-[#d9dde1] focus:border-[#5ef09e] focus:bg-white focus:shadow-[0_0_0_4px_rgb(46_227_127_/_14%)]';
 
 const organizationSteps = [
     { label: 'Seu acesso', description: 'Identidade e segurança' },
@@ -100,7 +101,7 @@ export function RegisterForm({
                             {index > 0 && (
                                 <span
                                     aria-hidden="true"
-                                    className={`absolute right-[calc(50%+20px)] top-[14px] h-[2px] w-[calc(100%-40px)] rounded-full transition ${index <= step ? 'bg-[#9fd34a]' : 'bg-[#eceef0]'}`}
+                                    className={`absolute right-[calc(50%+20px)] top-[14px] h-[2px] w-[calc(100%-40px)] rounded-full transition ${index <= step ? 'bg-[#5ef09e]' : 'bg-[#eceef0]'}`}
                                 />
                             )}
                             <button
@@ -113,9 +114,9 @@ export function RegisterForm({
                                 <span
                                     className={`grid size-7 place-items-center rounded-full text-[12px] font-semibold transition ${
                                         index === step
-                                            ? 'bg-[#7cbd1c] text-white shadow-[0_0_0_4px_rgb(145_207_36_/_16%)]'
+                                            ? 'bg-[#22c46c] text-white shadow-[0_0_0_4px_rgb(46_227_127_/_16%)]'
                                             : index < step
-                                              ? 'bg-[#7cbd1c] text-white'
+                                              ? 'bg-[#22c46c] text-white'
                                               : 'bg-[#eef0f2] text-[#5d6166]'
                                     }`}
                                 >
@@ -199,7 +200,7 @@ export function RegisterForm({
                     {invitation && (
                         <>
                             <div className="mt-4 rounded-2xl border border-[#e3f1cc] bg-[#f7fbef] px-4 py-3">
-                                <p className="text-[12px] font-semibold text-[#3b660a]">
+                                <p className="text-[12px] font-semibold text-[#0f4d2c]">
                                     Você entrará na workspace {invitation.organizationName}
                                 </p>
                                 <p className="mt-0.5 text-[11.5px] leading-[1.45] text-[#6a6e73]">
@@ -278,8 +279,8 @@ export function RegisterForm({
                                 label="Endereço da workspace"
                                 hint="Usado em URLs e integrações."
                             >
-                                <div className="flex h-11 overflow-hidden rounded-xl border border-[#e6e8eb] bg-white/75 transition duration-200 hover:border-[#d9dde1] focus-within:border-[#9fd34a] focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgb(145_207_36_/_12%)]">
-                                    <span className="flex items-center border-r border-[#eceef0] bg-[#f6f7f6] px-3.5 text-[12.5px] text-[#8a8f94]">
+                                <div className="flex h-11 overflow-hidden rounded-full border border-[#e6e8eb] bg-white/75 transition duration-200 hover:border-[#d9dde1] focus-within:border-[#5ef09e] focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgb(46_227_127_/_14%)]">
+                                    <span className="flex items-center border-r border-[#eceef0] bg-[#f6f7f6] pl-4 pr-3.5 text-[12.5px] text-[#8a8f94]">
                                         astro.app/
                                     </span>
                                     <input
@@ -298,7 +299,7 @@ export function RegisterForm({
                                 </div>
                             </Field>
                             <div className="mt-4 rounded-2xl border border-[#e3f1cc] bg-[#f7fbef] px-4 py-3">
-                                <p className="text-[12px] font-semibold text-[#3b660a]">
+                                <p className="text-[12px] font-semibold text-[#0f4d2c]">
                                     {displayName || 'Sua organização'} será sua primeira workspace
                                 </p>
                                 <p className="mt-0.5 text-[11.5px] leading-[1.45] text-[#6a6e73]">
@@ -346,8 +347,24 @@ function Terms() {
             <input type="checkbox" name="terms" required className="auth-check mt-px" />
             <span>
                 Li e concordo com os{' '}
-                <span className="font-medium text-[#2b2e31]">Termos de Uso</span> e a{' '}
-                <span className="font-medium text-[#2b2e31]">Política de Privacidade</span>.
+                <a
+                    href={termsUrl}
+                    target="_blank"
+                    rel="noopener"
+                    className="font-medium text-[#2b2e31] underline underline-offset-2"
+                >
+                    Termos de Uso
+                </a>{' '}
+                e a{' '}
+                <a
+                    href={privacyUrl}
+                    target="_blank"
+                    rel="noopener"
+                    className="font-medium text-[#2b2e31] underline underline-offset-2"
+                >
+                    Política de Privacidade
+                </a>
+                .
             </span>
         </label>
     );

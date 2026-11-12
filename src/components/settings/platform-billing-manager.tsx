@@ -4,6 +4,7 @@ import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-
 import { loadStripe, type Stripe } from '@stripe/stripe-js';
 import { useCallback, useState } from 'react';
 
+import { BillingHero } from '@/components/settings/billing-hero';
 import { Button } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
@@ -115,98 +116,60 @@ export function PlatformBillingManager({
                 </section>
             )}
 
-            <section className="glass-panel overflow-hidden rounded-[26px]">
-                <div className="flex flex-col gap-6 px-5 py-6 sm:px-7 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                        <div className="flex items-center gap-3">
-                            <span className="grid size-10 place-items-center rounded-full bg-foreground text-surface">
-                                <Icon name="card" className="size-5" />
-                            </span>
-                            <div>
-                                <p className="text-[13px] font-medium text-muted">
-                                    {hasContractedPlan ? 'Plano atual' : 'Assinatura do Astro'}
-                                </p>
-                                <h2 className="mt-1 text-2xl font-semibold tracking-[-0.04em]">
-                                    {hasContractedPlan
-                                        ? subscription.planName
-                                        : 'Nenhum plano contratado'}
-                                </h2>
-                            </div>
-                        </div>
-                        <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px]">
+            <BillingHero
+                summary={summary}
+                hasContractedPlan={hasContractedPlan}
+                canSubscribe={canManage && summary.billingConfigured}
+                selectedPlan={selectedPlan}
+                onChoosePlan={(plan) => void choosePlan(plan)}
+                footer={
+                    subscription.status === 'pending' ? undefined : (
+                        <div className="mt-5 flex flex-wrap items-center gap-2 text-[12px]">
                             <StatusBadge status={subscription.status} />
                             {hasContractedPlan && (
-                                <span className="rounded-full border border-border bg-surface-muted/55 px-3 py-1.5 text-muted">
+                                <span className="rounded-full border border-border bg-white px-3 py-1.5 text-muted">
                                     {subscription.cancelAtPeriodEnd
                                         ? `Acesso até ${date(subscription.currentPeriodEndsAt)}`
-                                        : `Renova em ${date(subscription.currentPeriodEndsAt)}`}
+                                        : subscription.status === 'trialing' &&
+                                            subscription.providerSubscriptionId === null
+                                          ? `Teste grátis até ${date(subscription.currentPeriodEndsAt)}. Depois, escolha um plano.`
+                                          : `Renova em ${date(subscription.currentPeriodEndsAt)}`}
                                 </span>
                             )}
                             {hasContractedPlan && subscription.paymentMethod && (
-                                <span className="rounded-full border border-border bg-surface-muted/55 px-3 py-1.5 text-muted">
+                                <span className="rounded-full border border-border bg-white px-3 py-1.5 text-muted">
                                     Pagamento por {paymentMethod(subscription.paymentMethod)}
                                 </span>
                             )}
+                            {hasContractedPlan &&
+                                subscription.providerSubscriptionId !== null &&
+                                !subscription.cancelAtPeriodEnd && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        disabled={!canManage || canceling}
+                                        title={
+                                            canManage
+                                                ? 'Interromper as próximas cobranças'
+                                                : 'Somente administradores podem cancelar a assinatura'
+                                        }
+                                        onClick={() => setCancelOpen(true)}
+                                        className="ml-auto text-danger hover:text-danger"
+                                    >
+                                        Cancelar assinatura
+                                    </Button>
+                                )}
                         </div>
-                    </div>
-                    <div className="border-t border-border pt-5 text-left lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0 lg:text-right">
-                        {hasContractedPlan ? (
-                            <p className="text-3xl font-semibold tracking-[-0.05em]">
-                                {money(subscription.priceMinor, subscription.currency)}
-                                <span className="ml-1 text-[13px] font-medium tracking-normal text-muted">
-                                    /mês
-                                </span>
-                            </p>
-                        ) : (
-                            <p className="text-lg font-semibold tracking-[-0.03em]">
-                                Nenhuma cobrança ativa
-                            </p>
-                        )}
-                        <p className="mt-2 text-[12px] text-muted">
-                            Cobrança recorrente processada com segurança pelo Stripe
-                        </p>
-                        <div className="mt-4 flex lg:justify-end">
-                            {subscription.status === 'pending' ? (
-                                <Button type="button" variant="secondary" disabled>
-                                    Aguardando contratação
-                                </Button>
-                            ) : subscription.status === 'canceled' ? (
-                                <Button type="button" variant="secondary" disabled>
-                                    Assinatura encerrada
-                                </Button>
-                            ) : subscription.providerSubscriptionId === null ? (
-                                <Button type="button" variant="secondary" disabled>
-                                    Sem cobrança recorrente
-                                </Button>
-                            ) : subscription.cancelAtPeriodEnd ? (
-                                <Button type="button" variant="secondary" disabled>
-                                    Renovação cancelada
-                                </Button>
-                            ) : (
-                                <Button
-                                    type="button"
-                                    variant="danger"
-                                    disabled={!canManage || canceling}
-                                    title={
-                                        canManage
-                                            ? 'Interromper as próximas cobranças'
-                                            : 'Somente administradores podem cancelar a assinatura'
-                                    }
-                                    onClick={() => setCancelOpen(true)}
-                                >
-                                    Cancelar assinatura
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-                {subscription.status === 'past_due' && (
-                    <div className="border-t border-warning/20 bg-warning/10 px-5 py-3 text-[12px] sm:px-7">
-                        O último pagamento falhou. Regularize até{' '}
-                        {date(subscription.gracePeriodEndsAt)} para evitar a interrupção do plano.
-                    </div>
-                )}
-            </section>
+                    )
+                }
+            />
+
+            {subscription.status === 'past_due' && (
+                <section className="rounded-[18px] border border-warning/20 bg-warning/10 px-5 py-3 text-[12px]">
+                    O último pagamento falhou. Regularize até {date(subscription.gracePeriodEndsAt)}{' '}
+                    para evitar a interrupção do plano.
+                </section>
+            )}
 
             <nav className="ui-tabs" aria-label="Seções da assinatura">
                 <TabButton active={tab === 'plan'} onClick={() => setTab('plan')} icon="card">
@@ -663,6 +626,7 @@ function featureLabel(value: string) {
         (
             {
                 'commerce.orders': 'Pedidos processados',
+                'commerce.sales_volume_minor': 'Vendas do ciclo',
                 'analytics.events': 'Eventos de analytics',
                 api_keys: 'Chaves de API',
                 'notifications.sale_email': 'E-mail por venda',

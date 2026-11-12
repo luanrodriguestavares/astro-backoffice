@@ -20,11 +20,12 @@ const gateways: GatewayDefinition[] = [
     {
         provider: 'mercado_pago',
         name: 'Mercado Pago',
-        description: 'Cartões, boleto, Pix e carteira digital.',
+        description:
+            'Pix e cartão transparentes no seu checkout, com parcelamento. Assinaturas na página do Mercado Pago.',
         initials: 'MP',
         color: 'bg-[#009ee3]',
         logo: '/gateways/mercado-pago.png',
-        methods: ['Cartão', 'Pix', 'Boleto'],
+        methods: ['Cartão', 'Pix', 'Recorrência'],
     },
     {
         provider: 'abacate_pay',
@@ -34,6 +35,25 @@ const gateways: GatewayDefinition[] = [
         color: 'bg-[#79b943]',
         logo: '/gateways/abacate-pay.png',
         methods: ['Pix', 'Boleto'],
+    },
+    {
+        provider: 'asaas',
+        name: 'Asaas',
+        description: 'Pix e boleto transparentes, cartão na fatura do Asaas e assinaturas.',
+        initials: 'AS',
+        color: 'bg-[#0030b9]',
+        logo: '/gateways/asaas.png',
+        logoFill: true,
+        methods: ['Pix', 'Boleto', 'Cartão', 'Recorrência'],
+    },
+    {
+        provider: 'paypal',
+        name: 'PayPal',
+        description: 'Pagamento e assinatura aprovados na conta PayPal do comprador.',
+        initials: 'PP',
+        color: 'bg-[#003087]',
+        logo: '/gateways/paypal.png',
+        methods: ['Cartão', 'Carteira PayPal', 'Recorrência'],
     },
     {
         provider: 'mock',
@@ -46,6 +66,18 @@ const gateways: GatewayDefinition[] = [
         methods: ['Sandbox', 'Testes'],
     },
 ];
+
+/**
+ * Gateways abertos para novas conexões, na mesma variável que a API confere
+ * (`GATEWAY_PROVIDERS_ENABLED`). Sem a variável, mostra todos, como em desenvolvimento.
+ */
+function availableGateways() {
+    const enabled = process.env.GATEWAY_PROVIDERS_ENABLED?.split(',')
+        .map((provider) => provider.trim())
+        .filter(Boolean);
+    if (enabled === undefined || enabled.length === 0) return gateways;
+    return gateways.filter((gateway) => enabled.includes(gateway.provider));
+}
 
 export default async function GatewaysPage() {
     const permissions = await currentPermissions();
@@ -118,7 +150,7 @@ export default async function GatewaysPage() {
                 <GatewayCenter
                     connections={connections}
                     payments={payments}
-                    gateways={gateways}
+                    gateways={availableGateways()}
                     canReadPayments={canReadPayments}
                 />
             </div>

@@ -1151,7 +1151,7 @@ function DialogSurface({
     return (
         <div
             onMouseDown={(event) => event.target === event.currentTarget && onClose()}
-            className="fixed inset-0 z-[120] grid place-items-center overflow-y-auto bg-[#111111]/45 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[120] grid place-items-center overflow-y-auto bg-[#111111]/45 p-4 ui-overlay"
         >
             <section
                 className={`modal-surface glass-panel my-6 w-full rounded-[26px] p-5 sm:p-6 ${

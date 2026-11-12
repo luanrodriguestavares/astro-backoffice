@@ -1,12 +1,16 @@
+import { redirect } from 'next/navigation';
+
 import { FileLibrary } from '@/components/files/file-library';
 import { ButtonLink } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { PageHeader } from '@/components/ui/page-header';
 import { apiFetch, AstroApiError } from '@/lib/api/server';
 import { currentPermissions } from '@/lib/auth/permissions';
+import { mediaLibraryEnabled } from '@/lib/features/release';
 import type { MediaFile, MediaFolder, StorageUsage } from '@/lib/api/types';
 
 export default async function FilesPage() {
+    if (!mediaLibraryEnabled) redirect('/dashboard');
     let result:
         | {
               permissions: Awaited<ReturnType<typeof currentPermissions>>;

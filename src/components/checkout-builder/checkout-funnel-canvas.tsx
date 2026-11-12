@@ -541,22 +541,23 @@ export function CheckoutFunnelCanvas({
                 <Background
                     variant={BackgroundVariant.Dots}
                     gap={22}
-                    size={1.4}
+                    size={1.7}
                     color="var(--flow-dot)"
                 />
                 <MiniMap
                     pannable
                     zoomable
                     ariaLabel="Mapa do fluxo"
+                    position="bottom-left"
                     style={{ width: 168, height: 112 }}
                     className="!hidden md:!block"
                     nodeBorderRadius={8}
                     nodeColor={(node) =>
                         node.type === 'payment' || node.type === 'entry'
-                            ? '#a3e635'
+                            ? '#2ee37f'
                             : (node.data as FunnelNodeData | undefined)?.page.kind === 'content'
-                              ? '#9dde2a'
-                              : '#1d2421'
+                              ? '#6fe6a0'
+                              : '#1c1c1c'
                     }
                 />
                 <CanvasToolbar

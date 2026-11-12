@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 import { MediaPicker } from '@/components/files/media-picker';
+import { mediaLibraryEnabled } from '@/lib/features/release';
 
 import { FieldLabel, type Config, type Data, type Slot } from '@puckeditor/core';
 import { createContext, useContext, useEffect, useState, type CSSProperties } from 'react';
@@ -1013,15 +1014,17 @@ function CheckoutImageField({
                 className="h-10 w-full rounded-xl border border-border bg-[var(--control-bg)] px-3 text-xs outline-none focus:border-brand/60"
             />
             <div className="flex gap-2">
-                <Button
-                    type="button"
-                    variant="secondary"
-                    className="h-9 flex-1 px-3 text-xs"
-                    disabled={media.files.length === 0}
-                    onClick={() => setOpen(true)}
-                >
-                    Escolher da biblioteca
-                </Button>
+                {mediaLibraryEnabled && (
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        className="h-9 flex-1 px-3 text-xs"
+                        disabled={media.files.length === 0}
+                        onClick={() => setOpen(true)}
+                    >
+                        Escolher da biblioteca
+                    </Button>
+                )}
                 {value && (
                     <Button
                         type="button"

@@ -110,6 +110,16 @@ export default async function DashboardPage() {
                     }
                 />
 
+                {(canManageGateways || canWriteProducts) && setupDone < 3 && (
+                    <OnboardingHero
+                        setupDone={setupDone}
+                        hasGateway={hasGateway}
+                        hasProduct={hasProduct}
+                        canManageGateways={canManageGateways}
+                        canWriteProducts={canWriteProducts}
+                    />
+                )}
+
                 {canReadPayments ? (
                     <section
                         data-tour="dashboard-metrics"
@@ -212,51 +222,41 @@ export default async function DashboardPage() {
                             />
                         </article>
 
-                        {(canManageGateways || canWriteProducts) && setupDone < 3 ? (
-                            <OnboardingCard
-                                setupDone={setupDone}
-                                hasGateway={hasGateway}
-                                hasProduct={hasProduct}
-                                canManageGateways={canManageGateways}
-                                canWriteProducts={canWriteProducts}
-                            />
-                        ) : (
-                            <article className="glass-panel flex min-w-0 flex-col rounded-[28px] p-5 sm:p-6">
-                                <div className="flex items-start justify-between gap-4">
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <h2 className="text-sm font-semibold tracking-[-0.02em]">
-                                                Receita por gateway
-                                            </h2>
-                                            <PageHelp
-                                                title="Receita por gateway"
-                                                trigger="i"
-                                                compact
-                                                align="right"
-                                            >
-                                                <p>
-                                                    Distribui a receita aprovada entre os gateways
-                                                    usados para processar os pagamentos no período
-                                                    exibido.
-                                                </p>
-                                            </PageHelp>
-                                        </div>
-                                        <p className="mt-1 text-[12px] text-muted">
-                                            Distribuição das vendas aprovadas
-                                        </p>
-                                    </div>
-                                    {canManageGateways && (
-                                        <Link
-                                            href="/gateways"
-                                            className="dashboard-details-button rounded-xl border border-white/80 bg-white/40 px-3 py-2 text-[12px] font-semibold text-muted transition hover:text-brand-strong"
+                        <article className="glass-panel flex min-w-0 flex-col rounded-[28px] p-5 sm:p-6">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h2 className="text-sm font-semibold tracking-[-0.02em]">
+                                            Receita por gateway
+                                        </h2>
+                                        <PageHelp
+                                            title="Receita por gateway"
+                                            trigger="i"
+                                            compact
+                                            align="right"
                                         >
-                                            Ver detalhes
-                                        </Link>
-                                    )}
+                                            <p>
+                                                Distribui a receita aprovada entre os gateways
+                                                usados para processar os pagamentos no período
+                                                exibido.
+                                            </p>
+                                        </PageHelp>
+                                    </div>
+                                    <p className="mt-1 text-[12px] text-muted">
+                                        Distribuição das vendas aprovadas
+                                    </p>
                                 </div>
-                                <GatewayDonut data={gatewayData} currency={currency} />
-                            </article>
-                        )}
+                                {canManageGateways && (
+                                    <Link
+                                        href="/gateways"
+                                        className="dashboard-details-button rounded-xl border border-white/80 bg-white/40 px-3 py-2 text-[12px] font-semibold text-muted transition hover:text-brand-strong"
+                                    >
+                                        Ver detalhes
+                                    </Link>
+                                )}
+                            </div>
+                            <GatewayDonut data={gatewayData} currency={currency} />
+                        </article>
                     </section>
                 )}
 
@@ -291,7 +291,11 @@ function RestrictedOverview() {
     );
 }
 
-function OnboardingCard({
+/*
+ * Boas-vindas da conta nova, no traço da chamada final da landing. Só aparece enquanto a
+ * configuração inicial não termina; depois o dashboard fica apenas com os dados.
+ */
+function OnboardingHero({
     setupDone,
     hasGateway,
     hasProduct,
@@ -309,71 +313,86 @@ function OnboardingCard({
             ? { href: '/gateways', label: 'Conectar gateway' }
             : { href: '/products', label: 'Cadastrar produto' };
     return (
-        <article className="glass-panel relative overflow-hidden rounded-[28px] p-5 sm:p-6">
-            <div className="relative">
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-brand-strong/70">
-                            Configuração inicial
-                        </p>
-                        <h2 className="mt-2 text-xl font-semibold tracking-[-0.035em]">
-                            Prepare sua operação
-                        </h2>
-                    </div>
-                    <span className="rounded-full border border-white/80 bg-white/55 px-2.5 py-1 text-[13px] font-semibold text-brand-strong">
-                        {setupDone}/3
-                    </span>
+        <section
+            data-variant="final"
+            aria-labelledby="onboarding-hero-title"
+            className="aurora-block mb-4 grid gap-10 p-7 sm:p-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(300px,.75fr)] lg:items-end lg:p-12"
+        >
+            <div>
+                <p className="aurora-eyebrow">Primeiros passos · {setupDone} de 3</p>
+                <h2
+                    id="onboarding-hero-title"
+                    className="mt-5 text-[34px] leading-[1.04] text-[#f4f4f4] sm:text-[44px] xl:text-[52px]"
+                >
+                    Seu negócio já tem <br className="hidden sm:block" />
+                    uma ideia.
+                    <br />
+                    <span className="aurora-accent">Agora dê forma à venda.</span>
+                </h2>
+                <div className="mt-8 flex flex-wrap items-center gap-x-10 gap-y-5">
+                    <p className="max-w-[300px] text-[13px] leading-6 text-[#c4d2ca]">
+                        Conclua os passos essenciais e o Astro fica pronto para receber seus
+                        primeiros pagamentos.
+                    </p>
+                    <Link href={nextAction.href} className="aurora-cta">
+                        {nextAction.label}
+                        <Icon name="arrow-right" className="size-4 -rotate-45 transition" />
+                    </Link>
                 </div>
-                <p className="mt-2 text-[13px] leading-5 text-muted">
-                    Conclua os passos essenciais para começar a receber pagamentos.
-                </p>
-                <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-foreground/8">
-                    <div
-                        className="h-full rounded-full bg-highlight transition-[width] duration-300 ease-out"
-                        style={{ width: `${(setupDone / 3) * 100}%` }}
-                    />
-                </div>
-                <ol className="mt-5 space-y-2">
-                    <SetupStep done label="Conta criada" />
-                    <SetupStep
-                        done={hasGateway}
-                        label="Gateway conectado"
-                        href={canManageGateways ? '/gateways' : undefined}
-                    />
-                    <SetupStep
-                        done={hasProduct}
-                        label="Produto cadastrado"
-                        href={canWriteProducts ? '/products' : undefined}
-                    />
-                </ol>
-                <ButtonLink href={nextAction.href} className="mt-5 w-full rounded-full px-4">
-                    {nextAction.label}
-                    <Icon name="arrow-right" className="size-3.5" />
-                </ButtonLink>
             </div>
-        </article>
+            <ol className="aurora-glass rounded-[22px] p-2">
+                <SetupStep index={1} done label="Conta criada" />
+                <SetupStep
+                    index={2}
+                    done={hasGateway}
+                    label="Conectar gateway"
+                    detail="Stripe, Mercado Pago, Asaas e outros"
+                    href={canManageGateways ? '/gateways' : undefined}
+                />
+                <SetupStep
+                    index={3}
+                    done={hasProduct}
+                    label="Cadastrar produto"
+                    detail="O que você vai vender no checkout"
+                    href={canWriteProducts ? '/products' : undefined}
+                />
+            </ol>
+        </section>
     );
 }
 
-function SetupStep({ done, label, href }: { done: boolean; label: string; href?: string }) {
+function SetupStep({
+    index,
+    done,
+    label,
+    detail,
+    href,
+}: {
+    index: number;
+    done: boolean;
+    label: string;
+    detail?: string;
+    href?: string;
+}) {
     const content = (
         <>
             <span
-                className={`grid size-7 place-items-center rounded-full border ${done ? 'border-highlight bg-highlight text-highlight-contrast' : 'border-border bg-surface text-muted'}`}
+                className={`grid size-8 shrink-0 place-items-center rounded-full border text-[10px] font-semibold tabular-nums ${done ? 'border-[#6fe6a0]/40 bg-[#6fe6a0]/15 text-[#6fe6a0]' : 'border-white/20 text-[#c4d2ca]'}`}
             >
-                {done ? (
-                    <Icon name="check" className="size-3.5" />
-                ) : (
-                    <span className="size-1.5 rounded-full bg-current" />
+                {done ? <Icon name="check" className="size-3.5" /> : String(index).padStart(2, '0')}
+            </span>
+            <span className="min-w-0 flex-1">
+                <span
+                    className={`block text-[13px] font-semibold ${done ? 'text-[#c4d2ca] line-through decoration-white/25' : 'text-[#f4f4f4]'}`}
+                >
+                    {label}
+                </span>
+                {detail && !done && (
+                    <span className="mt-0.5 block text-[11px] text-[#9fb0a6]">{detail}</span>
                 )}
             </span>
-            <span
-                className={`text-[13px] font-semibold ${done ? 'text-muted' : 'text-foreground'}`}
-            >
-                {label}
-            </span>
             {href && !done && (
-                <Icon name="arrow-right" className="ml-auto size-3.5 text-brand/60" />
+                <Icon name="arrow-right" className="size-3.5 shrink-0 text-[#c4d2ca]" />
             )}
         </>
     );
@@ -382,12 +401,12 @@ function SetupStep({ done, label, href }: { done: boolean; label: string; href?:
             {href && !done ? (
                 <Link
                     href={href}
-                    className="dashboard-setup-link flex items-center gap-3 rounded-xl p-2 transition hover:bg-white/45"
+                    className="flex items-center gap-3.5 rounded-[16px] px-4 py-3.5 transition hover:bg-white/[.06]"
                 >
                     {content}
                 </Link>
             ) : (
-                <div className="flex items-center gap-3 p-2">{content}</div>
+                <div className="flex items-center gap-3.5 px-4 py-3.5">{content}</div>
             )}
         </li>
     );

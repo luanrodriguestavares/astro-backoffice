@@ -262,6 +262,8 @@ const webhookEventGroups = [
             { value: 'payment.failed', label: 'Pagamento falhou' },
             { value: 'payment.canceled', label: 'Pagamento cancelado' },
             { value: 'payment.refunded', label: 'Pagamento reembolsado' },
+            { value: 'payment.partially_refunded', label: 'Pagamento reembolsado em parte' },
+            { value: 'payment.disputed', label: 'Pagamento contestado (chargeback)' },
         ],
     },
     {
@@ -427,7 +429,7 @@ export function ApiKeyCreateAction() {
                         onMouseDown={(event) => {
                             if (event.target === event.currentTarget) setSecret(undefined);
                         }}
-                        className="fixed inset-0 z-[110] grid place-items-center overflow-y-auto bg-[#111111]/20 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[110] grid place-items-center overflow-y-auto bg-[#111111]/20 p-4 ui-overlay"
                     >
                         <section className="modal-surface glass-panel my-6 w-full max-w-lg rounded-[26px] p-6">
                             <Icon name="check" className="size-5 text-success" />
@@ -523,6 +525,26 @@ const apiKeyScopeGroups = [
                 value: 'invoices.read',
                 label: 'Consultar faturas',
                 description: 'Leitura de faturas e seu histórico.',
+            },
+        ],
+    },
+    {
+        label: 'Integração com o seu app',
+        scopes: [
+            {
+                value: 'checkout_sessions.write',
+                label: 'Criar links de checkout',
+                description: 'Gera o link de pagamento no servidor, com a referência do seu usuário.',
+            },
+            {
+                value: 'payments.read',
+                label: 'Consultar pagamentos',
+                description: 'Leitura de pagamentos, status e reembolsos.',
+            },
+            {
+                value: 'subscriptions.write',
+                label: 'Cancelar assinaturas',
+                description: 'Cancela a assinatura de um cliente a pedido do seu app.',
             },
         ],
     },

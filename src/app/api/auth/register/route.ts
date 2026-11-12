@@ -4,6 +4,7 @@ import { forwardedClientIp } from '@/lib/api/client-ip';
 import { astroApiUrl } from '@/lib/api/config';
 import type { ApiEnvelope, ProblemDetails, SessionData } from '@/lib/api/types';
 import { authenticatedRedirect } from '@/lib/auth/session';
+import { TERMS_VERSION } from '@/lib/legal/terms';
 
 export async function POST(request: Request) {
     const form = await request.formData();
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
                 name: input.name,
                 email: input.email,
                 password: input.password,
+                acceptedTermsVersion: TERMS_VERSION,
                 ...(input.invitationToken
                     ? { invitationToken: input.invitationToken }
                     : {

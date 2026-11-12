@@ -351,7 +351,7 @@ const toneClass: Record<Tone, string> = {
 };
 
 const iconClass: Record<Tone, string> = {
-    trigger: 'bg-[#eef8dc] text-[#5a8f12]',
+    trigger: 'bg-[#e6fbef] text-[#13703f]',
     logic: 'bg-[#fdf0e3] text-[#d0731c]',
     page: 'bg-[#e6f6f9] text-[#1b8aa0]',
     neutral: 'bg-[#f2f3f4] text-[#3a3e42]',
@@ -484,13 +484,13 @@ export function ProductPreview({ mode }: { mode: ShowcaseMode }) {
                     <div className="auth-layer" style={{ '--z': '0px' } as React.CSSProperties}>
                         {/* Mesma composição do painel: sidebar escura e área de conteúdo clara por cima. */}
                         <div className="auth-preview-shell flex overflow-hidden rounded-[24px]">
-                            <div className="w-[148px] shrink-0 bg-[#111514] py-5 pl-3 pr-6">
+                            <div className="w-[148px] shrink-0 bg-[#07130d] py-5 pl-3 pr-6">
                                 <div className="flex justify-center">
                                     {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático, sem otimização */}
                                     <img src="/astro-logo.svg" alt="" className="h-[17px] w-auto" />
                                 </div>
                                 <div className="mt-5 flex items-center gap-2 rounded-xl bg-white/[.045] px-2 py-1.5">
-                                    <span className="grid size-5 place-items-center rounded-md bg-[#91cf24] text-[8px] font-bold text-[#101214]">
+                                    <span className="grid size-5 place-items-center rounded-md bg-[#2ee37f] text-[8px] font-bold text-[#101214]">
                                         A
                                     </span>
                                     <span className="min-w-0 flex-1">
@@ -516,7 +516,7 @@ export function ProductPreview({ mode }: { mode: ShowcaseMode }) {
                                             >
                                                 <Icon
                                                     name={item.icon}
-                                                    className={`size-3.5 transition-colors duration-500 ${active ? 'text-[#91cf24]' : 'text-[#77767c]'}`}
+                                                    className={`size-3.5 transition-colors duration-500 ${active ? 'text-[#2ee37f]' : 'text-[#77767c]'}`}
                                                 />
                                                 {item.label}
                                             </li>
@@ -532,8 +532,8 @@ export function ProductPreview({ mode }: { mode: ShowcaseMode }) {
                                         </p>
                                         <p className="text-[9.5px] text-[#80848a]">{flow.detail}</p>
                                     </div>
-                                    <span className="flex items-center gap-1.5 rounded-full bg-[#eef8dc] px-2 py-1 text-[8.5px] font-semibold text-[#4f8410]">
-                                        <span className="size-1.5 rounded-full bg-[#7cbd1c]" />
+                                    <span className="flex items-center gap-1.5 rounded-full bg-[#e6fbef] px-2 py-1 text-[8.5px] font-semibold text-[#13703f]">
+                                        <span className="size-1.5 rounded-full bg-[#22c46c]" />
                                         {login ? 'Ativo' : 'Publicado'}
                                     </span>
                                 </div>
@@ -560,12 +560,12 @@ export function ProductPreview({ mode }: { mode: ShowcaseMode }) {
                                     </p>
                                 </div>
                                 {login ? (
-                                    <span className="grid size-8 place-items-center rounded-full bg-[#dff2bd] text-[#4f8410]">
+                                    <span className="grid size-8 place-items-center rounded-full bg-[#dff2bd] text-[#13703f]">
                                         <Icon name="check" className="size-4" />
                                     </span>
                                 ) : (
-                                    <span className="flex items-center gap-1.5 rounded-full bg-[#eaf6d6] px-2.5 py-1 text-[9.5px] font-semibold text-[#4f8410]">
-                                        <span className="size-1.5 rounded-full bg-[#7fc21a]" />
+                                    <span className="flex items-center gap-1.5 rounded-full bg-[#eaf6d6] px-2.5 py-1 text-[9.5px] font-semibold text-[#13703f]">
+                                        <span className="size-1.5 rounded-full bg-[#22c46c]" />
                                         Ativo
                                     </span>
                                 )}
@@ -645,7 +645,7 @@ export function ProductPreview({ mode }: { mode: ShowcaseMode }) {
                         style={{ '--z': '120px' } as React.CSSProperties}
                     >
                         <div className="auth-preview-surface flex items-center gap-3 rounded-[18px] px-3.5 py-3">
-                            <span className="grid size-9 place-items-center rounded-xl bg-[#eaf6d6] text-[#5a8f12]">
+                            <span className="grid size-9 place-items-center rounded-xl bg-[#eaf6d6] text-[#13703f]">
                                 <FeatureGlyph name={login ? 'flow' : 'chart'} />
                             </span>
                             <span key={mode} className="auth-swap">

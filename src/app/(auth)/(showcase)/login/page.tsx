@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 
 import { AuthDivider, GoogleButton } from '@/components/auth/auth-frame';
 import { AuthToast } from '@/components/auth/auth-toast';
 import { PasswordInput } from '@/components/auth/password-input';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { LOGIN_EMAIL_COOKIE } from '@/lib/auth/session';
 
 export const metadata: Metadata = { title: 'Entrar' };
 
@@ -14,6 +16,7 @@ export default async function LoginPage({
     searchParams: Promise<{ error?: string; expired?: string; message?: string; invite?: string }>;
 }) {
     const { error, expired, message, invite } = await searchParams;
+    const rememberedEmail = (await cookies()).get(LOGIN_EMAIL_COOKIE)?.value;
     const inviteQuery = invite ? `?invite=${encodeURIComponent(invite)}` : '';
     const feedback =
         error ??
@@ -22,7 +25,7 @@ export default async function LoginPage({
     return (
         <>
             <AuthToast message={feedback} tone={error ? 'error' : 'info'} />
-            <h1 className="auth-display text-[30px] font-extrabold leading-tight tracking-[-.025em] text-[#0b0d0e] sm:text-[32px]">
+            <h1 className="auth-display text-[30px] leading-tight tracking-[-.04em] text-[#141414] sm:text-[32px]">
                 Bem-vindo de volta
             </h1>
             <p className="mt-1.5 text-[14px] leading-5 text-[#6a6e73]">
@@ -35,7 +38,8 @@ export default async function LoginPage({
                         name="email"
                         type="email"
                         required
-                        autoComplete="email"
+                        autoComplete="username"
+                        defaultValue={rememberedEmail}
                         placeholder="voce@empresa.com"
                         className={inputClass}
                     />
@@ -45,13 +49,19 @@ export default async function LoginPage({
                         name="password"
                         required
                         autoComplete="current-password"
+                        autoFocus={rememberedEmail !== undefined}
                         placeholder="Sua senha"
                         className={inputClass}
                     />
                 </Field>
                 <div className="flex items-center justify-between gap-3">
                     <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-[#4a4e52]">
-                        <input type="checkbox" name="remember" className="auth-radio" />
+                        <input
+                            type="checkbox"
+                            name="remember"
+                            defaultChecked={rememberedEmail !== undefined}
+                            className="auth-radio"
+                        />
                         Manter conectado
                     </label>
                     <Link href="/forgot-password" className="auth-link text-[13px] !font-medium">
@@ -79,7 +89,7 @@ export default async function LoginPage({
 }
 
 const inputClass =
-    'h-12 w-full rounded-xl border border-[#e6e8eb] bg-white/75 pl-11 pr-4 text-[13.5px] font-normal text-[#111111] outline-none transition duration-200 placeholder:text-[#a9adb1] hover:border-[#d9dde1] focus:border-[#9fd34a] focus:bg-white focus:shadow-[0_0_0_4px_rgb(145_207_36_/_12%)]';
+    'h-12 w-full rounded-full border border-[#e6e8eb] bg-white/75 pl-11 pr-4 text-[13.5px] font-normal text-[#111111] outline-none transition duration-200 placeholder:text-[#a9adb1] hover:border-[#d9dde1] focus:border-[#5ef09e] focus:bg-white focus:shadow-[0_0_0_4px_rgb(46_227_127_/_14%)]';
 
 function Field({
     label,

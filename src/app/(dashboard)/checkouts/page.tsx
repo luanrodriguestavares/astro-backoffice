@@ -13,9 +13,9 @@ import { CheckoutAreaNav } from '@/components/checkout-builder/checkout-area-nav
 export default async function CheckoutsPage({
     searchParams,
 }: {
-    searchParams: Promise<{ q?: string; focus?: string; template?: string }>;
+    searchParams: Promise<{ q?: string; focus?: string; template?: string; ia?: string }>;
 }) {
-    const { q = '', focus, template } = await searchParams;
+    const { q = '', focus, template, ia } = await searchParams;
     const initialTemplate = checkoutTemplates.some((item) => item.id === template)
         ? (template as CheckoutTemplateId)
         : undefined;
@@ -88,6 +88,7 @@ export default async function CheckoutsPage({
                     canWrite={permissions.has('products.write')}
                     initialQuery={q}
                     initialTemplate={initialTemplate}
+                    initialAi={ia === '1'}
                     focusId={focus}
                 />
             </div>

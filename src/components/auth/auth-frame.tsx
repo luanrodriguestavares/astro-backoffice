@@ -3,9 +3,11 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import { FeatureGlyph, ProductPreview, type Glyph } from '@/components/auth/auth-preview';
-
+// Prévia do produto desligada: a cena em 3D poluía a vitrine. Para voltar, descomente aqui e
+// o <ProductPreview /> na vitrine abaixo.
+// import { ProductPreview } from '@/components/auth/auth-preview';
 import { Brand } from '@/components/brand';
+import { landingPublicUrl } from '@/lib/api/config';
 import { showToast } from '@/components/ui/toast';
 
 /*
@@ -23,22 +25,14 @@ const showcase = {
         accent: 'mais longe.',
         description:
             'Funis de venda, checkouts e um orquestrador que escolhe o melhor gateway a cada pagamento, tudo desenhado em blocos.',
-        features: [
-            { glyph: 'funnel', text: ['Funis', 'de venda'] },
-            { glyph: 'layout', text: ['Checkout', 'builder'] },
-            { glyph: 'flow', text: ['Orquestrador', 'de pagamentos'] },
-        ],
+        features: ['Funis de venda', 'Checkout builder', 'Orquestrador de pagamentos'],
     },
     register: {
         title: ['Seu checkout.', 'Suas regras.'],
         accent: 'Mais resultados.',
         description:
             'Monte o funil página a página, personalize o checkout e ligue gateways com reserva automática, sem escrever código.',
-        features: [
-            { glyph: 'funnel', text: ['Funil', 'visual'] },
-            { glyph: 'layout', text: ['Checkout', 'personalizado'] },
-            { glyph: 'flow', text: ['Gateway', 'reserva'] },
-        ],
+        features: ['Funil visual', 'Checkout personalizado', 'Gateway reserva'],
     },
 } satisfies Record<
     string,
@@ -46,7 +40,7 @@ const showcase = {
         title: string[];
         accent: string;
         description: string;
-        features: { glyph: Glyph; text: [string, string] }[];
+        features: string[];
     }
 >;
 
@@ -54,7 +48,6 @@ export function AuthFrame({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const mode = pathname.startsWith('/register') ? 'register' : 'login';
     const copy = showcase[mode];
-    const login = mode === 'login';
     const router = useRouter();
     // Rota de onde estamos saindo: quando a nova chega, `leaving` volta a false sozinho.
     const [leavingFrom, setLeavingFrom] = useState<string | null>(null);
@@ -89,19 +82,19 @@ export function AuthFrame({ children }: { children: React.ReactNode }) {
             onClickCapture={interceptSwitch}
         >
             <div aria-hidden="true" className="auth-dots" />
-            <div className="relative mx-auto flex min-h-screen max-w-[1680px] gap-6 px-4 py-5 sm:px-8 lg:px-12 xl:px-16">
+            <div className="relative mx-auto flex min-h-screen max-w-[1360px] gap-6 px-4 py-5 sm:px-8 lg:gap-16 lg:px-12 xl:gap-24">
                 <aside className="relative hidden min-w-0 flex-1 flex-col lg:flex">
-                    <Brand href={login ? '/login' : '/register'} tone="dark" />
+                    <Brand href={landingPublicUrl()} tone="light" />
+                    {/* Vitrine no traço do hero da landing: rótulo, título, uma frase e respiro. */}
                     <div
                         key={mode}
                         data-leaving={leaving}
-                        className="auth-leave relative z-10 mt-auto max-w-[500px] pb-4 pt-10"
+                        className="auth-leave relative z-10 my-auto max-w-[620px] py-10"
                     >
-                        <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-[.2em] text-[#3a3e42] shadow-[0_1px_2px_rgb(16_18_20_/_4%),inset_0_0_0_1px_rgb(16_18_20_/_5%)] backdrop-blur">
-                            <span className="size-1.5 rounded-full bg-[#91cf24]" />
+                        <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-[#34e380]">
                             Uma plataforma completa
-                        </span>
-                        <h1 className="auth-display mt-6 whitespace-nowrap text-[clamp(40px,3.5vw,58px)] font-extrabold leading-[1.05] tracking-[-.03em] text-[#0b0d0e]">
+                        </p>
+                        <h1 className="auth-display mt-6 whitespace-nowrap text-[clamp(44px,4.2vw,68px)] leading-[1.04] tracking-[-.045em] text-[#f4f4f4]">
                             {copy.title.map((line, index) => (
                                 <span
                                     key={line}
@@ -116,65 +109,58 @@ export function AuthFrame({ children }: { children: React.ReactNode }) {
                             </span>
                         </h1>
                         <p
-                            className="auth-swap mt-6 max-w-[410px] text-[17px] leading-[1.65] text-[#53575b]"
+                            className="auth-swap mt-7 max-w-[440px] text-[16px] leading-[1.7] text-[#b4c0b9]"
                             style={{ animationDelay: '200ms' }}
                         >
                             {copy.description}
                         </p>
-                        <ul
-                            className="auth-swap mt-9 flex items-center gap-7"
-                            style={{ animationDelay: '260ms' }}
-                        >
-                            {copy.features.map((feature) => (
-                                <li
-                                    key={feature.text.join(' ')}
-                                    className="flex shrink-0 items-center gap-3"
-                                >
-                                    <span className="auth-feature-icon grid size-10 shrink-0 place-items-center rounded-[13px] text-[#2a2d30]">
-                                        <FeatureGlyph name={feature.glyph} />
-                                    </span>
-                                    <span className="text-[13.5px] font-medium leading-[1.35] text-[#3a3e42]">
-                                        {feature.text[0]}
-                                        <br />
-                                        {feature.text[1]}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
                     </div>
-                    <p className="relative z-10 mt-auto flex items-center gap-4 pt-10 text-[9px] font-medium uppercase leading-4 tracking-[.22em] text-[#6b6f73]">
-                        <span className="h-px w-10 bg-[#91cf24]" />
-                        <span>
-                            Mais do que ferramentas.
-                            <br />
-                            Liberdade para crescer.
-                        </span>
-                    </p>
-                    <ProductPreview mode={mode} />
+                    {/* Índice numerado com linha fina, como o "01 Experiência ↘" da landing. */}
+                    <ol
+                        key={`${mode}-index`}
+                        className="auth-index auth-swap relative z-10 flex max-w-[760px]"
+                        style={{ animationDelay: '260ms' }}
+                    >
+                        {copy.features.map((feature, index) => (
+                            <li
+                                key={feature}
+                                className="flex flex-1 items-baseline gap-3 whitespace-nowrap py-5 pr-6 text-[13px] text-[#e9eeeb]"
+                            >
+                                <span className="text-[10px] tabular-nums text-[#8fa197]">
+                                    {String(index + 1).padStart(2, '0')}
+                                </span>
+                                {feature}
+                            </li>
+                        ))}
+                    </ol>
+                    {/* <ProductPreview mode={mode} /> */}
                 </aside>
 
                 <div className="relative z-10 flex w-full flex-col lg:w-[440px] lg:shrink-0 xl:w-[460px] 2xl:w-[480px]">
                     <div className="flex flex-1 items-center py-1">
-                        <section className="auth-glass w-full rounded-[28px] px-6 py-8 sm:px-10 sm:py-9">
-                            {/* No desktop o logo fica no canto; no celular o canto some, então ele aparece aqui. */}
-                            <div className="mb-7 flex justify-center lg:hidden">
-                                {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático, sem otimização */}
-                                <img
-                                    src="/astro-logo-dark.svg"
-                                    alt="Astro"
-                                    width={120}
-                                    height={28}
-                                    className="h-7 w-auto"
-                                />
-                            </div>
-                            <MorphHeight contentKey={pathname}>
-                                <div data-leaving={leaving} className="auth-leave">
-                                    <div key={pathname} className="auth-swap">
-                                        {children}
-                                    </div>
+                        <div className="relative w-full">
+                            <span aria-hidden="true" className="auth-star hidden lg:block" />
+                            <section className="auth-glass w-full rounded-[28px] px-6 py-8 sm:px-10 sm:py-9">
+                                {/* No desktop o logo fica no canto; no celular o canto some, então ele aparece aqui. */}
+                                <div className="mb-7 flex justify-center lg:hidden">
+                                    {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático, sem otimização */}
+                                    <img
+                                        src="/astro-logo-dark.svg"
+                                        alt="Astro"
+                                        width={120}
+                                        height={28}
+                                        className="h-7 w-auto"
+                                    />
                                 </div>
-                            </MorphHeight>
-                        </section>
+                                <MorphHeight contentKey={pathname}>
+                                    <div data-leaving={leaving} className="auth-leave">
+                                        <div key={pathname} className="auth-swap">
+                                            {children}
+                                        </div>
+                                    </div>
+                                </MorphHeight>
+                            </section>
+                        </div>
                     </div>
                 </div>
             </div>

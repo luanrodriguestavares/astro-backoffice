@@ -7,6 +7,8 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 
+import { SparkleIcon, markAiApplied } from '@/components/ai/ai-chat';
+import { CheckoutAiChat } from '@/components/ai/checkout-ai-chat';
 import { Icon } from '@/components/ui/icon';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { showToast } from '@/components/ui/toast';
@@ -19,7 +21,7 @@ import {
 import { checkoutPublicUrl } from '@/lib/checkout/public-url';
 import { defaultCheckoutAppearance, type CheckoutAppearance } from '@astro/checkout-renderer/theme';
 import { CheckoutAppearanceStudio } from '@/components/checkout-builder/appearance-studio';
-import type { Checkout } from '@/lib/api/types';
+import type { Checkout, CheckoutDocument } from '@/lib/api/types';
 import { useEscapeClose } from '@/hooks/use-escape-close';
 
 export type CheckoutCatalogOption = {
@@ -42,6 +44,7 @@ export function CheckoutManager({
     initialQuery = '',
     initialTemplate,
     focusId,
+    initialAi = false,
 }: {
     checkouts: Checkout[];
     catalog: CheckoutCatalogOption[];
@@ -49,13 +52,21 @@ export function CheckoutManager({
     initialQuery?: string;
     initialTemplate?: CheckoutTemplateId;
     focusId?: string;
+    /** `?ia=1` (atalho do assistente): abre a criação já no modo IA. */
+    initialAi?: boolean;
 }) {
     const router = useRouter();
-    const [open, setOpen] = useState(Boolean(canWrite && initialTemplate && catalog.length));
-    const [step, setStep] = useState<'template' | 'details' | 'appearance'>(
-        initialTemplate ? 'details' : 'template',
+    const [open, setOpen] = useState(
+        Boolean(canWrite && (initialTemplate || initialAi) && catalog.length),
     );
-    const [template, setTemplate] = useState<CheckoutTemplateId | undefined>(initialTemplate);
+    const [step, setStep] = useState<'template' | 'details' | 'appearance' | 'ai'>(
+        initialTemplate || initialAi ? 'details' : 'template',
+    );
+    /** "Criar com IA": depois do produto, o chat substitui a etapa de aparência. */
+    const [aiMode, setAiMode] = useState(Boolean(initialAi));
+    const [template, setTemplate] = useState<CheckoutTemplateId | undefined>(
+        initialTemplate ?? (initialAi ? 'blank' : undefined),
+    );
     const [templateQuery, setTemplateQuery] = useState('');
     const [templateCategory, setTemplateCategory] = useState<
         'all' | 'sales' | 'checkout' | 'recurring'
@@ -107,6 +118,7 @@ export function CheckoutManager({
             return;
         }
         setStep('template');
+        setAiMode(false);
         setTemplate(undefined);
         setTemplateQuery('');
         setTemplateCategory('all');
@@ -157,7 +169,42 @@ export function CheckoutManager({
             });
             return;
         }
-        setStep('appearance');
+        setStep(aiMode ? 'ai' : 'appearance');
+    }
+
+    /** Cria o checkout com o documento gerado pela IA; páginas de resultado vêm do modelo. */
+    async function createFromAi(document: CheckoutDocument, generationId: string) {
+        const selected = selectedPrice;
+        if (!selected) return;
+        setLoading(true);
+        const base = buildCheckoutFromTemplate('blank', chosenPlans, appearance);
+        const response = await fetch('/api/checkouts', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+                name: name.trim(),
+                slug: slugify(slug || name),
+                checkoutType: base.products.length > 1 ? 'multi_product' : 'single_product',
+                defaultCurrency: selected.currency,
+                products: base.products,
+                document: {
+                    ...document,
+                    pages: base.document.pages,
+                    settings: { ...base.document.settings, ...document.settings },
+                },
+            }),
+        });
+        const body = (await response.json()) as { data?: Checkout; detail?: string };
+        setLoading(false);
+        if (!response.ok || !body.data) {
+            showToast({
+                tone: 'error',
+                description: body.detail ?? 'Não foi possível criar o checkout.',
+            });
+            return;
+        }
+        markAiApplied(generationId);
+        router.push(`/checkouts/${body.data.id}`);
     }
 
     async function create() {
@@ -289,7 +336,7 @@ export function CheckoutManager({
                         onMouseDown={(event) => {
                             if (event.target === event.currentTarget) closeCreate();
                         }}
-                        className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#17172c]/20 p-4 ui-overlay"
                     >
                         <div
                             role="dialog"
@@ -298,8 +345,8 @@ export function CheckoutManager({
                                 step === 'appearance'
                                     ? // Assistente de aparência: ocupa a altura da tela e só os controles rolam.
                                       'flex h-[min(calc(100dvh-2rem),920px)] w-full max-w-6xl flex-col overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(16,18,20,.18)] sm:p-7'
-                                    : step === 'template'
-                                      ? // A galeria cresce na horizontal; apenas a lista de modelos rola.
+                                    : step === 'template' || step === 'ai'
+                                      ? // A galeria (e o chat de IA) ocupam a tela; só o conteúdo rola.
                                         'flex h-[min(calc(100dvh-2rem),920px)] w-full max-w-6xl flex-col overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(16,18,20,.18)] sm:p-7'
                                       : 'my-6 w-full max-w-xl overflow-hidden rounded-[28px] p-5 shadow-[0_32px_100px_rgba(16,18,20,.18)] sm:p-7'
                             }`}
@@ -309,19 +356,26 @@ export function CheckoutManager({
                                     <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-strong">
                                         Novo checkout · Etapa{' '}
                                         {step === 'template' ? 1 : step === 'details' ? 2 : 3} de 3
+                                        {aiMode && step !== 'template' ? ' · com IA' : ''}
                                     </p>
                                     <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
                                         {step === 'template'
                                             ? 'Como você quer começar?'
                                             : step === 'details'
                                               ? 'Configure seu checkout'
-                                              : 'Dê a cara da sua marca'}
+                                              : step === 'ai'
+                                                ? 'Crie com IA'
+                                                : 'Dê a cara da sua marca'}
                                     </h2>
                                     <p className="mt-1.5 text-[13px] leading-5 text-muted">
                                         {step === 'template'
                                             ? 'Escolha um ponto de partida. Você poderá personalizar tudo no editor.'
                                             : step === 'details'
-                                              ? `Modelo: ${checkoutTemplates.find((item) => item.id === template)?.name ?? ''}. Defina o nome e a oferta principal.`
+                                              ? aiMode
+                                                  ? 'Defina o nome e a oferta. Na próxima etapa você descreve o checkout para a IA.'
+                                                  : `Modelo: ${checkoutTemplates.find((item) => item.id === template)?.name ?? ''}. Defina o nome e a oferta principal.`
+                                              : step === 'ai'
+                                                ? 'Converse com a IA até gostar do resultado. O checkout abre no editor como rascunho.'
                                               : 'Defina a identidade visual básica. Todas as opções podem ser alteradas depois, em Aparência, no editor.'}
                                     </p>
                                 </div>
@@ -339,7 +393,7 @@ export function CheckoutManager({
                             {step === 'template' ? (
                                 <>
                                     <div className="mt-5 flex shrink-0 flex-col gap-3 border-b border-border pb-4 lg:flex-row lg:items-center lg:justify-between">
-                                        <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-[var(--control-bg)] px-3 lg:max-w-sm">
+                                        <label className="filter-control ui-control-frame flex h-11 min-w-0 flex-1 items-center gap-2 px-4 lg:max-w-sm">
                                             <Icon name="search" className="size-4 text-muted" />
                                             <input
                                                 value={templateQuery}
@@ -377,6 +431,31 @@ export function CheckoutManager({
                                         </div>
                                     </div>
                                     <div className="mt-6 min-h-0 flex-1 overflow-y-auto pr-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setAiMode(true);
+                                                setTemplate('blank');
+                                                setStep('details');
+                                            }}
+                                            className="group mb-4 flex w-full items-center gap-4 rounded-[20px] border border-border bg-[var(--control-bg)] p-4 text-left transition hover:-translate-y-px hover:border-foreground/25 hover:shadow-[0_14px_36px_rgba(16,18,20,0.08)]"
+                                        >
+                                            <span className="grid size-11 shrink-0 place-items-center rounded-2xl border border-border bg-surface">
+                                                <SparkleIcon className="size-5" />
+                                            </span>
+                                            <span className="min-w-0 flex-1">
+                                                <span className="block text-[14px] font-semibold tracking-[-0.01em]">
+                                                    Criar com IA
+                                                </span>
+                                                <span className="mt-0.5 block text-[12.5px] leading-5 text-muted">
+                                                    Descreva a oferta e o público; a IA monta estrutura, cores, tipografia e textos com os blocos do editor.
+                                                </span>
+                                            </span>
+                                            <Icon
+                                                name="arrow-right"
+                                                className="size-4 text-muted transition group-hover:translate-x-0.5 group-hover:text-foreground"
+                                            />
+                                        </button>
                                         <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))]">
                                             {visibleTemplates.map((item) => {
                                                 const selected = template === item.id;
@@ -385,8 +464,12 @@ export function CheckoutManager({
                                                         key={item.id}
                                                         type="button"
                                                         aria-pressed={selected}
-                                                        onClick={() => setTemplate(item.id)}
+                                                        onClick={() => {
+                                                            setAiMode(false);
+                                                            setTemplate(item.id);
+                                                        }}
                                                         onDoubleClick={() => {
+                                                            setAiMode(false);
                                                             setTemplate(item.id);
                                                             setStep('details');
                                                         }}
@@ -458,6 +541,25 @@ export function CheckoutManager({
                                         </Button>
                                     </div>
                                 </>
+                            ) : step === 'ai' ? (
+                                <div className="mt-5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[20px] border border-border bg-surface">
+                                    <CheckoutAiChat
+                                        productName={selectedPrice?.productName ?? name}
+                                        prices={chosenPlans}
+                                        creating={loading}
+                                        onCreate={(document, id) => void createFromAi(document, id)}
+                                    />
+                                    <div className="flex shrink-0 justify-start border-t border-border px-4 py-3">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            onClick={() => setStep('details')}
+                                        >
+                                            <Icon name="arrow-right" className="size-3.5 rotate-180" />
+                                            Voltar
+                                        </Button>
+                                    </div>
+                                </div>
                             ) : step === 'appearance' ? (
                                 <>
                                     <div className="mt-5 min-h-0 flex-1 overflow-y-auto lg:overflow-visible">
@@ -515,8 +617,8 @@ export function CheckoutManager({
                                         </label>
                                         <label className="text-[13px] font-semibold">
                                             Endereço da página
-                                            <span className="mt-2 flex h-11 items-center overflow-hidden rounded-xl border border-border bg-[var(--control-bg)] focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]">
-                                                <span className="hidden h-full items-center border-r border-border bg-surface-muted px-3 text-[12px] font-normal text-muted sm:flex">
+                                            <span className="mt-2 flex h-11 items-center overflow-hidden rounded-full border border-border bg-[var(--control-bg)] focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]">
+                                                <span className="hidden h-full items-center border-r border-border bg-surface-muted pl-4 pr-3 text-[12px] font-normal text-muted sm:flex">
                                                     {checkoutPublicUrl('').replace(/\/$/, '')}/
                                                 </span>
                                                 <input
@@ -635,7 +737,7 @@ export function CheckoutManager({
                             if (event.target === event.currentTarget && !deleting)
                                 setDeleteTarget(undefined);
                         }}
-                        className="fixed inset-0 z-[110] grid place-items-center bg-[#17172c]/18 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[110] grid place-items-center bg-[#17172c]/18 p-4 ui-overlay"
                     >
                         <div
                             className="theme-modal modal-surface glass-panel w-full max-w-md rounded-[26px] p-6 shadow-[0_30px_90px_rgba(37,31,76,.2)]"
@@ -687,7 +789,7 @@ export function CheckoutManager({
                         onMouseDown={(event) => {
                             if (event.target === event.currentTarget) setMissingProductAlert(false);
                         }}
-                        className="fixed inset-0 z-[110] grid place-items-center overflow-y-auto bg-[#17172c]/18 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[110] grid place-items-center overflow-y-auto bg-[#17172c]/18 p-4 ui-overlay"
                     >
                         <section
                             role="alertdialog"
@@ -932,7 +1034,7 @@ export function TemplateThumb({ id }: { id: CheckoutTemplateId }) {
                             <span className={`${bar} h-1.5 w-8 bg-foreground/35`} />
                         </span>
                         <span className={`${button} mt-1`} />
-                        <span className="mt-0.5 block h-1.5 w-8 rounded-full bg-[#91cf24]" />
+                        <span className="mt-0.5 block h-1.5 w-8 rounded-full bg-[#2ee37f]" />
                     </span>
                 </span>
             )}
@@ -957,7 +1059,7 @@ export function TemplateThumb({ id }: { id: CheckoutTemplateId }) {
                     <span className="grid grid-cols-3 gap-1">
                         {[0, 1, 2].map((index) => (
                             <span key={index} className={`${card} grid gap-1`}>
-                                <span className="block size-2 rounded-[3px] bg-[#91cf24]" />
+                                <span className="block size-2 rounded-[3px] bg-[#2ee37f]" />
                                 <span className={`${bar} h-1 w-8`} />
                             </span>
                         ))}
@@ -967,7 +1069,7 @@ export function TemplateThumb({ id }: { id: CheckoutTemplateId }) {
             {id === 'express' && (
                 <span className="grid h-full content-start gap-1.5">
                     <span className="flex h-3 items-center gap-1 rounded-[5px] border border-border bg-surface px-1.5">
-                        <span className="block size-1.5 rounded-full bg-[#91cf24] ring-2 ring-[#91cf24]/30" />
+                        <span className="block size-1.5 rounded-full bg-[#2ee37f] ring-2 ring-[#2ee37f]/30" />
                         <span className={`${bar} h-1 w-16`} />
                     </span>
                     <span className="grid grid-cols-[1.25fr_1fr] gap-1.5">
@@ -1022,7 +1124,7 @@ export function TemplateThumb({ id }: { id: CheckoutTemplateId }) {
                         </span>
                         <span className={`${bar} h-1.5 w-14`} />
                         <span className={`${button} w-full`} />
-                        <span className="block h-1.5 w-10 rounded-full bg-[#91cf24]" />
+                        <span className="block h-1.5 w-10 rounded-full bg-[#2ee37f]" />
                     </span>
                 </span>
             )}
@@ -1044,7 +1146,7 @@ export function TemplateThumb({ id }: { id: CheckoutTemplateId }) {
                         <span className={`${card} grid content-start gap-1`}>
                             <span className={`${bar} h-1.5 w-8`} />
                             <span className={`${button} mt-1`} />
-                            <span className="block h-1.5 w-12 rounded-full bg-[#91cf24]" />
+                            <span className="block h-1.5 w-12 rounded-full bg-[#2ee37f]" />
                         </span>
                     </span>
                 </span>

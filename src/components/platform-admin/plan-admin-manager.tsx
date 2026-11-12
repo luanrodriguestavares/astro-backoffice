@@ -14,6 +14,7 @@ const featureLabels: Record<string, string> = {
     'catalog.active_products': 'Produtos ativos',
     'checkout.published': 'Checkouts publicados',
     'commerce.orders': 'Pedidos por mês',
+    'commerce.sales_volume_minor': 'Vendas por mês (centavos de BRL)',
     'subscriptions.active': 'Assinaturas ativas',
     'gateways.connected': 'Gateways conectados',
     'domains.custom': 'Domínios personalizados',
@@ -34,6 +35,7 @@ const featureLabels: Record<string, string> = {
 };
 
 const quotaFeatures = new Set([
+    'commerce.sales_volume_minor',
     'catalog.active_products',
     'checkout.published',
     'commerce.orders',
@@ -265,7 +267,7 @@ function PlanEditor({
     const [reason, setReason] = useState('');
 
     return (
-        <div className="fixed inset-0 z-[150] grid place-items-center overflow-hidden bg-[#111111]/45 p-3 backdrop-blur-sm sm:p-4">
+        <div className="fixed inset-0 z-[150] grid place-items-center overflow-hidden bg-[#111111]/45 p-3 ui-overlay sm:p-4">
             <div
                 role="dialog"
                 aria-modal="true"

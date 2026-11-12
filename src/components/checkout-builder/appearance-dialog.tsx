@@ -89,7 +89,7 @@ export function EditorAppearanceButton() {
                         onMouseDown={(event) => {
                             if (event.target === event.currentTarget) setDraft(undefined);
                         }}
-                        className="fixed inset-0 z-[100] grid place-items-center bg-[#17172c]/20 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] grid place-items-center bg-[#17172c]/20 p-4 ui-overlay"
                     >
                         <div
                             role="dialog"

@@ -23,11 +23,10 @@ export default async function RegisterPage({
         <>
             <AuthToast message={error} />
             <header className="text-center">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1 text-[9.5px] font-semibold uppercase tracking-[.2em] text-[#3a3e42] shadow-[inset_0_0_0_1px_rgb(16_18_20_/_6%)]">
-                    <span className="size-1.5 rounded-full bg-[#91cf24]" />
+                <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-[#13703f]">
                     Comece no Astro
-                </span>
-                <h1 className="auth-display mt-3 text-[26px] font-extrabold leading-tight tracking-[-.025em] text-[#0b0d0e] sm:text-[28px]">
+                </p>
+                <h1 className="auth-display mt-3 text-[26px] leading-tight tracking-[-.04em] text-[#141414] sm:text-[28px]">
                     {invitation ? `Entre em ${invitation.organizationName}` : 'Crie sua conta'}
                 </h1>
                 <p className="mt-1 text-[13.5px] text-[#6a6e73]">

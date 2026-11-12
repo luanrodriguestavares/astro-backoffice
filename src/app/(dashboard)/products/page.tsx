@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { apiFetch } from '@/lib/api/server';
 import { currentPermissions } from '@/lib/auth/permissions';
 import type { MediaFile, Price, Product } from '@/lib/api/types';
+import { mediaLibraryEnabled } from '@/lib/features/release';
 
 export default async function ProductsPage({
     searchParams,
@@ -14,7 +15,7 @@ export default async function ProductsPage({
     const products = (await apiFetch<Product[]>('/api/v1/products?limit=100')).toSorted(
         (left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt),
     );
-    const files = await apiFetch<MediaFile[]>('/api/v1/files');
+    const files = mediaLibraryEnabled ? await apiFetch<MediaFile[]>('/api/v1/files') : [];
     const entries = await Promise.all(
         products.map(
             async (product) =>

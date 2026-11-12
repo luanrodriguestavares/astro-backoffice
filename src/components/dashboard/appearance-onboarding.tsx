@@ -3,11 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import {
-    accentThemes,
-    setAccentTheme,
-    type AccentTheme,
-} from '@/components/layout/accent-theme-controller';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Modal, ModalBody } from '@/components/ui/modal';
@@ -17,9 +12,6 @@ type DashboardTheme = 'light' | 'dark';
 
 const themeStorageKey = 'astro-dashboard-theme';
 const themeChangeEvent = 'astro-dashboard-theme-change';
-
-// Seletor de cor do tema temporariamente desativado.
-const showAccentThemeSelector = false;
 
 export function AppearanceOnboarding({
     open,
@@ -32,7 +24,6 @@ export function AppearanceOnboarding({
 }) {
     const router = useRouter();
     const [theme, setTheme] = useState<DashboardTheme>('dark');
-    const [accent, setAccent] = useState<AccentTheme>(organization.accentTheme ?? 'astro');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
@@ -42,18 +33,13 @@ export function AppearanceOnboarding({
         window.dispatchEvent(new Event(themeChangeEvent));
     }
 
-    function chooseAccent(next: AccentTheme) {
-        setAccent(next);
-        setAccentTheme(next);
-    }
-
     async function complete() {
         setSaving(true);
         setError('');
         const response = await fetch('/api/settings/organization', {
             method: 'PATCH',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ accentTheme: accent, version: organization.version }),
+            body: JSON.stringify({ accentTheme: 'astro', version: organization.version }),
         });
         setSaving(false);
         if (!response.ok) {
@@ -82,13 +68,11 @@ export function AppearanceOnboarding({
                         Deixe o Astro com a cara da sua operação
                     </h2>
                     <p className="mx-auto mt-2 max-w-lg text-[12px] leading-5 text-muted">
-                        Escolha seu conforto visual e a cor que representará esta workspace.
+                        Escolha o tema que deixa o painel mais confortável para você.
                     </p>
                 </div>
 
-                <div
-                    className={`mt-6 grid gap-5 ${showAccentThemeSelector ? 'sm:grid-cols-[.8fr_1.2fr]' : ''}`}
-                >
+                <div className="mt-6 grid gap-5">
                     <div>
                         <p className="text-[11px] font-semibold">Seu tema</p>
                         <p className="mt-1 text-[10px] leading-4 text-muted">
@@ -119,47 +103,6 @@ export function AppearanceOnboarding({
                             ))}
                         </div>
                     </div>
-
-                    {showAccentThemeSelector && (
-                        <div>
-                            <p className="text-[11px] font-semibold">Cor da workspace</p>
-                            <p className="mt-1 text-[10px] leading-4 text-muted">
-                                Administradores definem esta identidade para toda a equipe.
-                            </p>
-                            <div className="mt-3 grid grid-cols-4 gap-2">
-                                {accentThemes.map((option) => (
-                                    <Button
-                                        key={option.value}
-                                        type="button"
-                                        title={option.label}
-                                        aria-label={`Usar cor ${option.label}`}
-                                        aria-pressed={accent === option.value}
-                                        onClick={() => chooseAccent(option.value)}
-                                        className={`group grid min-h-[72px] place-items-center rounded-2xl border p-2 transition ${
-                                            accent === option.value
-                                                ? 'border-brand/45 bg-brand-soft/65 shadow-[0_10px_24px_color-mix(in_srgb,var(--brand)_12%,transparent)]'
-                                                : 'border-border bg-[var(--control-bg)] hover:border-brand/25'
-                                        }`}
-                                    >
-                                        <span
-                                            className="grid size-8 place-items-center rounded-xl shadow-sm"
-                                            style={{ backgroundColor: option.color }}
-                                        >
-                                            {accent === option.value && (
-                                                <Icon
-                                                    name="check"
-                                                    className="size-3.5 text-white"
-                                                />
-                                            )}
-                                        </span>
-                                        <span className="mt-1 text-[9px] font-semibold">
-                                            {option.label}
-                                        </span>
-                                    </Button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 {verification && (

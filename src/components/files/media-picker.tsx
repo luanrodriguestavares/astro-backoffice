@@ -37,7 +37,7 @@ export function MediaPicker({
     return createPortal(
         <div
             onMouseDown={(event) => event.target === event.currentTarget && onClose()}
-            className="fixed inset-0 z-[140] grid place-items-center overflow-y-auto bg-[#111111]/45 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[140] grid place-items-center overflow-y-auto bg-[#111111]/45 p-4 ui-overlay"
         >
             <section className="modal-surface glass-panel flex max-h-[min(720px,calc(100dvh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-[24px]">
                 <div className="shrink-0 border-b border-border/70 px-5 py-4 sm:px-6">

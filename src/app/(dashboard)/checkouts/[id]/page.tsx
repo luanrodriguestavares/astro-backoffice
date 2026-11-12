@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
+import { mediaLibraryEnabled } from '@/lib/features/release';
 
 import { CheckoutEditor } from '@/components/checkout-builder/checkout-editor';
 import { publicAssetApiUrl } from '@/lib/api/config';
@@ -59,7 +60,7 @@ async function loadWorkspace(id: string, canManageGateways: boolean) {
             await Promise.all([
                 apiFetch<Checkout>(`/api/v1/checkouts/${encodeURIComponent(id)}`),
                 apiFetch<CheckoutDraft>(`/api/v1/checkouts/${encodeURIComponent(id)}/draft`),
-                apiFetch<MediaFile[]>('/api/v1/files'),
+                optional<MediaFile[]>('/api/v1/files', [], mediaLibraryEnabled),
                 optional<GatewayConnection[]>('/api/v1/gateway-connections', [], canManageGateways),
                 optional<GatewayInsights | null>('/api/v1/gateway-insights?days=30', null),
                 optional<Product[]>('/api/v1/products?limit=100', []),

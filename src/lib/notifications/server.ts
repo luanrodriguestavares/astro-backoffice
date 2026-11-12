@@ -27,9 +27,9 @@ const limitedFeatures = [
         permission: 'products.read',
     },
     {
-        feature: 'commerce.orders',
-        label: 'Pedidos do ciclo',
-        href: '/orders',
+        feature: 'commerce.sales_volume_minor',
+        label: 'Vendas do ciclo (faixa do plano)',
+        href: '/settings',
         permission: 'payments.read',
     },
     {
@@ -49,12 +49,6 @@ const limitedFeatures = [
         label: 'Usuários no workspace',
         href: '/team',
         permission: 'members.manage',
-    },
-    {
-        feature: 'media.storage_bytes',
-        label: 'Armazenamento de mídia',
-        href: '/files',
-        permission: 'products.read',
     },
 ] as const;
 

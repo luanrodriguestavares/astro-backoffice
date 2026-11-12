@@ -34,6 +34,9 @@ const scopeLabels: Record<string, string> = {
     'invoices.read': 'Consultar faturas',
     'usage.read': 'Consultar consumo',
     'usage.write': 'Registrar consumo',
+    'payments.read': 'Consultar pagamentos',
+    'subscriptions.write': 'Cancelar assinaturas',
+    'checkout_sessions.write': 'Criar links de checkout',
 };
 
 export function ApiKeyManager({ keys }: { keys: ApiKeyItem[] }) {
@@ -230,7 +233,7 @@ function ApiKeyActions({ keyItem }: { keyItem: ApiKeyItem }) {
 function SecretDialog({ secret, close }: { secret: string; close: () => void }) {
     return createPortal(
         <div
-            className="fixed inset-0 z-[120] grid place-items-center bg-[#111111]/20 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[120] grid place-items-center bg-[#111111]/20 p-4 ui-overlay"
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget) close();
             }}

@@ -27,7 +27,7 @@ export function PageHeader({
             <div>
                 {eyebrow && (
                     <p
-                        className={`${hero ? 'mb-1.5' : 'mb-1'} text-[11px] font-semibold uppercase tracking-[0.16em] text-muted`}
+                        className={`page-eyebrow ${hero ? 'mb-1.5' : 'mb-1'} text-[11px] font-semibold uppercase tracking-[0.16em] text-muted`}
                     >
                         {eyebrow}
                     </p>

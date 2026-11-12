@@ -87,7 +87,7 @@ export default async function SettingsPage({
                         />
                     </dl>
                 </aside>
-                <AppearancePreferences organization={organization} />
+                <AppearancePreferences />
             </div>
         </>
     );

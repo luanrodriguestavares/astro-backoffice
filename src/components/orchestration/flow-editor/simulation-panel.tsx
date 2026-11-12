@@ -311,7 +311,7 @@ function SimulationResult({
                             className="flex items-start gap-2.5"
                         >
                             <span
-                                className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${attempt.skipped ? 'bg-surface-muted text-muted' : 'bg-[#91cf24] text-[#101214]'}`}
+                                className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${attempt.skipped ? 'bg-surface-muted text-muted' : 'bg-[#2ee37f] text-[#101214]'}`}
                             >
                                 {attempt.skipped ? '–' : usable.indexOf(attempt) + 1}
                             </span>
@@ -416,7 +416,7 @@ function ActionsResult({
                     {result.actions.map((action, index) => (
                         <li key={action.nodeId} className="flex items-start gap-2.5">
                             <span
-                                className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${action.skipped ? 'bg-surface-muted text-muted' : 'bg-[#91cf24] text-[#101214]'}`}
+                                className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${action.skipped ? 'bg-surface-muted text-muted' : 'bg-[#2ee37f] text-[#101214]'}`}
                             >
                                 {action.skipped ? '–' : index + 1}
                             </span>

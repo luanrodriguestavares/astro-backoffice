@@ -39,7 +39,7 @@ html.astro-tour-active *::-webkit-scrollbar {
 
 html.astro-dark-portals .astro-tour-popover.driver-popover {
     border-color: rgb(255 255 255 / 10%);
-    background: rgb(23 23 25 / 98%);
+    background: rgb(23 23 24 / 98%);
     box-shadow:
         0 28px 80px rgb(0 0 0 / 58%),
         inset 0 1px 0 rgb(255 255 255 / 4%);
@@ -131,30 +131,40 @@ html.astro-dark-portals .astro-tour-popover.driver-popover {
 
 :root,
 .astro-light-scope {
-    /* Astro: base neutra e fria; lima apenas como sinal preciso. */
-    --background: #f5f6f7;
-    --foreground: #101214;
+    /* Identidade da landing: papel e tinta no claro, menta como sinal e verde-noite no escuro. */
+    --mint: #2ee37f;
+    --mint-soft: #7ff0b0;
+    --signal: #2ee37f;
+    --signal-hover: #5ef09e;
+    --on-signal: #04170c;
+    --forest: #13703f;
+    --night: #07130d;
+    --grain: url('/images/aurora/grain.png') 0 0 / 160px;
+    --font-text: var(--font-manrope), 'Inter', 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-display: var(--font-sora), var(--font-manrope), 'Inter', Arial, sans-serif;
+    --background: #f4f4f4;
+    --foreground: #141414;
     --surface: #ffffff;
-    --surface-muted: #f1f3f5;
-    --border: #e1e4e8;
-    --muted: #686b70;
-    --brand: #101214;
-    --brand-strong: #101214;
-    --brand-soft: #f0f2f4;
+    --surface-muted: #f0f1f0;
+    --border: #e4e4e4;
+    --muted: #6b6b6b;
+    --brand: #141414;
+    --brand-strong: #141414;
+    --brand-soft: #eef1ef;
     --brand-contrast: #ffffff;
-    --highlight: #91cf24;
-    --highlight-contrast: #101214;
-    --chart-primary: #91cf24;
-    --focus-ring: #60656d;
-    --button-glow: rgb(16 18 20 / 22%);
+    --highlight: #2ee37f;
+    --highlight-contrast: #04170c;
+    --chart-primary: #2ee37f;
+    --focus-ring: #2a6e48;
+    --button-glow: rgb(20 20 20 / 22%);
     --success: #318a50;
     --warning: #b66a13;
     --danger: #c33b53;
     --glass-radius-lg: 28px;
     --glass-radius-sm: 22px;
     --glass-blur: 38px;
-    --glass-border: #e2e5e9;
-    --glass-shadow: 0 1px 1px rgb(16 18 20 / 2%), 0 12px 34px rgb(16 18 20 / 4%);
+    --glass-border: #e4e4e4;
+    --glass-shadow: 0 1px 1px rgb(20 20 20 / 2%), 0 12px 34px rgb(20 20 20 / 4%);
     --control-bg: #ffffff;
 }
 
@@ -180,7 +190,7 @@ html.astro-dark-portals .astro-tour-popover.driver-popover {
     --color-success: var(--success);
     --color-warning: var(--warning);
     --color-danger: var(--danger);
-    --font-sans: 'Geist', 'Inter', 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-sans: var(--font-text);
     --shadow-panel: 0 1px 1px rgb(16 18 20 / 2%), 0 18px 54px rgb(16 18 20 / 5%);
 }
 
@@ -195,7 +205,7 @@ html {
 body {
     background: var(--background);
     color: var(--foreground);
-    font-family: var(--font-sans);
+    font-family: var(--font-text);
     text-rendering: optimizeLegibility;
 }
 
@@ -334,12 +344,12 @@ body {
     transform: translateX(35%);
 }
 
-/* Contrato único para campos e buscas do backoffice. */
+/* Contrato único para campos e buscas do backoffice: pílula, como a busca Ctrl+K. */
 .ui-control,
 .ui-control-frame {
     min-height: 2.75rem;
     border: 1px solid var(--border);
-    border-radius: 0.75rem;
+    border-radius: 999px;
     background: var(--control-bg);
     color: var(--foreground);
     font-size: 13px;
@@ -378,24 +388,41 @@ body {
     outline: none;
 }
 
+/*
+ * Input dentro de um contêiner que faz o papel de campo (busca com ícone, prefixo de URL):
+ * quem desenha a pílula, a borda e o foco é o contêiner, nunca o input. O :not(#\#) só soma
+ * especificidade para vencer as regras globais de campo e as do tema escuro dos modais.
+ */
+:is(.ui-control-frame > input, input.min-w-0.flex-1.bg-transparent):not(#\#) {
+    height: 100% !important;
+    min-height: 0;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none;
+}
+
 textarea.ui-control {
     height: auto;
+    border-radius: 16px;
 }
 
 :where(.astro-shell main, .modal-surface, .theme-modal, .astro-light-scope)
     input:not([type='hidden']):not([type='file']):not([type='checkbox']):not([type='radio']):not(
         [type='range']
-    ),
+    ):not([type='color']),
 :where(.astro-shell main, .modal-surface, .theme-modal, .astro-light-scope) select,
 :where(.astro-shell main, .modal-surface, .theme-modal, .astro-light-scope)
     button.custom-select-trigger {
     height: 2.75rem;
-    border-radius: 0.75rem;
+    border-radius: 999px;
     font-size: 13px;
 }
 
+/* Várias linhas não cabem numa pílula: o textarea fica com o raio dos cards menores. */
 :where(.astro-shell main, .modal-surface, .theme-modal, .astro-light-scope) textarea {
-    border-radius: 0.75rem;
+    border-radius: 16px;
     font-size: 13px;
 }
 
@@ -743,40 +770,40 @@ table tbody [class*='font-bold'] {
 
 /* Dark theme: neutral surfaces with the same restrained glass language as light. */
 .dashboard-dark {
-    --background: #111214;
-    --foreground: #f0efec;
-    --surface: #191a1d;
-    --surface-muted: #202125;
-    --border: #2b2c30;
-    --muted: #99989d;
-    --brand-soft: #242529;
-    --focus-ring: #a3a7ad;
+    --background: #161717;
+    --foreground: #ececea;
+    --surface: #1c1d1d;
+    --surface-muted: #212222;
+    --border: #2a2c2b;
+    --muted: #9b9f9d;
+    --brand-soft: #232524;
+    --focus-ring: #c9cdca;
     --success: #57d3a6;
     --warning: #f1b96a;
     --danger: #ff7f96;
     --glass-border: rgb(255 255 255 / 7%);
     --glass-shadow: 0 18px 54px rgb(0 0 0 / 18%), 0 0 0 1px rgb(255 255 255 / 1%);
-    --dark-control-bg: #1e1f22;
+    --dark-control-bg: #1a1b1b;
     --control-bg: var(--dark-control-bg);
-    --dashboard-chart-grid: #77777d;
-    --dashboard-chart-muted: #89888e;
-    --dashboard-chart-surface: #1e1f22;
-    --dashboard-chart-empty: #28292d;
+    --dashboard-chart-grid: #5c5f5d;
+    --dashboard-chart-muted: #8d918f;
+    --dashboard-chart-surface: #1b1c1c;
+    --dashboard-chart-empty: #232525;
     color-scheme: dark;
     color: var(--foreground);
-    background: linear-gradient(145deg, #111214 0%, #131416 52%, #111214 100%);
+    background: var(--background);
 }
 
 html.astro-dark-portals {
-    --background: #111214;
-    --foreground: #f0efec;
-    --surface: #191a1d;
-    --surface-muted: #202125;
-    --border: #2b2c30;
-    --muted: #99989d;
-    --brand-soft: #242529;
-    --focus-ring: #a3a7ad;
-    --dark-control-bg: #1e1f22;
+    --background: #161717;
+    --foreground: #ececea;
+    --surface: #1c1d1d;
+    --surface-muted: #212222;
+    --border: #2a2c2b;
+    --muted: #9b9f9d;
+    --brand-soft: #232524;
+    --focus-ring: #c9cdca;
+    --dark-control-bg: #1a1b1b;
     --control-bg: var(--dark-control-bg);
     --success: #57d3a6;
     --warning: #f1b96a;
@@ -784,104 +811,25 @@ html.astro-dark-portals {
     color-scheme: dark;
 }
 
-/* Tema Astro no modo escuro: o lima vira a cor de ação. */
-:is(html[data-astro-accent='astro'], html:not([data-astro-accent])):is(
-    .dashboard-dark,
-    .astro-dark-portals
-),
-:is(html[data-astro-accent='astro'], html:not([data-astro-accent])) .dashboard-dark {
-    --brand: #91cf24;
-    --brand-strong: #91cf24;
-    --brand-soft: #242529;
-    --brand-contrast: #101214;
-    --chart-primary: #91cf24;
-    --button-glow: rgb(145 207 36 / 18%);
+/*
+ * Escuro do produto: grafite neutro, como o mockup do painel na landing. A ação principal é
+ * clara (o CTA final da landing) e o menta da estrela da logo fica só nos detalhes.
+ */
+.dashboard-dark,
+html.astro-dark-portals {
+    --brand: #ececea;
+    --brand-strong: #ececea;
+    --brand-soft: #232524;
+    --brand-contrast: #131313;
+    --highlight: #6fe6a0;
+    --highlight-contrast: #0b2416;
+    --chart-primary: #6fe6a0;
+    --button-glow: rgb(0 0 0 / 30%);
 }
 
 html.astro-dark-portals body {
-    background: #111214;
+    background: #161717;
     color: var(--foreground);
-}
-
-/* Temas alternativos (o tema Astro é o padrão em :root). Each palette keeps separate values for emphasis and soft surfaces. */
-html[data-astro-accent='blue'] {
-    --brand: #286dcc;
-    --brand-strong: #1f56a7;
-    --brand-soft: #eaf2ff;
-    --brand-contrast: #ffffff;
-    --highlight: var(--brand);
-    --highlight-contrast: #ffffff;
-    --chart-primary: var(--brand);
-    --button-glow: var(--brand);
-}
-
-html[data-astro-accent='violet'] {
-    --brand: #7651d1;
-    --brand-strong: #5d38b0;
-    --brand-soft: #f2edff;
-    --brand-contrast: #ffffff;
-    --highlight: var(--brand);
-    --highlight-contrast: #ffffff;
-    --chart-primary: var(--brand);
-    --button-glow: var(--brand);
-}
-
-html[data-astro-accent='orange'] {
-    --brand: #c4551c;
-    --brand-strong: #9c3e10;
-    --brand-soft: #ffede3;
-    --brand-contrast: #ffffff;
-    --highlight: var(--brand);
-    --highlight-contrast: #ffffff;
-    --chart-primary: var(--brand);
-    --button-glow: var(--brand);
-}
-
-html[data-astro-accent='green'] {
-    --brand: #16815f;
-    --brand-strong: #0f6549;
-    --brand-soft: #e6f6ef;
-    --brand-contrast: #ffffff;
-    --highlight: var(--brand);
-    --highlight-contrast: #ffffff;
-    --chart-primary: var(--brand);
-    --button-glow: var(--brand);
-}
-
-html[data-astro-accent='rose'] {
-    --brand: #bd416b;
-    --brand-strong: #993150;
-    --brand-soft: #ffebf2;
-    --brand-contrast: #ffffff;
-    --highlight: var(--brand);
-    --highlight-contrast: #ffffff;
-    --chart-primary: var(--brand);
-    --button-glow: var(--brand);
-}
-
-html[data-astro-accent='blue'].astro-dark-portals,
-html[data-astro-accent='blue'] .dashboard-dark {
-    --brand-soft: #202936;
-}
-
-html[data-astro-accent='violet'].astro-dark-portals,
-html[data-astro-accent='violet'] .dashboard-dark {
-    --brand-soft: #2b2635;
-}
-
-html[data-astro-accent='orange'].astro-dark-portals,
-html[data-astro-accent='orange'] .dashboard-dark {
-    --brand-soft: #30241e;
-}
-
-html[data-astro-accent='green'].astro-dark-portals,
-html[data-astro-accent='green'] .dashboard-dark {
-    --brand-soft: #20302a;
-}
-
-html[data-astro-accent='rose'].astro-dark-portals,
-html[data-astro-accent='rose'] .dashboard-dark {
-    --brand-soft: #31242a;
 }
 
 .dashboard-theme-switch {
@@ -1100,20 +1048,20 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 
 .dashboard-dark .dashboard-theme-switch {
     border-color: rgb(255 255 255 / 8%);
-    background: rgb(30 31 34 / 88%);
+    background: rgb(30 31 31 / 88%);
     color: #8f8e94;
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
 }
 
 .dashboard-dark .shell-header-control {
     border-color: rgb(255 255 255 / 8%);
-    background: rgb(30 31 34 / 88%) !important;
+    background: rgb(30 31 31 / 88%) !important;
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
 }
 
 .dashboard-dark .shell-header-control:hover {
     border-color: rgb(255 255 255 / 14%);
-    background: rgb(33 34 37 / 94%) !important;
+    background: rgb(33 34 34 / 94%) !important;
 }
 
 .dashboard-dark .dashboard-theme-switch:hover {
@@ -1122,26 +1070,26 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 }
 
 /*
- * Sidebar sempre escura (#111514), nos temas claro e escuro. Os tokens são redefinidos aqui
+ * Sidebar sempre escura (#131313), nos temas claro e escuro. Os tokens são redefinidos aqui
  * para que tudo dentro dela (navegação, organização, menus) use as cores do modo escuro.
  */
 .astro-sidebar,
 .admin-sidebar {
-    --background: #111514;
+    --background: #131313;
     --foreground: #f1f2ee;
-    --surface: #1b201e;
-    --surface-muted: #181c1b;
+    --surface: #1a1c1b;
+    --surface-muted: #181919;
     --border: rgb(255 255 255 / 8%);
     --muted: #8e938f;
-    --control-bg: #171b1a;
+    --control-bg: #161717;
     --glass-border: rgb(255 255 255 / 8%);
     --brand: var(--highlight);
     --brand-strong: var(--highlight);
-    --brand-soft: #1e2321;
+    --brand-soft: #1f2120;
     --brand-contrast: var(--highlight-contrast);
     color-scheme: dark;
     border-color: rgb(255 255 255 / 6%) !important;
-    background: #111514 !important;
+    background: #131313 !important;
     color: var(--foreground);
 }
 
@@ -1154,7 +1102,7 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 
 .astro-sidebar .sidebar-collapse-control:hover {
     border-color: rgb(255 255 255 / 14%);
-    background: #202624 !important;
+    background: #222423 !important;
 }
 
 /* Logo no topo do celular: versão com letras escuras no claro e claras no escuro. */
@@ -1172,15 +1120,15 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 
 .dashboard-dark .astro-sidebar {
     border-color: rgb(255 255 255 / 6%) !important;
-    background: #111514 !important;
+    background: #131313 !important;
     box-shadow: 18px 0 60px rgb(0 0 0 / 12%) !important;
 }
 
 .dashboard-dark .astro-topbar {
     background: linear-gradient(
         to bottom,
-        rgb(17 18 20 / 97%),
-        rgb(17 18 20 / 76%),
+        rgb(19 19 19 / 97%),
+        rgb(19 19 19 / 76%),
         transparent
     ) !important;
 }
@@ -1191,7 +1139,7 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 
 .dashboard-dark .glass-panel {
     border-color: var(--glass-border);
-    background: rgb(25 26 29 / 96%);
+    background: rgb(25 26 26 / 96%);
     box-shadow:
         inset 0 1px 0 rgb(255 255 255 / 3%),
         var(--glass-shadow);
@@ -1201,13 +1149,13 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 
 .dashboard-dark .glass-panel-soft {
     border-color: rgb(255 255 255 / 7%);
-    background: rgb(31 32 35 / 76%);
+    background: rgb(31 32 32 / 76%);
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 3%);
 }
 
 :is(.dashboard-dark, .astro-sidebar, .admin-sidebar) .glass-popover {
     border-color: rgb(255 255 255 / 8%);
-    background: #1c1d20;
+    background: #1b1c1c;
     color: var(--foreground);
     box-shadow:
         inset 0 1px 0 rgb(255 255 255 / 3%),
@@ -1216,7 +1164,7 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 
 :is(.dashboard-dark, .astro-sidebar, .admin-sidebar) .organization-card {
     border-color: rgb(255 255 255 / 7%);
-    background: rgb(30 31 34 / 72%);
+    background: rgb(30 31 31 / 72%);
     box-shadow:
         inset 0 1px 0 rgb(255 255 255 / 3%),
         0 12px 30px rgb(0 0 0 / 13%);
@@ -1318,7 +1266,7 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 
 :is(.dashboard-dark, .astro-sidebar, .admin-sidebar) .pro-glass-card {
     border-color: rgb(255 255 255 / 7%);
-    background: rgb(29 30 33 / 70%);
+    background: rgb(29 30 30 / 70%);
     box-shadow:
         inset 0 1px 0 rgb(255 255 255 / 3%),
         0 16px 38px rgb(0 0 0 / 15%);
@@ -1352,21 +1300,21 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 }
 
 .dashboard-dark .shell-icon-button > span {
-    --tw-ring-color: #1c1d20;
+    --tw-ring-color: #1b1c1c;
 }
 
 .dashboard-dark .global-search {
     border-color: rgb(255 255 255 / 8%);
-    background: rgb(29 30 33 / 78%);
+    background: rgb(29 30 30 / 78%);
 }
 
 .dashboard-dark .global-search:hover {
-    background: rgb(33 34 37 / 90%) !important;
+    background: rgb(33 34 34 / 90%) !important;
 }
 
 .dashboard-dark .global-search:focus-within {
     border-color: color-mix(in srgb, var(--brand) 44%, transparent);
-    background: rgb(31 32 35 / 98%) !important;
+    background: rgb(31 32 32 / 98%) !important;
 }
 
 .dashboard-dark .global-search kbd {
@@ -1437,19 +1385,6 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 .dashboard-dark .product-search:focus-within {
     border-color: color-mix(in srgb, var(--brand) 44%, transparent) !important;
     background: rgb(255 255 255 / 5%) !important;
-}
-
-.dashboard-dark .ui-tabs,
-.dashboard-dark .product-filter-tabs {
-    border-color: rgb(255 255 255 / 7%) !important;
-    background: rgb(0 0 0 / 12%) !important;
-}
-
-.dashboard-dark .ui-tab[data-active='true'],
-.dashboard-dark .product-filter-tabs button[data-active='true'] {
-    background: color-mix(in srgb, var(--brand) 12%, transparent) !important;
-    color: var(--brand-strong) !important;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 15%, transparent) !important;
 }
 
 .dashboard-dark .product-table > div:first-child,
@@ -1550,7 +1485,7 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 .dashboard-dark main:not(.astro-light-scope) select:focus,
 .dashboard-dark main:not(.astro-light-scope) .custom-select-trigger[aria-expanded='true'] {
     border-color: color-mix(in srgb, var(--brand) 44%, transparent) !important;
-    background-color: #222326 !important;
+    background-color: #212222 !important;
 }
 
 .dashboard-dark main:not(.astro-light-scope) input::placeholder,
@@ -1664,7 +1599,7 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 .dashboard-dark .astro-themed-page select:focus,
 .dashboard-dark .custom-select-trigger[aria-expanded='true'] {
     border-color: color-mix(in srgb, var(--brand) 44%, transparent) !important;
-    background-color: #222326 !important;
+    background-color: #212222 !important;
 }
 
 .dashboard-dark .astro-themed-page input::placeholder,
@@ -1701,7 +1636,7 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 
 .dashboard-dark .dashboard-stat-icon {
     border-color: rgb(255 255 255 / 7%) !important;
-    background: color-mix(in srgb, currentColor 8%, #1c1d20) !important;
+    background: color-mix(in srgb, currentColor 8%, #1b1c1c) !important;
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 3%) !important;
 }
 
@@ -1727,7 +1662,7 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 .dashboard-dark .dashboard-chart-empty,
 .dashboard-dark .dashboard-chart-tooltip {
     border-color: rgb(255 255 255 / 8%) !important;
-    background: rgb(29 30 33 / 98%) !important;
+    background: rgb(29 30 30 / 98%) !important;
     box-shadow: 0 18px 48px rgb(0 0 0 / 28%) !important;
 }
 
@@ -1775,7 +1710,7 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 
 .dashboard-search-popover {
     border-color: rgb(255 255 255 / 8%);
-    background: #1c1d20;
+    background: #1b1c1c;
     color: #f0efec;
     box-shadow:
         inset 0 1px 0 rgb(255 255 255 / 3%),
@@ -1805,7 +1740,7 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 .astro-dark-portals .glass-panel,
 .astro-dark-portals .custom-select-popover {
     border-color: rgb(255 255 255 / 8%) !important;
-    background: #1b1c1f !important;
+    background: #1b1c1c !important;
     color: var(--foreground);
     box-shadow:
         inset 0 1px 0 rgb(255 255 255 / 3%),
@@ -1814,7 +1749,7 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 
 .astro-dark-portals .modal-form-layout > :first-child,
 .astro-dark-portals .modal-form-layout > :last-child {
-    background: #1b1c1f;
+    background: #1b1c1c;
 }
 
 .astro-dark-portals .modal-surface h1,
@@ -2084,11 +2019,11 @@ html:not(.dashboard-dark) .dashboard-theme-switch-moon {
 }
 
 .dashboard-dark .global-search.shell-header-control {
-    background-color: rgb(30 31 34 / 88%) !important;
+    background-color: rgb(30 31 31 / 88%) !important;
 }
 
 .dashboard-dark .global-search.shell-header-control:hover {
-    background-color: rgb(33 34 37 / 94%) !important;
+    background-color: rgb(33 34 34 / 94%) !important;
 }
 
 .astro-shell
@@ -2374,18 +2309,19 @@ a {
 }
 
 ::selection {
-    background: color-mix(in srgb, var(--focus-ring) 22%, transparent);
+    background: color-mix(in srgb, var(--highlight) 38%, transparent);
     color: var(--foreground);
 }
 
 .dashboard-dark ::selection,
 html.astro-dark-portals ::selection {
-    background: rgb(255 255 255 / 16%);
+    background: color-mix(in srgb, var(--highlight) 30%, transparent);
     color: var(--foreground);
 }
 
+/* Áreas internas: barra nativa fina no cinza da landing. */
 * {
-    scrollbar-color: rgb(130 131 126 / 45%) transparent;
+    scrollbar-color: rgb(138 143 140 / 55%) transparent;
     scrollbar-width: thin;
 }
 
@@ -2400,11 +2336,11 @@ html.astro-dark-portals ::selection {
 
 *::-webkit-scrollbar-thumb {
     border-radius: 999px;
-    background-color: rgb(130 131 126 / 45%);
+    background-color: rgb(138 143 140 / 55%);
 }
 
 *::-webkit-scrollbar-thumb:hover {
-    background-color: rgb(95 96 92 / 62%);
+    background-color: rgb(138 143 140 / 85%);
 }
 
 *::-webkit-scrollbar-corner {
@@ -2461,7 +2397,7 @@ html.astro-dark-portals ::selection {
     }
 
     .astro-shell.dashboard-dark {
-        background: #151619;
+        background: #131313;
     }
 
     .astro-shell .astro-sidebar {
@@ -2480,19 +2416,19 @@ html.astro-dark-portals ::selection {
     }
 
     .dashboard-dark .astro-shell-panel {
-        background: linear-gradient(145deg, #111214 0%, #131416 52%, #111214 100%);
+        background: linear-gradient(145deg, #131313 0%, #141515 52%, #131313 100%);
         box-shadow: inset 1px 0 0 rgb(255 255 255 / 6%);
     }
 }
 
 /*
- * Desktop: a sidebar é transparente sobre o fundo do shell, então a cor dela (#111514) fica
+ * Desktop: a sidebar é transparente sobre o fundo do shell, então a cor dela (#131313) fica
  * no shell, nos dois temas. O painel de conteúdo tem fundo próprio por cima.
  */
 @media (min-width: 1024px) {
     .astro-shell:has(> .astro-sidebar),
     .astro-shell.dashboard-dark:has(> .astro-sidebar) {
-        background: #111514;
+        background: #131313;
     }
 }
 
@@ -2546,39 +2482,41 @@ html.astro-dark-portals ::selection {
 }
 
 /*
- * Botão principal do Astro: preto, texto branco e ícone principal em verde-lima. Vale em
- * todas as telas que usam a variante "primary"; os temas de cor alternativos mantêm a
- * própria cor.
+ * Botão principal em pílula, como na landing: tinta com ícone menta no claro e quase branco
+ * com texto escuro no escuro (o CTA final da landing). Sem brilho colorido.
  */
-:is(html[data-astro-accent='astro'], html:not([data-astro-accent]))
-    .ui-button[data-variant='primary'] {
-    border: 1px solid rgb(255 255 255 / 4%) !important;
-    background: linear-gradient(180deg, #1a201d 0%, #111514 100%) !important;
+.ui-button[data-variant='primary'] {
+    border: 1px solid transparent !important;
+    background: #141414 !important;
     color: #ffffff !important;
     box-shadow:
-        inset 0 1px 0 rgb(255 255 255 / 9%),
-        0 1px 2px rgb(17 21 20 / 18%),
-        0 6px 16px rgb(17 21 20 / 16%);
+        inset 0 1px 0 rgb(255 255 255 / 10%),
+        0 1px 2px rgb(20 20 20 / 12%);
 }
 
-:is(html[data-astro-accent='astro'], html:not([data-astro-accent]))
-    .ui-button[data-variant='primary']:hover:not(:disabled) {
-    background: linear-gradient(180deg, #222924 0%, #161b19 100%) !important;
+.ui-button[data-variant='primary']:hover:not(:disabled) {
+    background: #262626 !important;
 }
 
-:is(html[data-astro-accent='astro'], html:not([data-astro-accent]))
-    .ui-button[data-variant='primary']
-    > svg:first-child {
+.ui-button[data-variant='primary'] > svg:first-child {
     color: var(--highlight);
 }
 
-:is(html[data-astro-accent='astro'], html:not([data-astro-accent]))
-    .dashboard-dark
-    .ui-button[data-variant='primary'],
-:is(html[data-astro-accent='astro'], html:not([data-astro-accent])).dashboard-dark
-    .ui-button[data-variant='primary'] {
-    border-color: rgb(255 255 255 / 9%) !important;
-    background: linear-gradient(180deg, #212823 0%, #181d1b 100%) !important;
+.dashboard-dark .ui-button[data-variant='primary'],
+.astro-dark-portals .ui-button[data-variant='primary'] {
+    background: #ececea !important;
+    color: #131313 !important;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 60%);
+}
+
+.dashboard-dark .ui-button[data-variant='primary']:hover:not(:disabled),
+.astro-dark-portals .ui-button[data-variant='primary']:hover:not(:disabled) {
+    background: #ffffff !important;
+}
+
+.dashboard-dark .ui-button[data-variant='primary'] > svg:first-child,
+.astro-dark-portals .ui-button[data-variant='primary'] > svg:first-child {
+    color: #1f8a52;
 }
 
 /* Formas prateadas discretas no topo de todas as páginas do painel. */
@@ -2765,7 +2703,7 @@ html.astro-dark-portals ::selection {
 }
 
 .auth-accent-text {
-    background: linear-gradient(100deg, #7fc21a 0%, #91cf24 45%, #b5e35c 100%);
+    background: linear-gradient(100deg, #22c46c 0%, #2ee37f 45%, #7ff0b0 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -2804,7 +2742,7 @@ html.astro-dark-portals ::selection {
     transform-style: preserve-3d;
 }
 
-/* Prévia do painel: sidebar escura do backoffice (#111514) com o conteúdo claro por cima. */
+/* Prévia do painel: sidebar escura do backoffice (#131313) com o conteúdo claro por cima. */
 .auth-preview-shell {
     background: #ffffff;
     box-shadow:
@@ -2848,7 +2786,7 @@ html.astro-dark-portals ::selection {
 }
 
 .auth-cta svg {
-    color: #a3dc3a;
+    color: #5ef09e;
     transition: transform 0.25s ease;
 }
 
@@ -2928,13 +2866,13 @@ html.astro-dark-portals ::selection {
     width: 8px;
     height: 8px;
     border-radius: 9999px;
-    background: #7cbd1c;
+    background: #22c46c;
     transform: scale(0);
     transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .auth-radio:checked {
-    border-color: #7cbd1c;
+    border-color: #22c46c;
 }
 
 .auth-radio:checked::after {
@@ -2947,7 +2885,7 @@ html.astro-dark-portals ::selection {
 }
 
 .auth-link {
-    color: #4b7d0f;
+    color: #13703f;
     font-weight: 600;
     text-decoration: underline;
     text-decoration-color: transparent;
@@ -2958,7 +2896,7 @@ html.astro-dark-portals ::selection {
 }
 
 .auth-link:hover {
-    color: #3b660a;
+    color: #0f4d2c;
     text-decoration-color: currentColor;
 }
 
@@ -2997,12 +2935,12 @@ html.astro-dark-portals ::selection {
 /* Pulso de luz que percorre as rotas aprovadas: o fluxo "acontecendo". */
 .auth-flow-pulse {
     fill: none;
-    stroke: #91cf24;
+    stroke: #2ee37f;
     stroke-width: 2.4;
     stroke-linecap: round;
     stroke-dasharray: 9 91;
     stroke-dashoffset: 100;
-    filter: drop-shadow(0 0 3px rgb(145 207 36 / 70%));
+    filter: drop-shadow(0 0 3px rgb(46 227 127 / 70%));
     animation: auth-flow-pulse 2.8s cubic-bezier(0.45, 0, 0.25, 1) infinite;
 }
 
@@ -3101,8 +3039,8 @@ html.astro-dark-portals ::selection {
 }
 
 .auth-check:checked {
-    border-color: #7cbd1c;
-    background: #7cbd1c;
+    border-color: #22c46c;
+    background: #22c46c;
 }
 
 .auth-check:checked::after {
@@ -3122,7 +3060,7 @@ html.astro-dark-portals ::selection {
 }
 
 .dashboard-dark .auth-stage .custom-select-trigger[aria-expanded='true'] {
-    border-color: #9fd34a !important;
+    border-color: #5ef09e !important;
     background-color: #ffffff !important;
 }
 
@@ -3141,6 +3079,636 @@ html.astro-dark-portals ::selection {
 }
 
 .astro-dark-portals:has(.auth-stage) .custom-select-popover [role='option'][aria-selected='true'] {
-    background: #f1f8e4 !important;
-    color: #3b660a !important;
+    background: #e6fbef !important;
+    color: #0f4d2c !important;
+}
+
+/*
+ * Identidade da landing no produto. A referência é o mockup do painel que a própria landing
+ * mostra (AnalyticsDashboard): sidebar #131313, conteúdo em papel, cards com borda fina e raio
+ * contido, títulos em peso médio e o menta só em detalhes. Aurora, grão e vidro ficam para os
+ * momentos de marca (login), nunca atrás de dados.
+ */
+:where(h1, h2, h3),
+.auth-display {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.04em;
+}
+
+/* Como na landing: só o título principal ganha um pouco mais de peso. */
+:where(h1),
+.auth-display {
+    font-weight: 550;
+}
+
+.dashboard-stat-value,
+.summary-card-value {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+}
+
+.astro-title-highlight {
+    border-radius: 0;
+    background: none;
+    padding-inline: 0;
+    color: var(--forest);
+}
+
+.dashboard-dark .astro-title-highlight {
+    color: var(--highlight);
+}
+
+.page-eyebrow {
+    color: var(--foreground);
+    font-weight: 500;
+}
+
+.dashboard-dark .page-eyebrow {
+    color: var(--muted);
+}
+
+/* Sidebar neutra e quase preta nos dois temas, como no mockup da landing. */
+.astro-sidebar,
+.admin-sidebar {
+    --background: #131313;
+    --surface: #1c1c1c;
+    --surface-muted: #181818;
+    --border: rgb(255 255 255 / 7%);
+    --muted: #8f9290;
+    --control-bg: #181818;
+    --brand-soft: #1f1f1f;
+    --highlight: #6fe6a0;
+    background: #131313 !important;
+}
+
+.astro-sidebar .astro-nav-item[data-active='true'],
+.admin-sidebar .astro-nav-item[data-active='true'] {
+    background: rgb(255 255 255 / 6%);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 7%);
+}
+
+.astro-sidebar .astro-nav-item[data-active='true'] > svg,
+.admin-sidebar .astro-nav-item[data-active='true'] > svg {
+    color: var(--highlight);
+}
+
+@media (min-width: 1024px) {
+    .astro-shell:has(> .astro-sidebar),
+    .astro-shell.dashboard-dark:has(> .astro-sidebar) {
+        background: #131313;
+    }
+
+    .astro-shell .astro-sidebar {
+        background: transparent !important;
+    }
+
+    .astro-shell-panel,
+    .dashboard-dark .astro-shell-panel {
+        background: var(--background);
+        box-shadow: none;
+    }
+}
+
+/* Nada decorativo atrás dos dados. */
+.astro-ambient,
+.dashboard-page-decor {
+    display: none !important;
+}
+
+/*
+ * Cartões: superfície lisa, borda fina e raio contido. O !important vence o fundo de
+ * `.astro-dark-portals .glass-panel` (mantido para os modais) e o vidro antigo.
+ */
+.glass-panel,
+.pro-glass-card {
+    border-radius: 16px;
+}
+
+.dashboard-dark .glass-panel:not(.dashboard-stat-card--featured),
+.dashboard-dark .pro-glass-card {
+    border-color: var(--border) !important;
+    background: var(--surface) !important;
+    box-shadow: none !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.dashboard-dark .glass-panel-soft {
+    border-color: var(--border);
+    background: var(--surface-muted);
+    box-shadow: none;
+}
+
+.pro-glass-card::before,
+.pro-glass-card::after,
+.glass-interactive::before {
+    display: none;
+}
+
+.dashboard-dark .astro-topbar {
+    background: linear-gradient(
+        to bottom,
+        rgb(22 23 23 / 96%),
+        rgb(22 23 23 / 70%),
+        transparent
+    ) !important;
+}
+
+/* Card de destaque: preto liso com a luz menta discreta do mockup, nos dois temas. */
+.dashboard-stat-card.dashboard-stat-card--featured,
+.dashboard-dark .dashboard-stat-card.dashboard-stat-card--featured {
+    --highlight: #6fe6a0;
+    --success: #6fe6a0;
+    border-color: #1f1f1f !important;
+    background:
+        radial-gradient(90% 70% at 100% 0%, rgb(111 230 160 / 7%), transparent 60%),
+        linear-gradient(160deg, #1d1d1d, #121212) !important;
+}
+
+.dashboard-dark .dashboard-stat-card.dashboard-stat-card--featured {
+    border-color: #2f3130 !important;
+    background:
+        radial-gradient(90% 70% at 100% 0%, rgb(111 230 160 / 7%), transparent 60%),
+        linear-gradient(160deg, #222323, #191a1a) !important;
+}
+
+/* Controles em pílula, como os botões da landing. */
+.ui-button[data-variant='secondary'],
+.dashboard-theme-switch,
+.shell-header-control,
+.global-search {
+    border-radius: 999px;
+}
+
+/* Abas sublinhadas sobre uma linha fina, como no mockup do Analytics. */
+.ui-tabs,
+.product-filter-tabs {
+    gap: 1.5rem;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+}
+
+.ui-tab,
+.product-filter-tabs button {
+    border-radius: 0;
+    padding-inline: 0 !important;
+}
+
+.ui-tab[data-active='true'],
+.product-filter-tabs button[data-active='true'] {
+    background: transparent;
+    color: var(--foreground);
+    box-shadow: inset 0 -2px 0 var(--foreground);
+}
+
+/* Login e cadastro: palco aurora escuro com o card claro por cima, como o simulador de preços. */
+.auth-stage {
+    background: var(--night);
+}
+
+/* Só o brilho do hero da landing: a estrela vem desenhada atrás do card (.auth-star). */
+.auth-stage::before {
+    background:
+        radial-gradient(55% 45% at 55% 108%, rgb(46 227 127 / 30%), transparent 70%),
+        radial-gradient(35% 40% at 100% 0%, rgb(46 227 127 / 9%), transparent 70%);
+    opacity: 1;
+    filter: none;
+}
+
+/* A estrela da marca (traçado da placa de vidro da landing), desfocada e saindo por trás do card. */
+.auth-star {
+    position: absolute;
+    z-index: -1;
+    top: -150px;
+    left: -230px;
+    width: 520px;
+    height: 530px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='1182 384 102 104'%3E%3Cpath fill='%232ee37f' d='M 1232 389 C 1236 420 1247 432 1279 436 C 1247 440 1236 452 1232 483 C 1228 452 1217 440 1187 436 C 1217 432 1228 420 1232 389 Z'/%3E%3C/svg%3E")
+        center / contain no-repeat;
+    opacity: 0.42;
+    filter: blur(26px);
+    pointer-events: none;
+}
+
+.auth-stage::after {
+    background: var(--grain);
+    mix-blend-mode: soft-light;
+    opacity: 0.55;
+}
+
+.auth-dots {
+    display: none;
+}
+
+.auth-accent-text {
+    background-image: linear-gradient(110deg, var(--mint), var(--mint-soft));
+}
+
+.auth-feature-icon {
+    background: linear-gradient(160deg, rgb(255 255 255 / 12%), rgb(255 255 255 / 4%));
+    color: var(--mint);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 18%),
+        0 8px 18px -6px rgb(0 0 0 / 40%);
+}
+
+.auth-glass {
+    background: #f4f4f4;
+    box-shadow:
+        inset 0 1px 0 #ffffff,
+        0 40px 90px -30px rgb(0 0 0 / 70%);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+
+.auth-glass::before {
+    display: none;
+}
+
+.auth-cta {
+    background: var(--signal);
+    color: var(--on-signal);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 35%),
+        0 10px 30px rgb(46 227 127 / 25%);
+}
+
+.auth-cta:hover {
+    background: var(--signal-hover);
+}
+
+.auth-cta svg {
+    color: var(--on-signal);
+}
+
+.auth-link {
+    color: var(--forest);
+}
+
+.auth-link:hover {
+    color: var(--forest);
+}
+
+/*
+ * Bloco aurora: o bloco de preços e a chamada final da landing. Reservado para momentos de
+ * marca e decisão (plano, primeiros passos), nunca atrás de dados do dia a dia.
+ */
+.aurora-block {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: 30px;
+    background:
+        url('/images/aurora/pricing-aurora.webp') center / cover no-repeat,
+        var(--night);
+    color: #f4f4f4;
+}
+
+.aurora-block[data-variant='final'] {
+    background:
+        url('/images/aurora/final-aurora.webp') right center / cover no-repeat,
+        var(--night);
+}
+
+.aurora-block::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--grain);
+    mix-blend-mode: soft-light;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.aurora-block .aurora-eyebrow {
+    color: #34e380;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.aurora-block .aurora-accent {
+    color: var(--mint);
+}
+
+/* Vidro fosco sobre a aurora (o card "0%"). */
+.aurora-glass {
+    border: 1px solid rgb(255 255 255 / 14%);
+    background: linear-gradient(160deg, rgb(255 255 255 / 12%), rgb(255 255 255 / 3%) 60%);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 20%),
+        0 20px 50px -25px rgb(0 0 0 / 50%);
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+}
+
+/* Papel claro dentro do bloco: sempre claro, nos dois temas, como na landing. */
+.aurora-paper {
+    --foreground: #141414;
+    --muted: #686868;
+    --border: #e2e2e2;
+    color-scheme: light;
+    border: 1px solid #dcdcdc;
+    background: #f3f3f3;
+    color: #141414;
+}
+
+.aurora-plan {
+    border: 1px solid #c1f0d5;
+    background: #ffffff;
+    box-shadow:
+        0 1px 2px rgb(28 74 48 / 4%),
+        0 6px 16px -6px rgb(28 74 48 / 9%);
+}
+
+.aurora-plan .aurora-commission {
+    border-radius: 999px;
+    background: #e6f9ee;
+    padding: 6px 10px;
+    color: #2a6e47;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.aurora-figure {
+    font-family: var(--font-display);
+    font-weight: 550;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Slider e medidor no traço do simulador da landing. */
+.aurora-range {
+    --fill: 0%;
+    display: block;
+    width: 100%;
+    height: 9px;
+    appearance: none;
+    border: 0 !important;
+    border-radius: 99px;
+    background: linear-gradient(to right, #34e380 var(--fill), #dadada var(--fill)) !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    accent-color: #34e380;
+}
+
+.aurora-range::-webkit-slider-thumb {
+    width: 27px;
+    height: 27px;
+    appearance: none;
+    border: 6px solid #2be27a;
+    border-radius: 50%;
+    background: #f4fcf7;
+    box-shadow: 0 2px 9px rgb(28 74 48 / 15%);
+    transition:
+        box-shadow 0.2s,
+        transform 0.2s;
+}
+
+.aurora-range::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border: 6px solid #2be27a;
+    border-radius: 50%;
+    background: #f4fcf7;
+    box-shadow: 0 2px 9px rgb(28 74 48 / 15%);
+}
+
+.aurora-range:hover::-webkit-slider-thumb {
+    box-shadow: 0 0 0 6px rgb(52 227 128 / 13%);
+}
+
+.aurora-range:focus-visible {
+    outline: 2px solid #2a6e48;
+    outline-offset: 9px;
+}
+
+.aurora-meter {
+    position: relative;
+    height: 9px;
+    border-radius: 99px;
+    background: #dadada;
+}
+
+.aurora-meter > span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: inherit;
+    background: #34e380;
+}
+
+.aurora-meter > i {
+    position: absolute;
+    top: 50%;
+    width: 21px;
+    height: 21px;
+    border: 5px solid #2be27a;
+    border-radius: 50%;
+    background: #f4fcf7;
+    box-shadow: 0 2px 9px rgb(28 74 48 / 15%);
+    transform: translate(-50%, -50%);
+}
+
+/* Botão claro da chamada final da landing. */
+.aurora-cta {
+    display: inline-flex;
+    height: 52px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+    border-radius: 999px;
+    background: #f4f4f4;
+    padding-inline: 24px 20px;
+    color: #0b2416;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}
+
+.aurora-cta:hover {
+    background: #ffffff;
+}
+
+.aurora-cta:hover svg {
+    color: #13703f;
+}
+
+/* O papel continua claro no tema escuro: títulos e o botão principal voltam à tinta. */
+.dashboard-dark main .aurora-paper :is(h1, h2, h3) {
+    color: #141414;
+}
+
+.dashboard-dark .aurora-paper .ui-button[data-variant='primary'] {
+    background: #141414 !important;
+    color: #ffffff !important;
+}
+
+.dashboard-dark .aurora-paper .ui-button[data-variant='primary'] > svg:first-child {
+    color: var(--mint);
+}
+
+/* O título do bloco também não herda a cor dos títulos do painel escuro. */
+.dashboard-dark main .aurora-block > div > h2 {
+    color: #f4f4f4;
+}
+
+/* Índice numerado da vitrine do login: linhas finas sobre a aurora. */
+.auth-index {
+    border-top: 1px solid rgb(255 255 255 / 14%);
+}
+
+.auth-index > li + li {
+    border-left: 1px solid rgb(255 255 255 / 10%);
+    padding-left: 24px;
+}
+
+/*
+ * Barra de rolagem da página igual à da landing (components/ui/scroll-thumb.tsx): a nativa da
+ * página e do painel do shell some e um traço fino flutua por cima, sem ocupar largura.
+ */
+html,
+.astro-shell-scroll {
+    scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+.astro-shell-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.scroll-thumb {
+    position: fixed;
+    z-index: 200;
+    top: 0;
+    right: 3px;
+    width: 6px;
+    border-radius: 6px;
+    background: rgb(138 143 140 / 65%);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        opacity 0.4s ease,
+        width 0.2s ease,
+        background 0.2s;
+    cursor: default;
+    touch-action: none;
+}
+
+.scroll-thumb.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.scroll-thumb:hover,
+.scroll-thumb.is-dragging {
+    width: 9px;
+    background: rgb(138 143 140 / 85%);
+    opacity: 1;
+}
+
+.scroll-thumb[data-idle='true'] {
+    display: none;
+}
+
+/* Telas de toque já têm o próprio indicador sobreposto. */
+@media (hover: none) {
+    .scroll-thumb {
+        display: none;
+    }
+}
+
+/*
+ * Fundo de modais e do menu no celular: só escurece, sem desfoque. O desfoque de tela cheia era
+ * refeito a cada quadro ao rolar ou animar o modal (o próprio fundo é o contêiner que rola).
+ */
+.ui-overlay {
+    background-color: rgb(12 12 12 / 36%);
+}
+
+.dashboard-dark .ui-overlay,
+.astro-dark-portals .ui-overlay {
+    background-color: rgb(0 0 0 / 55%);
+}
+
+/* Chat de IA ---------------------------------------------------------------------------- */
+@keyframes ai-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.ai-fade-in {
+    animation: ai-fade-in 0.28s ease-out both;
+}
+
+.ai-dots {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.ai-dots i {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.35;
+    animation: ai-dot 1.1s ease-in-out infinite;
+}
+
+.ai-dots i:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.ai-dots i:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+@keyframes ai-dot {
+    0%,
+    80%,
+    100% {
+        opacity: 0.25;
+        transform: translateY(0);
+    }
+    40% {
+        opacity: 0.9;
+        transform: translateY(-3px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ai-fade-in,
+    .ai-dots i {
+        animation: none;
+    }
+}
+
+/* O campo do chat fica dentro da moldura `.ai-composer`: sem borda, raio, sombra ou altura
+   próprios (os estilos globais de textarea desenhavam uma segunda borda e cortavam o texto). */
+.ai-composer textarea.ai-composer-input:not(#\#) {
+    height: auto;
+    min-height: 34px;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding-left: 0;
+    padding-right: 0;
+    font-size: 13px;
+}
+
+.ai-composer textarea.ai-composer-input:not(#\#):focus-visible {
+    box-shadow: none !important;
 }

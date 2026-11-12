@@ -859,7 +859,7 @@ function SubmissionStatus({ status }: { status: 'pending' | 'approved' | 'reject
 function ModalShell({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
     return (
         <div
-            className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#111111]/25 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#111111]/25 p-4 ui-overlay"
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget) onClose();
             }}

@@ -66,6 +66,8 @@ import { FlowEdge, type FlowCanvasEdge } from './flow-edge';
 import { FlowNodeCard, nodeTitle, type FlowCanvasNode } from './flow-node';
 import { NodeInspector } from './node-inspector';
 import { SimulationPanel, type SimulationInput } from './simulation-panel';
+import { useAiTarget } from '@/components/ai/ai-assistant';
+
 import { TemplateGallery } from './template-gallery';
 
 const nodeTypes = { flow: FlowNodeCard };
@@ -122,6 +124,12 @@ function Editor({
     const [picker, setPicker] = useState<PickerRequest | null>(null);
     const [paletteOpen, setPaletteOpen] = useState(true);
     const [galleryOpen, setGalleryOpen] = useState(false);
+    useAiTarget({
+        kind: 'payment_flow',
+        label: 'Fluxo de pagamento · aplica no quadro',
+        // O cartão do assistente já confirmou a troca.
+        apply: (generated) => applyTemplate(generated, true),
+    });
     const [menu, setMenu] = useState<
         (MenuState & { title: string | undefined; entries: MenuEntry[] }) | null
     >(null);
@@ -1017,8 +1025,9 @@ function Editor({
     }
 
     /** Modelo de rota: substitui o quadro (dá para desfazer com Ctrl+Z). */
-    function applyTemplate(template: FlowGraph) {
+    function applyTemplate(template: FlowGraph, confirmed = false) {
         if (
+            !confirmed &&
             graph.nodes.length > 4 &&
             !window.confirm(
                 'Substituir o fluxo atual por este modelo? Dá para desfazer com Ctrl+Z.',
@@ -1749,7 +1758,7 @@ function Editor({
                                 <Background
                                     variant={BackgroundVariant.Dots}
                                     gap={22}
-                                    size={1.4}
+                                    size={1.7}
                                     color="var(--flow-dot)"
                                 />
                                 {!panelOpen && (
@@ -1757,6 +1766,7 @@ function Editor({
                                         pannable
                                         zoomable
                                         ariaLabel="Mapa do fluxo"
+                    position="bottom-left"
                                         style={{ width: 168, height: 112 }}
                                         className="!hidden md:!block"
                                         nodeBorderRadius={8}
@@ -1850,6 +1860,10 @@ function Editor({
                             onUse={(template, built) => {
                                 if (template.kind === 'automation') appendGraph(built);
                                 else applyTemplate(built);
+                                setGalleryOpen(false);
+                            }}
+                            onUseAi={(built) => {
+                                applyTemplate(built);
                                 setGalleryOpen(false);
                             }}
                             onClose={() => setGalleryOpen(false)}

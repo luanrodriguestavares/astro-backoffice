@@ -18,11 +18,11 @@ export default async function InvitationPage({
     const query = `?invite=${encodeURIComponent(token)}`;
 
     return (
-        <main className="relative grid min-h-screen place-items-center overflow-hidden bg-background px-4 py-10">
+        <main className="auth-stage relative grid min-h-screen place-items-center overflow-hidden px-4 py-10">
             <div aria-hidden="true" className="pointer-events-none absolute inset-0" />
             <section className="relative w-full max-w-[470px]">
                 <div className="mb-6 flex justify-center">
-                    <Brand href="/" tone="dark" />
+                    <Brand href="/" tone="light" />
                 </div>
                 <div className="rounded-[30px] border border-border bg-surface p-7 text-center shadow-[0_24px_72px_rgb(16_18_20_/_8%)] sm:p-9">
                     <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-brand-soft text-brand-strong">

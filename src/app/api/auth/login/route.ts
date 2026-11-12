@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { forwardedClientIp } from '@/lib/api/client-ip';
 import { astroApiUrl } from '@/lib/api/config';
 import type { ApiEnvelope, ProblemDetails, SessionData } from '@/lib/api/types';
-import { authenticatedRedirect } from '@/lib/auth/session';
+import { authenticatedRedirect, rememberLoginEmail } from '@/lib/auth/session';
 
 export async function POST(request: Request) {
     const form = await request.formData();
@@ -42,10 +42,14 @@ export async function POST(request: Request) {
         if (!session.user.emailVerified) {
             const verification = new URL('/verify-email', request.url);
             verification.searchParams.set('email', session.user.email);
-            return authenticatedRedirect(
-                request,
-                session,
-                `${verification.pathname}${verification.search}`,
+            return rememberLoginEmail(
+                authenticatedRedirect(
+                    request,
+                    session,
+                    `${verification.pathname}${verification.search}`,
+                    remember,
+                ),
+                email,
                 remember,
             );
         }
@@ -57,9 +61,18 @@ export async function POST(request: Request) {
                 },
                 cache: 'no-store',
             });
-            if (admin.ok) return authenticatedRedirect(request, session, '/admin', remember);
+            if (admin.ok)
+                return rememberLoginEmail(
+                    authenticatedRedirect(request, session, '/admin', remember),
+                    email,
+                    remember,
+                );
         }
-        return authenticatedRedirect(request, session, '/dashboard', remember);
+        return rememberLoginEmail(
+            authenticatedRedirect(request, session, '/dashboard', remember),
+            email,
+            remember,
+        );
     } catch {
         return loginError(request, 'A API do Astro está indisponível no momento.');
     }

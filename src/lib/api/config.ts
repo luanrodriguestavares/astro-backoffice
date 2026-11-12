@@ -11,6 +11,15 @@ export function checkoutPublicBaseUrl() {
     );
 }
 
+export function landingPublicUrl() {
+    return validatedUrl(
+        'NEXT_PUBLIC_LANDING_URL',
+        process.env.NEXT_PUBLIC_LANDING_URL,
+        'http://localhost:4321',
+        true,
+    );
+}
+
 export function publicAssetApiUrl() {
     return validatedUrl(
         'ASTRO_PUBLIC_API_URL',

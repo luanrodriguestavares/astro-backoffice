@@ -85,7 +85,7 @@ export function GatewayConnectCard({ gateway }: { gateway: GatewayDefinition }) 
                         onMouseDown={(event) => {
                             if (event.target === event.currentTarget && !loading) setOpen(false);
                         }}
-                        className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#111111]/18 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#111111]/18 p-4 ui-overlay"
                     >
                         <form
                             onSubmit={submit}
@@ -158,7 +158,7 @@ export function GatewayConnectCard({ gateway }: { gateway: GatewayDefinition }) 
                         onMouseDown={(event) => {
                             if (event.target === event.currentTarget) setCreated(undefined);
                         }}
-                        className="fixed inset-0 z-[110] grid place-items-center bg-[#111111]/18 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[110] grid place-items-center bg-[#111111]/18 p-4 ui-overlay"
                     >
                         <section
                             role="alertdialog"
@@ -177,6 +177,11 @@ export function GatewayConnectCard({ gateway }: { gateway: GatewayDefinition }) 
                             {created.webhookSecret && (
                                 <Secret label="Segredo" value={created.webhookSecret} />
                             )}
+                            <ol className="mt-4 list-decimal space-y-1.5 pl-5 text-[12px] leading-5 text-muted">
+                                {webhookSetupSteps(gateway.provider).map((step) => (
+                                    <li key={step}>{step}</li>
+                                ))}
+                            </ol>
                             <div className="mt-6 flex justify-end">
                                 <Button
                                     type="button"
@@ -246,7 +251,7 @@ export function GatewayEditModal({
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget && !loading) close();
             }}
-            className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#111111]/18 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#111111]/18 p-4 ui-overlay"
         >
             <form
                 onSubmit={submit}
@@ -340,6 +345,12 @@ function GatewayFields({
                 <Field name="accessToken" label="Access token" secret required={!optional} />
                 <Field name="webhookSecret" label="Webhook secret" secret required={!optional} />
                 <Field
+                    name="publicKey"
+                    label="Public key (cartão no checkout)"
+                    defaultValue={stringConfig(connection, 'publicKey')}
+                    required={false}
+                />
+                <Field
                     name="notificationUrl"
                     label="Notification URL"
                     defaultValue={stringConfig(connection, 'notificationUrl')}
@@ -356,6 +367,31 @@ function GatewayFields({
             <>
                 <Field name="apiKey" label="API key" secret required={!optional} />
                 <Field name="webhookSecret" label="Webhook secret" secret required={!optional} />
+            </>
+        );
+    if (provider === 'asaas')
+        return (
+            <>
+                <Field name="apiKey" label="Chave de API ($aact_...)" secret required={!optional} />
+                <Field
+                    name="webhookSecret"
+                    label="Token de autenticação do webhook (32+ caracteres)"
+                    secret
+                    required={!optional}
+                />
+            </>
+        );
+    if (provider === 'paypal')
+        return (
+            <>
+                <Field name="clientId" label="Client ID" required={!optional} />
+                <Field name="clientSecret" label="Client secret" secret required={!optional} />
+                <Field name="webhookId" label="Webhook ID" required={!optional} />
+                <Field
+                    name="returnUrl"
+                    label="URL de retorno após o pagamento (HTTPS)"
+                    defaultValue={stringConfig(connection, 'returnUrl')}
+                />
             </>
         );
     return (
@@ -428,7 +464,9 @@ function providerName(provider: string) {
         ? 'Mercado Pago'
         : provider === 'abacate_pay'
           ? 'AbacatePay'
-          : provider[0]?.toUpperCase() + provider.slice(1);
+          : provider === 'paypal'
+            ? 'PayPal'
+            : provider[0]?.toUpperCase() + provider.slice(1);
 }
 
 function payload(provider: GatewayConnection['provider'], form: FormData) {
@@ -444,6 +482,8 @@ function payload(provider: GatewayConnection['provider'], form: FormData) {
     if (provider === 'mercado_pago') {
         credentials.accessToken = value('accessToken');
         credentials.webhookSecret = value('webhookSecret');
+        // Sem a public key a conexão fica só com Pix; com ela, o checkout aceita cartão.
+        publicConfiguration.publicKey = value('publicKey');
         publicConfiguration.notificationUrl = value('notificationUrl');
         publicConfiguration.subscriptionBackUrl = value('subscriptionBackUrl');
     }
@@ -451,6 +491,16 @@ function payload(provider: GatewayConnection['provider'], form: FormData) {
         credentials.apiKey = value('apiKey');
         credentials.webhookSecret = value('webhookSecret');
         publicConfiguration.paymentExpirationSeconds = 3600;
+    }
+    if (provider === 'asaas') {
+        credentials.apiKey = value('apiKey');
+        credentials.webhookSecret = value('webhookSecret');
+    }
+    if (provider === 'paypal') {
+        credentials.clientId = value('clientId');
+        credentials.clientSecret = value('clientSecret');
+        credentials.webhookSecret = value('webhookId');
+        publicConfiguration.returnUrl = value('returnUrl');
     }
     if (provider === 'mock') {
         credentials.apiKey = value('apiKey');
@@ -475,6 +525,8 @@ function editPayload(
         stripe: 'secretKey',
         mercado_pago: 'accessToken',
         abacate_pay: 'apiKey',
+        asaas: 'apiKey',
+        paypal: 'clientSecret',
         mock: 'apiKey',
     }[provider];
     const replaceCredentials = next.credentials[primaryKey] !== '';
@@ -492,4 +544,41 @@ function editPayload(
 function stringConfig(connection: GatewayConnection | undefined, key: string) {
     const value = connection?.publicConfiguration[key];
     return typeof value === 'string' ? value : undefined;
+}
+
+/** Onde cadastrar o endpoint em cada provider: é o passo em que o lojista mais trava. */
+function webhookSetupSteps(provider: GatewayConnection['provider']): string[] {
+    switch (provider) {
+        case 'stripe':
+            return [
+                'Na Stripe, abra Desenvolvedores → Webhooks → Adicionar endpoint e cole o endereço acima.',
+                'Assine payment_intent.*, charge.refunded, charge.dispute.created, customer.subscription.* e invoice.paid/payment_failed.',
+            ];
+        case 'mercado_pago':
+            return [
+                'No Mercado Pago, abra Suas integrações → Webhooks e cole o endereço acima.',
+                'Ative os eventos de Pagamentos e de Planos e assinaturas.',
+                'Para aceitar cartão no checkout, copie a Public key em Suas integrações → Credenciais e informe na conexão.',
+            ];
+        case 'abacate_pay':
+            return [
+                'Na AbacatePay, crie um webhook com o endereço acima e o mesmo segredo informado aqui.',
+                'Assine transparent.completed e transparent.refunded.',
+            ];
+        case 'asaas':
+            return [
+                'No Asaas, abra Integrações → Webhooks → Adicionar e cole o endereço acima.',
+                'Em "Token de autenticação", use o mesmo token informado aqui.',
+                'Ative os eventos de Cobranças e de Assinaturas, com fila sequencial.',
+                'Para cobrar no checkout, deixe o campo de CPF/CNPJ visível: o Asaas exige o documento.',
+            ];
+        case 'paypal':
+            return [
+                'No PayPal Developer, abra o app → Webhooks → Add webhook e cole o endereço acima.',
+                'Assine PAYMENT.CAPTURE.*, CHECKOUT.ORDER.APPROVED, BILLING.SUBSCRIPTION.*, PAYMENT.SALE.COMPLETED e CUSTOMER.DISPUTE.CREATED.',
+                'Copie o Webhook ID gerado e salve-o nesta conexão.',
+            ];
+        default:
+            return ['O ambiente de testes não precisa de webhook externo.'];
+    }
 }

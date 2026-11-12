@@ -4,6 +4,7 @@ const featureLabels: Record<string, string> = {
     'catalog.active_products': 'produtos ativos',
     'checkout.published': 'checkouts publicados',
     'commerce.orders': 'pedidos mensais',
+    'commerce.sales_volume_minor': 'vendas mensais',
     'subscriptions.active': 'assinaturas ativas',
     'gateways.connected': 'gateways conectados',
     'domains.custom': 'domínios personalizados',
@@ -19,7 +20,16 @@ export function clientProblem(problem: ProblemDetails) {
     };
 }
 
+const embedOriginMessages: Record<string, string> = {
+    EMBED_ORIGIN_INVALID:
+        'Informe só o endereço do app, como https://app.suaempresa.com (HTTP apenas para localhost).',
+    EMBED_ORIGIN_EXISTS: 'Este domínio já está autorizado.',
+    EMBED_ORIGIN_LIMIT: 'Você pode autorizar até 20 domínios de app.',
+};
+
 function translatedDetail(problem: ProblemDetails): string {
+    const embedMessage = problem.code === undefined ? undefined : embedOriginMessages[problem.code];
+    if (embedMessage !== undefined) return embedMessage;
     if (problem.code === 'RATE_LIMIT_EXCEEDED')
         return 'Muitas solicitações em pouco tempo. Aguarde um instante e tente novamente.';
     if (problem.code === 'PLAN_FEATURE_UNAVAILABLE') {

@@ -1,25 +1,15 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import { useRouter } from 'next/navigation';
 
-import {
-    accentThemes,
-    setAccentTheme,
-    useAccentTheme,
-} from '@/components/layout/accent-theme-controller';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { showToast } from '@/components/ui/toast';
-import type { Organization } from '@/lib/api/types';
 
 type DashboardTheme = 'light' | 'dark';
 
 const themeStorageKey = 'astro-dashboard-theme';
 const themeChangeEvent = 'astro-dashboard-theme-change';
-
-// Seletor de cor do tema temporariamente desativado.
-const showAccentThemeSelector = false;
 
 const themeOptions = [
     {
@@ -36,11 +26,8 @@ const themeOptions = [
     },
 ];
 
-export function AppearancePreferences({ organization }: { organization: Organization }) {
-    const router = useRouter();
+export function AppearancePreferences() {
     const theme = useSyncExternalStore<DashboardTheme>(subscribeTheme, currentTheme, () => 'light');
-    const accent = useAccentTheme();
-    const selectedAccent = accentThemes.find((item) => item.value === accent) ?? accentThemes[0];
 
     function chooseTheme(next: DashboardTheme) {
         window.localStorage.setItem(themeStorageKey, next);
@@ -50,31 +37,6 @@ export function AppearancePreferences({ organization }: { organization: Organiza
             title: 'Tema atualizado',
             description: `O painel agora usa o tema ${next === 'dark' ? 'escuro' : 'claro'}.`,
         });
-    }
-
-    async function chooseAccent(next: (typeof accentThemes)[number]['value']) {
-        if (!organization.canManageAppearance) return;
-        const response = await fetch('/api/settings/organization', {
-            method: 'PATCH',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ accentTheme: next, version: organization.version }),
-        });
-        if (!response.ok) {
-            const payload = (await response.json()) as { detail?: string };
-            showToast({
-                tone: 'error',
-                description: payload.detail ?? 'Não foi possível atualizar a cor da workspace.',
-            });
-            return;
-        }
-        setAccentTheme(next);
-        const selected = accentThemes.find((item) => item.value === next);
-        showToast({
-            tone: 'success',
-            title: 'Cor de destaque atualizada',
-            description: `${selected?.label ?? 'A nova cor'} foi aplicada para toda a workspace.`,
-        });
-        router.refresh();
     }
 
     return (
@@ -96,18 +58,11 @@ export function AppearancePreferences({ organization }: { organization: Organiza
                         <Icon name={theme === 'dark' ? 'moon' : 'sun'} className="size-3.5" />
                         {theme === 'dark' ? 'Escuro' : 'Claro'}
                     </span>
-                    <span className="inline-flex h-8 items-center gap-2 rounded-full border border-white/75 bg-white/45 px-3 text-[11px] font-semibold text-muted">
-                        <span
-                            className="size-2.5 rounded-full"
-                            style={{ backgroundColor: selectedAccent.color }}
-                        />
-                        {selectedAccent.label}
-                    </span>
                 </div>
             </div>
 
             <div className="grid lg:grid-cols-[minmax(260px,.78fr)_minmax(0,1.22fr)]">
-                <ThemePreview theme={theme} accentColor={selectedAccent.color} />
+                <ThemePreview theme={theme} />
 
                 <div className="space-y-6 p-5 sm:p-6">
                     <div>
@@ -152,69 +107,23 @@ export function AppearancePreferences({ organization }: { organization: Organiza
                             ))}
                         </div>
                     </div>
-
-                    {showAccentThemeSelector && (
-                        <div>
-                            <p className="text-[12px] font-semibold">Cor de destaque</p>
-                            <p className="mt-1 text-[11px] leading-4 text-muted">
-                                {organization.canManageAppearance
-                                    ? 'Administradores definem esta identidade para toda a equipe.'
-                                    : 'Definida pelos administradores desta workspace.'}
-                            </p>
-                            <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                                {accentThemes.map((option) => (
-                                    <Button
-                                        key={option.value}
-                                        type="button"
-                                        aria-label={`Usar cor ${option.label}`}
-                                        aria-pressed={accent === option.value}
-                                        disabled={!organization.canManageAppearance}
-                                        onClick={() => void chooseAccent(option.value)}
-                                        className={`flex min-h-[74px] items-center gap-3 rounded-2xl border p-3 text-left transition ${
-                                            accent === option.value
-                                                ? 'border-[color-mix(in_srgb,var(--foreground)_18%,var(--border))] bg-surface-muted/55 shadow-[0_8px_24px_rgb(16_18_20_/_6%)]'
-                                                : `border-border bg-[var(--control-bg)] ${organization.canManageAppearance ? 'hover:border-brand/24 hover:bg-surface-muted/55' : 'cursor-not-allowed opacity-65'}`
-                                        }`}
-                                    >
-                                        <span
-                                            className="relative grid size-10 shrink-0 place-items-center rounded-2xl shadow-[inset_0_0_0_1px_rgb(255_255_255_/_25%),0_8px_18px_rgb(35_31_68_/_10%)]"
-                                            style={{ backgroundColor: option.color }}
-                                        >
-                                            {accent === option.value && (
-                                                <span className="grid size-5 place-items-center rounded-full bg-white text-[var(--brand)] shadow-sm">
-                                                    <Icon name="check" className="size-3" />
-                                                </span>
-                                            )}
-                                        </span>
-                                        <span className="min-w-0">
-                                            <span className="block text-[12px] font-semibold">
-                                                {option.label}
-                                            </span>
-                                            <span className="mt-0.5 block truncate text-[10px] text-muted">
-                                                {option.description}
-                                            </span>
-                                        </span>
-                                    </Button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </section>
     );
 }
 
-function ThemePreview({ theme, accentColor }: { theme: DashboardTheme; accentColor: string }) {
+function ThemePreview({ theme }: { theme: DashboardTheme }) {
     const dark = theme === 'dark';
+    const accentColor = '#6fe6a0';
 
     return (
         <div className="border-b border-white/60 p-5 sm:p-6 lg:border-b-0 lg:border-r lg:border-white/60">
             <div
                 className={`overflow-hidden rounded-[24px] border p-3 shadow-[0_22px_60px_rgba(17,17,17,.14)] ${
                     dark
-                        ? 'border-white/10 bg-[#18191d] text-white'
-                        : 'border-white/80 bg-[#f7f7f7] text-[#1a1a1a]'
+                        ? 'border-white/10 bg-[#161717] text-white'
+                        : 'border-white/80 bg-[#f4f4f4] text-[#141414]'
                 }`}
             >
                 <div

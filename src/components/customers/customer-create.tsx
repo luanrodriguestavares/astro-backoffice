@@ -74,7 +74,7 @@ export function CustomerCreate() {
                         onMouseDown={(event) => {
                             if (event.target === event.currentTarget) closeForm();
                         }}
-                        className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#111111]/20 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#111111]/20 p-4 ui-overlay"
                     >
                         <form
                             onSubmit={submit}
