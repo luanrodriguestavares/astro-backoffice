@@ -20,32 +20,10 @@ export default async function CheckoutsPage({
         ? (template as CheckoutTemplateId)
         : undefined;
     const permissions = await currentPermissions();
-    const [checkouts, products] = await Promise.all([
-        apiFetch<Checkout[]>('/api/v1/checkouts'),
-        apiFetch<Product[]>('/api/v1/products?limit=100'),
-    ]);
-    const priceEntries = await Promise.all(
-        products.map(async (product) => ({
-            product,
-            prices: await apiFetch<Price[]>(`/api/v1/products/${product.id}/prices`),
-        })),
-    );
-    const catalog: CheckoutCatalogOption[] = priceEntries.flatMap(({ product, prices }) =>
-        prices
-            .filter((price) => product.status === 'active' && price.status === 'active')
-            .map((price) => ({
-                productId: product.id,
-                priceId: price.id,
-                productName: product.name,
-                priceName: price.name,
-                amountMinor: price.amountMinor,
-                currency: price.currency,
-                pricingType: price.pricingType,
-                recurringInterval: price.recurringInterval,
-                recurringIntervalCount: price.recurringIntervalCount,
-                active: true,
-            })),
-    );
+    // O catálogo só serve para o modal "Criar checkout": não segura a lista. Ele segue
+    // como promessa para o cliente e resolve em paralelo enquanto os cards já aparecem.
+    const catalog = loadCatalog();
+    const checkouts = await apiFetch<Checkout[]>('/api/v1/checkouts');
     const published = checkouts.filter((checkout) => checkout.status === 'published').length;
     const drafts = checkouts.filter((checkout) => checkout.status === 'draft').length;
 
@@ -76,7 +54,7 @@ export default async function CheckoutsPage({
                 <SummaryCard
                     label="Em rascunho"
                     value={String(drafts)}
-                    detail={`${catalog.length} ofertas disponíveis`}
+                    detail="Aguardando publicação"
                     icon="edit"
                 />
             </section>
@@ -94,4 +72,35 @@ export default async function CheckoutsPage({
             </div>
         </div>
     );
+}
+
+async function loadCatalog(): Promise<CheckoutCatalogOption[]> {
+    try {
+        const products = await apiFetch<Product[]>('/api/v1/products?limit=100');
+        const active = products.filter((product) => product.status === 'active');
+        const entries = await Promise.all(
+            active.map(async (product) => ({
+                product,
+                prices: await apiFetch<Price[]>(`/api/v1/products/${product.id}/prices`),
+            })),
+        );
+        return entries.flatMap(({ product, prices }) =>
+            prices
+                .filter((price) => price.status === 'active')
+                .map((price) => ({
+                    productId: product.id,
+                    priceId: price.id,
+                    productName: product.name,
+                    priceName: price.name,
+                    amountMinor: price.amountMinor,
+                    currency: price.currency,
+                    pricingType: price.pricingType,
+                    recurringInterval: price.recurringInterval,
+                    recurringIntervalCount: price.recurringIntervalCount,
+                    active: true,
+                })),
+        );
+    } catch {
+        return [];
+    }
 }

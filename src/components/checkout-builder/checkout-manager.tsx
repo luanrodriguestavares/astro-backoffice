@@ -7,7 +7,8 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 
-import { SparkleIcon, markAiApplied } from '@/components/ai/ai-chat';
+import { markAiApplied } from '@/components/ai/ai-chat';
+import { AsterAvatar } from '@/components/ai/aster';
 import { CheckoutAiChat } from '@/components/ai/checkout-ai-chat';
 import { Icon } from '@/components/ui/icon';
 import { CustomSelect } from '@/components/ui/custom-select';
@@ -39,7 +40,7 @@ export type CheckoutCatalogOption = {
 
 export function CheckoutManager({
     checkouts,
-    catalog,
+    catalog: catalogPromise,
     canWrite,
     initialQuery = '',
     initialTemplate,
@@ -47,7 +48,8 @@ export function CheckoutManager({
     initialAi = false,
 }: {
     checkouts: Checkout[];
-    catalog: CheckoutCatalogOption[];
+    /** Resolve em paralelo à lista: só o modal de criação depende dele. */
+    catalog: Promise<CheckoutCatalogOption[]>;
     canWrite: boolean;
     initialQuery?: string;
     initialTemplate?: CheckoutTemplateId;
@@ -56,9 +58,8 @@ export function CheckoutManager({
     initialAi?: boolean;
 }) {
     const router = useRouter();
-    const [open, setOpen] = useState(
-        Boolean(canWrite && (initialTemplate || initialAi) && catalog.length),
-    );
+    const [catalog, setCatalog] = useState<CheckoutCatalogOption[]>([]);
+    const [open, setOpen] = useState(false);
     const [step, setStep] = useState<'template' | 'details' | 'appearance' | 'ai'>(
         initialTemplate || initialAi ? 'details' : 'template',
     );
@@ -80,9 +81,7 @@ export function CheckoutManager({
     const [loading, setLoading] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<Checkout>();
     const [deleting, setDeleting] = useState(false);
-    const [missingProductAlert, setMissingProductAlert] = useState(
-        Boolean(canWrite && initialTemplate && catalog.length === 0),
-    );
+    const [missingProductAlert, setMissingProductAlert] = useState(false);
     const [query, setQuery] = useState(initialQuery);
     const filteredCheckouts = useMemo(() => {
         const term = normalize(query.trim());
@@ -112,8 +111,26 @@ export function CheckoutManager({
         );
     }, [focusId]);
 
-    function openCreate() {
-        if (catalog.length === 0) {
+    useEffect(() => {
+        let cancelled = false;
+        catalogPromise.then((items) => {
+            if (cancelled) return;
+            setCatalog(items);
+            // Atalhos `?template=` / `?ia=1` abrem a criação assim que as ofertas chegam.
+            if (!canWrite || !(initialTemplate || initialAi)) return;
+            if (items.length) setOpen(true);
+            else if (initialTemplate) setMissingProductAlert(true);
+        });
+        return () => {
+            cancelled = true;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [catalogPromise]);
+
+    async function openCreate() {
+        const items = await catalogPromise;
+        setCatalog(items);
+        if (items.length === 0) {
             setMissingProductAlert(true);
             return;
         }
@@ -318,8 +335,9 @@ export function CheckoutManager({
                 </section>
             ) : (
                 <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                    {filteredCheckouts.map((checkout) => (
+                    {filteredCheckouts.map((checkout, index) => (
                         <CheckoutCard
+                            index={index}
                             key={checkout.id}
                             checkout={checkout}
                             onDelete={() => setDeleteTarget(checkout)}
@@ -440,15 +458,16 @@ export function CheckoutManager({
                                             }}
                                             className="group mb-4 flex w-full items-center gap-4 rounded-[20px] border border-border bg-[var(--control-bg)] p-4 text-left transition hover:-translate-y-px hover:border-foreground/25 hover:shadow-[0_14px_36px_rgba(16,18,20,0.08)]"
                                         >
-                                            <span className="grid size-11 shrink-0 place-items-center rounded-2xl border border-border bg-surface">
-                                                <SparkleIcon className="size-5" />
-                                            </span>
+                                            <AsterAvatar
+                                                size={60}
+                                                className="-my-2 transition duration-300 group-hover:-rotate-6 group-hover:scale-105"
+                                            />
                                             <span className="min-w-0 flex-1">
                                                 <span className="block text-[14px] font-semibold tracking-[-0.01em]">
-                                                    Criar com IA
+                                                    Criar com o Aster
                                                 </span>
                                                 <span className="mt-0.5 block text-[12.5px] leading-5 text-muted">
-                                                    Descreva a oferta e o público; a IA monta estrutura, cores, tipografia e textos com os blocos do editor.
+                                                    Descreva a oferta e o público; o Aster monta estrutura, cores, tipografia e textos com os blocos do editor.
                                                 </span>
                                             </span>
                                             <Icon
@@ -825,29 +844,35 @@ export function CheckoutManager({
 
 function CheckoutCard({
     checkout,
+    index,
     onDelete,
     canWrite,
     focused = false,
 }: {
     checkout: Checkout;
+    index: number;
     onDelete: () => void;
     canWrite: boolean;
     focused?: boolean;
 }) {
-    // Miniatura estática: sem animações nem cronômetro rodando em cada card da lista.
-    const previewUrl = `/checkouts/${checkout.id}/preview?embed=1&static=1&saved=${encodeURIComponent(checkout.updatedAt)}`;
+    // Rota de miniatura fora do layout do painel: sem shell, sidebar nem assistente por card.
+    const previewUrl = `/checkouts/${checkout.id}/thumbnail?saved=${encodeURIComponent(checkout.updatedAt)}`;
+    const [previewLoaded, setPreviewLoaded] = useState(false);
     const publicUrl = checkoutPublicUrl(checkout.slug);
     return (
         <article
             id={`checkout-${checkout.id}`}
-            className={`checkout-list-card glass-panel group overflow-hidden rounded-[20px] p-3.5 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_48px_rgba(66,57,128,.08)] ${focused ? 'ring-2 ring-brand/35 shadow-[0_18px_48px_color-mix(in_srgb,var(--brand)_14%,transparent)]' : ''}`}
+            style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
+            className={`checkout-list-card checkout-card-enter glass-panel group overflow-hidden rounded-[20px] p-3.5 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_48px_rgba(66,57,128,.08)] ${focused ? 'ring-2 ring-brand/35 shadow-[0_18px_48px_color-mix(in_srgb,var(--brand)_14%,transparent)]' : ''}`}
         >
             <Link
                 href={canWrite ? `/checkouts/${checkout.id}` : `/checkouts/${checkout.id}/preview`}
                 className="relative block h-32 overflow-hidden rounded-[14px] border border-[#dfddea]/70 bg-gradient-to-br from-[#f5f3ff] to-[#edf4ff]"
                 aria-label={`Abrir editor de ${checkout.name}`}
             >
-                <span className="absolute inset-0 grid place-items-center text-brand/35">
+                <span
+                    className={`checkout-thumb-skeleton absolute inset-0 grid place-items-center text-brand/35 transition-opacity duration-500 ${previewLoaded ? 'opacity-0' : 'opacity-100'}`}
+                >
                     <Icon name="layout" className="size-7" />
                 </span>
                 <iframe
@@ -855,7 +880,8 @@ function CheckoutCard({
                     title={`Prévia salva de ${checkout.name}`}
                     loading="lazy"
                     tabIndex={-1}
-                    className="pointer-events-none absolute left-0 top-0 h-[400%] w-[400%] origin-top-left border-0 bg-white [transform:scale(.25)]"
+                    onLoad={() => setPreviewLoaded(true)}
+                    className={`pointer-events-none absolute left-0 top-0 h-[400%] w-[400%] origin-top-left border-0 bg-white transition-opacity duration-500 ease-out [transform:scale(.25)] ${previewLoaded ? 'opacity-100' : 'opacity-0'}`}
                 />
                 <span className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-white/45" />
             </Link>

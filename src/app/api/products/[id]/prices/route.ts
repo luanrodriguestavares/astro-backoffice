@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 
 import { apiFetch, AstroApiError } from '@/lib/api/server';
+import { clientProblem } from '@/lib/api/problem';
 import type { Price } from '@/lib/api/types';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -16,13 +17,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         return NextResponse.json({ data: price });
     } catch (error) {
         if (error instanceof AstroApiError)
-            return NextResponse.json(
-                { detail: error.problem.detail },
-                { status: error.problem.status },
-            );
-        return NextResponse.json(
-            { detail: 'Produto criado, mas não foi possível criar o preço.' },
-            { status: 500 },
-        );
+            return NextResponse.json(clientProblem(error.problem), {
+                status: error.problem.status,
+            });
+        return NextResponse.json({ detail: 'Não foi possível criar o preço.' }, { status: 500 });
     }
 }

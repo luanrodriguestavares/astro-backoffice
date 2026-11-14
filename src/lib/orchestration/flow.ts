@@ -250,7 +250,7 @@ export function nodeOutputs(node: FlowNode): NodeOutput[] {
             return [
                 ...node.config.cases.map((item, index) => ({
                     id: item.id,
-                    label: item.label || caseFallbackLabel(item, index),
+                    label: normalizePaymentLabel(item.label || caseFallbackLabel(item, index)),
                     tone: 'brand' as const,
                 })),
                 { id: 'otherwise', label: 'senão', tone: 'neutral' },
@@ -273,6 +273,11 @@ export function nodeOutputs(node: FlowNode): NodeOutput[] {
         default:
             return [];
     }
+}
+
+/** Corrige o anglicismo comum gerado em nomes de rotas sem alterar palavras maiores. */
+function normalizePaymentLabel(label: string) {
+    return label.replace(/\bcard\b/gi, 'Cartão');
 }
 
 export function hasInput(type: FlowNodeType) {
@@ -495,8 +500,18 @@ export function fromMinor(value: number | undefined) {
 
 // --- Layout ---------------------------------------------------------------------------
 
-const columnGap = 340;
-const rowGap = 48;
+const defaultColumnGap = 340;
+const defaultRowGap = 48;
+const defaultBandGap = 140;
+
+export interface AutoLayoutOptions {
+    /** Distância entre o início de duas colunas consecutivas. */
+    columnGap?: number;
+    /** Respiro entre cards empilhados na mesma coluna. */
+    rowGap?: number;
+    /** Distância entre o fluxo principal e as automações por evento. */
+    bandGap?: number;
+}
 
 /** Altura aproximada do card renderizado, para o layout não sobrepor blocos. */
 export function estimatedHeight(node: FlowNode | undefined) {
@@ -523,7 +538,10 @@ export function estimatedHeight(node: FlowNode | undefined) {
  * Organiza o grafo em colunas a partir do gatilho (estilo n8n): cada nó fica uma coluna à
  * direita do nó mais distante que leva até ele; dentro da coluna, segue a ordem das saídas.
  */
-export function autoLayout(graph: FlowGraph): FlowGraph {
+export function autoLayout(graph: FlowGraph, options: AutoLayoutOptions = {}): FlowGraph {
+    const columnGap = options.columnGap ?? defaultColumnGap;
+    const rowGap = options.rowGap ?? defaultRowGap;
+    const bandGap = options.bandGap ?? defaultBandGap;
     const nodes = new Map(graph.nodes.map((node) => [node.id, node]));
     const outgoing = new Map<string, FlowEdge[]>();
     for (const edge of graph.edges)
@@ -582,7 +600,7 @@ export function autoLayout(graph: FlowGraph): FlowGraph {
                 y += estimatedHeight(nodes.get(id)) + rowGap;
             }
         }
-        bandTop += bandHeight + 140;
+        bandTop += bandHeight + bandGap;
     }
     // Nós soltos (fora as notas) ficam abaixo de tudo, sem se sobrepor.
     let loose = 0;

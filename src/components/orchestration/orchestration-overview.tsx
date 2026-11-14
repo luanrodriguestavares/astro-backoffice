@@ -202,6 +202,14 @@ function Gateways({
                                             className={`size-1.5 rounded-full ${unstable ? 'bg-warning' : 'bg-success'}`}
                                         />
                                         {unstable ? 'Instável agora' : 'Funcionando'}
+                                        {connection.provider === 'mock' && (
+                                            <span
+                                                className="ml-1 rounded-full border border-[#f1dfb5] bg-[#fffaf0] px-1.5 py-px text-[10.5px] font-semibold text-[#7a4f00] dark:border-[rgb(242_198_109/22%)] dark:bg-[rgb(140_100_0/14%)] dark:text-[#f2c66d]"
+                                                title="Gateway simulado: não cobra de verdade e os números vêm de testes."
+                                            >
+                                                Simulado · dados de teste
+                                            </span>
+                                        )}
                                     </p>
                                 </div>
                                 <div className="text-right">

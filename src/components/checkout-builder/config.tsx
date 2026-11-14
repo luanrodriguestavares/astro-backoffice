@@ -7,7 +7,7 @@ import { MediaPicker } from '@/components/files/media-picker';
 import { mediaLibraryEnabled } from '@/lib/features/release';
 
 import { FieldLabel, type Config, type Data, type Slot } from '@puckeditor/core';
-import { createContext, useContext, useEffect, useState, type CSSProperties } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { CheckoutProductPrice, MediaFile } from '@/lib/api/types';
 import {
     checkoutBrandPresets,
@@ -61,7 +61,9 @@ import {
     CheckoutImage,
     CheckoutLogo,
     CheckoutBanner,
+    CheckoutCatalogPlans,
     CheckoutPlans,
+    type CheckoutCatalogPrice,
     CheckoutStats,
 } from '@astro/checkout-renderer/content-components';
 import { CheckoutActionButton, CheckoutVideo } from '@astro/checkout-renderer/video-player';
@@ -292,6 +294,8 @@ type BuilderPropsBase = {
     countdown: { layout: CountdownLayout; title: string; deadline: string };
     plan_comparison: {
         layout: PlanComparisonLayout;
+        /** 'catalog': cartões a partir dos planos dos produtos do checkout. Ausente = 'manual'. */
+        source?: 'manual' | 'catalog';
         title: string;
         description?: string;
         plans: {
@@ -629,14 +633,40 @@ function SizeSliderControl({
         0,
         options.findIndex((option) => option.value === value),
     );
-    const progress = options.length > 1 ? (selectedIndex / (options.length - 1)) * 100 : 0;
-    const selected = options[selectedIndex] ?? options[0];
+    const maxIndex = Math.max(0, options.length - 1);
+    const [position, setPosition] = useState(selectedIndex);
+    const dragging = useRef(false);
+    const nearestIndex = Math.min(maxIndex, Math.max(0, Math.round(position)));
+    const progress = maxIndex > 0 ? (position / maxIndex) * 100 : 0;
+    const selected = options[nearestIndex] ?? options[0];
     const legend = (option: SliderOption) =>
         option.value === 'none'
             ? '0'
             : option.value === 'full'
               ? 'MAX'
               : option.value.toUpperCase();
+
+    useEffect(() => {
+        if (!dragging.current) setPosition(selectedIndex);
+    }, [selectedIndex]);
+
+    const applyNearest = (nextPosition: number) => {
+        const nextIndex = Math.min(maxIndex, Math.max(0, Math.round(nextPosition)));
+        const nextValue = options[nextIndex]?.value ?? options[0]?.value ?? '';
+        if (nextValue !== value) onChange(nextValue);
+        return nextIndex;
+    };
+
+    const finishDrag = (nextPosition: number) => {
+        dragging.current = false;
+        setPosition(applyNearest(nextPosition));
+    };
+
+    const moveByKeyboard = (nextIndex: number) => {
+        const bounded = Math.min(maxIndex, Math.max(0, nextIndex));
+        setPosition(bounded);
+        applyNearest(bounded);
+    };
 
     return (
         <FieldLabel label={label}>
@@ -656,22 +686,41 @@ function SizeSliderControl({
                 <input
                     type="range"
                     min={0}
-                    max={Math.max(0, options.length - 1)}
-                    step={1}
-                    value={selectedIndex}
+                    max={maxIndex}
+                    step={0.01}
+                    value={position}
                     aria-label={label}
                     aria-valuetext={selected?.label}
-                    onChange={(event) =>
-                        onChange(
-                            options[Number(event.currentTarget.value)]?.value ??
-                                options[0]?.value ??
-                                '',
-                        )
-                    }
+                    onPointerDown={() => {
+                        dragging.current = true;
+                    }}
+                    onChange={(event) => {
+                        const nextPosition = Number(event.currentTarget.value);
+                        setPosition(nextPosition);
+                        applyNearest(nextPosition);
+                    }}
+                    onPointerUp={(event) => finishDrag(Number(event.currentTarget.value))}
+                    onPointerCancel={(event) => finishDrag(Number(event.currentTarget.value))}
+                    onBlur={(event) => finishDrag(Number(event.currentTarget.value))}
+                    onKeyDown={(event) => {
+                        if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+                            event.preventDefault();
+                            moveByKeyboard(nearestIndex - 1);
+                        } else if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+                            event.preventDefault();
+                            moveByKeyboard(nearestIndex + 1);
+                        } else if (event.key === 'Home') {
+                            event.preventDefault();
+                            moveByKeyboard(0);
+                        } else if (event.key === 'End') {
+                            event.preventDefault();
+                            moveByKeyboard(maxIndex);
+                        }
+                    }}
                 />
                 <div className="checkout-size-slider-labels" aria-hidden="true">
                     {options.map((option, index) => (
-                        <span key={option.value} data-active={index === selectedIndex}>
+                        <span key={option.value} data-active={index === nearestIndex}>
                             {legend(option)}
                         </span>
                     ))}
@@ -2630,12 +2679,18 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 mobileOnly: true,
             },
             resolveFields: (data, { fields }) => {
-                const header = data.props.layout === 'header';
+                const systemHeader = data.props.id === 'product-header';
+                const header = systemHeader || data.props.layout === 'header';
                 // A faixa do produto não tem título, descrição nem botão.
                 return Object.fromEntries(
                     Object.entries(fields).filter(([name]) =>
                         header
-                            ? !['title', 'description', 'buttonLabel'].includes(name)
+                            ? ![
+                                  'title',
+                                  'description',
+                                  'buttonLabel',
+                                  ...(systemHeader ? ['layout', 'mobileOnly'] : []),
+                              ].includes(name)
                             : name !== 'mobileOnly',
                     ),
                 ) as typeof fields;
@@ -2898,6 +2953,14 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
         plan_comparison: {
             label: 'Comparação de planos',
             fields: {
+                source: {
+                    type: 'radio',
+                    label: 'Origem dos planos',
+                    options: [
+                        { label: 'Planos do produto', value: 'catalog' },
+                        { label: 'Escrever manualmente', value: 'manual' },
+                    ],
+                },
                 syncFromCheckout: {
                     type: 'custom',
                     label: 'Planos do checkout',
@@ -2937,6 +3000,7 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
             },
             defaultProps: {
                 layout: 'cards',
+                source: 'manual',
                 title: 'Escolha o melhor plano',
                 plans: [
                     {
@@ -2966,14 +3030,30 @@ const checkoutBuilderBaseConfig: Config<BuilderProps, BuilderRootProps> = {
                 if (prices.length === 0) return data;
                 return { ...data, props: { ...data.props, plans: plansFromPrices(prices) } };
             },
-            render: ({ layout, title, description, plans }) => (
-                <PlansPreview
-                    layout={layout ?? 'cards'}
-                    title={title}
-                    description={description}
-                    plans={plans}
-                />
-            ),
+            // Com os planos do produto, a lista manual (e sua sincronização) não se aplica.
+            resolveFields: (data, { fields }) =>
+                data.props.source === 'catalog'
+                    ? (Object.fromEntries(
+                          Object.entries(fields).filter(
+                              ([name]) => name !== 'plans' && name !== 'syncFromCheckout',
+                          ),
+                      ) as typeof fields)
+                    : fields,
+            render: ({ layout, source, title, description, plans }) =>
+                source === 'catalog' ? (
+                    <CatalogPlansPreview
+                        layout={layout ?? 'cards'}
+                        title={title}
+                        description={description}
+                    />
+                ) : (
+                    <PlansPreview
+                        layout={layout ?? 'cards'}
+                        title={title}
+                        description={description}
+                        plans={plans}
+                    />
+                ),
         },
         data_table: {
             label: 'Tabela',
@@ -3799,6 +3879,7 @@ function ActionButtonBuilderPreview(props: BuilderProps['cta_button']) {
 
 /** Resumo com o produto real deste checkout (nome e preço), não um texto de exemplo. */
 function ProductSummaryPreview({
+    id,
     layout,
     title,
     description,
@@ -3807,7 +3888,7 @@ function ProductSummaryPreview({
     badge,
     recurringLabel,
     mobileOnly,
-}: BuilderProps['product_summary']) {
+}: BuilderProps['product_summary'] & { id?: string }) {
     const isStatic = useContext(CheckoutBuilderStaticContext);
     const products = useContext(CheckoutBuilderProductsContext);
     const method = useContext(BuilderPaymentSelectionContext)?.selected;
@@ -3824,7 +3905,9 @@ function ProductSummaryPreview({
         price,
         recurringLabel,
     };
-    if (layout === 'header')
+    // `product-header` é um bloco informativo do sistema. Checkouts antigos podem ter
+    // persistido outro layout; o id preserva a semântica e impede um segundo CTA.
+    if (id === 'product-header' || layout === 'header')
         return (
             <CheckoutOrderHeader
                 product={{ ...product, badge: undefined }}
@@ -5975,6 +6058,105 @@ function OrderBumpPreview({
                 onChange={setSelected}
             />
         </div>
+    );
+}
+
+type BuilderProductPlan = {
+    id: string;
+    name: string;
+    badge: string | null;
+    features: string[];
+    sortOrder: number;
+    prices: { id: string; trialDays?: number | null }[];
+};
+
+// Planos por produto, compartilhados entre os blocos da tela; expiram para refletir edições.
+const productPlansCache = new Map<string, { at: number; plans: Promise<BuilderProductPlan[]> }>();
+
+function fetchProductPlans(productId: string): Promise<BuilderProductPlan[]> {
+    const cached = productPlansCache.get(productId);
+    if (cached && Date.now() - cached.at < 60_000) return cached.plans;
+    const plans = fetch(`/api/products/${encodeURIComponent(productId)}/plans`, {
+        cache: 'no-store',
+    })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((body: unknown) => {
+            const data = (body as { data?: unknown } | null)?.data;
+            return Array.isArray(data) ? (data as BuilderProductPlan[]) : [];
+        })
+        // Sem a rota (ou sem permissão), cada preço vira um cartão próprio.
+        .catch(() => []);
+    productPlansCache.set(productId, { at: Date.now(), plans });
+    return plans;
+}
+
+/** Preços do checkout com os dados do plano de cada um (buscados no catálogo). */
+function useCatalogPlanPrices(): CheckoutCatalogPrice[] {
+    const products = useContext(CheckoutBuilderProductsContext);
+    const staticPreview = useContext(CheckoutBuilderStaticContext);
+    const [plansByProduct, setPlansByProduct] = useState<Record<string, BuilderProductPlan[]>>({});
+    const productIds = [...new Set(products.map((item) => item.productId))].sort().join(',');
+    useEffect(() => {
+        // Cards da listagem não buscam nada: mostram os preços como cartões.
+        if (staticPreview || !productIds) return;
+        let active = true;
+        const ids = productIds.split(',');
+        void Promise.all(ids.map(fetchProductPlans)).then((lists) => {
+            if (active) setPlansByProduct(Object.fromEntries(ids.map((id, i) => [id, lists[i] ?? []])));
+        });
+        return () => {
+            active = false;
+        };
+    }, [productIds, staticPreview]);
+    return products.map((item) => {
+        const base = item as CheckoutProductPrice & Partial<CheckoutCatalogPrice>;
+        for (const plan of plansByProduct[item.productId] ?? []) {
+            const price = plan.prices?.find((entry) => entry.id === item.priceId);
+            if (!price) continue;
+            return {
+                ...base,
+                planId: plan.id,
+                planName: plan.name,
+                planBadge: plan.badge,
+                planFeatures: plan.features ?? [],
+                planSortOrder: plan.sortOrder ?? 0,
+                trialDays: price.trialDays ?? base.trialDays ?? null,
+            };
+        }
+        return base;
+    });
+}
+
+function CatalogPlansPreview({
+    layout,
+    title,
+    description,
+}: {
+    layout: PlanComparisonLayout;
+    title: string;
+    description?: string;
+}) {
+    const prices = useCatalogPlanPrices();
+    const main = prices.find((price) => price.isDefault) ?? prices[0];
+    const [selected, setSelected] = useState<string | undefined>(undefined);
+    if (prices.length === 0)
+        return (
+            <CheckoutPlans
+                layout={layout}
+                title={title}
+                description="Vincule produtos com planos a este checkout para exibir os cartões aqui."
+                plans={[]}
+            />
+        );
+    return (
+        <CheckoutCatalogPlans
+            layout={layout}
+            title={title}
+            description={description || undefined}
+            prices={prices}
+            selectedPriceId={selected ?? main?.priceId}
+            onChoosePrice={setSelected}
+        />
     );
 }
 

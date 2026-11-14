@@ -1125,12 +1125,20 @@ function DataTab({
         <div className="space-y-3">
             {ids.map((id) => {
                 const stats = editor.stats.get(id);
-                const name = editor.connections.get(id)?.name ?? 'Gateway removido';
+                const connection = editor.connections.get(id);
+                const name = connection?.name ?? 'Gateway removido';
+                const simulated = connection?.provider === 'mock';
                 return (
                     <section key={id} className="rounded-2xl border border-border p-4">
                         <p className="text-[12px] font-semibold">
                             {name} <span className="font-normal text-muted">· últimos 30 dias</span>
                         </p>
+                        {simulated && (
+                            <p className="mt-2 rounded-lg border border-[#f1dfb5] bg-[#fffaf0] px-2.5 py-1.5 text-[11.5px] leading-4 text-[#7a4f00] dark:border-[rgb(242_198_109/22%)] dark:bg-[rgb(140_100_0/14%)] dark:text-[#f2c66d]">
+                                Gateway simulado: nenhuma cobrança é real e estes números vêm de
+                                pagamentos de teste.
+                            </p>
+                        )}
                         <dl className="mt-3 grid grid-cols-3 gap-3">
                             <Stat
                                 label="Aprovação"

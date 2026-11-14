@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import './ai-assistant.css';
+
 import { usePathname } from 'next/navigation';
 import {
     createContext,
@@ -16,14 +17,15 @@ import {
 import { Icon } from '@/components/ui/icon';
 import type { CheckoutDocument, FlowGraph } from '@/lib/api/types';
 
-import { SparkleIcon } from './ai-chat';
+import { AI_CLOSE_EVENT } from './ai-chat';
+import { ASTER_NAME, AsterAvatar } from './aster';
 import { CheckoutAiChat, type CheckoutAiPrice } from './checkout-ai-chat';
 import { FlowAiChat } from './flow-ai-chat';
 
 /**
- * Assistente de IA flutuante: um botão em todas as telas do painel que abre um chat em janela,
- * sem bloquear a página. As telas que sabem aplicar o resultado (editor do fluxo de pagamento,
- * editor do checkout) se registram como "alvo"; a última registrada é a ativa.
+ * Assistente de IA flutuante dos editores que conseguem aplicar o resultado. O botão só aparece
+ * quando o builder do checkout ou o editor do fluxo de pagamento se registra como "alvo"; o
+ * editor de fluxo, quando montado, tem prioridade sobre o checkout.
  */
 
 export type AiTarget =
@@ -38,6 +40,7 @@ export type AiTarget =
           productName: string;
           prices: CheckoutAiPrice[];
           apply(document: CheckoutDocument, generationId: string): void;
+          applyPaymentFlow?(graph: FlowGraph): void;
       };
 
 interface AssistantContext {
@@ -69,11 +72,16 @@ export function useAiTarget(target: AiTarget | null) {
                           if (latestTarget?.kind === 'payment_flow') latestTarget.apply(graph);
                       },
                   }
-                : {
+                  : {
                       ...current,
                       apply: (document: CheckoutDocument, id: string) => {
                           const latestTarget = latest.current;
                           if (latestTarget?.kind === 'checkout') latestTarget.apply(document, id);
+                      },
+                      applyPaymentFlow: (graph: FlowGraph) => {
+                          const latestTarget = latest.current;
+                          if (latestTarget?.kind === 'checkout')
+                              latestTarget.applyPaymentFlow?.(graph);
                       },
                   };
         return context.register(proxy);
@@ -93,27 +101,46 @@ export function AiAssistantProvider({ children }: { children: ReactNode }) {
         () => ({
             register(target) {
                 setTargets((current) => [...current, target]);
-                return () => setTargets((current) => current.filter((item) => item !== target));
+                return () => {
+                    setTargets((current) => current.filter((item) => item !== target));
+                };
             },
         }),
         [],
     );
-    const target = targets.at(-1);
+    // O editor de orquestração só monta quando está na frente (página própria ou overlay do
+    // workspace), então ele vence. Escolher só pela ordem de registro falhava: o checkout do
+    // workspace se registra de novo quando o nome/preços mudam (ou depois do overlay, pela ordem
+    // dos efeitos) e a conversa de design aparecia por cima da orquestração.
+    const target = targets.findLast((item) => item.kind === 'payment_flow') ?? targets.at(-1);
+    // Fecha só quando nenhuma tela com assistente está ativa; re-registrar não fecha a janela.
+    const hasTarget = target !== undefined;
+    const [hadTarget, setHadTarget] = useState(hasTarget);
+    if (hadTarget !== hasTarget) {
+        setHadTarget(hasTarget);
+        if (!hasTarget) setOpen(false);
+    }
 
     return (
         <Context.Provider value={value}>
             {children}
-            <AssistantWindow open={open} target={target} onClose={() => setOpen(false)} />
-            {!open && (
-                <button
-                    type="button"
-                    onClick={() => setOpen(true)}
-                    aria-label="Abrir assistente de IA"
-                    className={`ai-fab group fixed right-6 z-[150] bottom-6 inline-flex h-11 items-center gap-2 rounded-full bg-foreground pl-3.5 pr-4 text-[13px] font-semibold text-background shadow-[0_14px_40px_rgba(16,18,20,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_48px_rgba(16,18,20,0.34)] focus-visible:outline-2 focus-visible:outline-offset-2`}
-                >
-                    <SparkleIcon className="size-[18px] transition group-hover:rotate-12" />
-                    Assistente
-                </button>
+            {target && (
+                <>
+                    <AssistantWindow open={open} target={target} onClose={() => setOpen(false)} />
+                    {!open && (
+                        <button
+                            type="button"
+                            onClick={() => setOpen(true)}
+                            aria-label={`Abrir ${ASTER_NAME}, o assistente de IA`}
+                            className="ai-fab group fixed bottom-6 right-6 z-[150] focus-visible:outline-2 focus-visible:outline-offset-4"
+                        >
+                            <span className="ai-fab-pill inline-flex h-11 items-center gap-2 rounded-full pl-2.5 pr-[18px] text-[13.5px] font-semibold tracking-[-0.015em]">
+                                <AsterAvatar size={28} />
+                                <span>Criar com o {ASTER_NAME}</span>
+                            </span>
+                        </button>
+                    )}
+                </>
             )}
         </Context.Provider>
     );
@@ -125,12 +152,18 @@ function AssistantWindow({
     onClose,
 }: {
     open: boolean;
-    target: AiTarget | undefined;
+    target: AiTarget;
     onClose(): void;
 }) {
     const [expanded, setExpanded] = useState(false);
     // Uma conversa por tela e por tipo: voltar à mesma página traz a conversa de volta.
     const pathname = usePathname();
+
+    // Cartões do chat pedem para fechar a janela (ex.: "Ver no fluxo").
+    useEffect(() => {
+        window.addEventListener(AI_CLOSE_EVENT, onClose);
+        return () => window.removeEventListener(AI_CLOSE_EVENT, onClose);
+    }, [onClose]);
 
     useEffect(() => {
         if (!open) return;
@@ -147,39 +180,36 @@ function AssistantWindow({
             role="dialog"
             aria-label="Assistente de IA"
             aria-hidden={!open}
+            data-expanded={expanded || undefined}
             className={`ai-window fixed bottom-6 right-6 z-[160] flex flex-col overflow-hidden rounded-[22px] border border-border bg-surface shadow-[0_24px_70px_rgba(16,18,20,0.24)] transition-[opacity,transform,width,height] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
                 expanded
                     ? 'h-[min(860px,calc(100dvh-3rem))] w-[min(760px,calc(100vw-3rem))]'
                     : 'h-[min(640px,calc(100dvh-3rem))] w-[min(420px,calc(100vw-3rem))]'
             } ${open ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'}`}
         >
-            <header className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
-                <span className="grid size-8 place-items-center rounded-xl bg-foreground text-background">
-                    <SparkleIcon className="size-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                    <p className="text-[13.5px] font-semibold leading-4 tracking-[-0.01em]">
-                        Assistente Astro
+            <header className="relative flex shrink-0 items-center gap-3 px-5 pb-3 pt-4">
+                <AsterAvatar size={50} className="-my-1 -ml-1" />
+                <div className="min-w-0 flex-1" title={target.label}>
+                    <p className="text-[19px] font-semibold leading-6 tracking-[-0.03em]">
+                        {ASTER_NAME}
                     </p>
-                    <p className="mt-0.5 truncate text-[11.5px] text-muted">
-                        {target ? target.label : 'Escolha o que criar'}
-                    </p>
+                    <p className="text-[12.5px] leading-4 text-muted">Assistente do Astro</p>
                 </div>
                 <button
                     type="button"
                     onClick={() => setExpanded((value) => !value)}
                     aria-label={expanded ? 'Reduzir janela' : 'Ampliar janela'}
-                    className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-surface-muted hover:text-foreground"
+                    className="grid size-9 place-items-center rounded-xl text-muted transition hover:bg-surface-muted hover:text-foreground"
                 >
-                    <Icon name={expanded ? 'shrink' : 'expand'} className="size-4" />
+                    <Icon name={expanded ? 'shrink' : 'expand'} className="size-[17px]" />
                 </button>
                 <button
                     type="button"
                     onClick={onClose}
                     aria-label="Fechar assistente"
-                    className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-surface-muted hover:text-foreground"
+                    className="grid size-9 place-items-center rounded-xl text-muted transition hover:bg-surface-muted hover:text-foreground"
                 >
-                    <Icon name="close" className="size-4" />
+                    <Icon name="close" className="size-[18px]" />
                 </button>
             </header>
             <div className="min-h-0 flex-1">
@@ -200,77 +230,12 @@ function AssistantWindow({
                         actionLabel="Aplicar no editor"
                         confirmText="Substituir a página do checkout por esta? Páginas do funil e pagamento são mantidas."
                         onCreate={(document, id) => target.apply(document, id)}
+                        {...(target.applyPaymentFlow
+                            ? { onApplyPaymentFlow: target.applyPaymentFlow }
+                            : {})}
                     />
-                ) : (
-                    <Launcher onNavigate={onClose} />
-                )}
+                ) : null}
             </div>
         </section>
-    );
-}
-
-/** Fora dos editores: atalhos para onde a IA consegue trabalhar. */
-function Launcher({ onNavigate }: { onNavigate(): void }) {
-    const pathname = usePathname();
-    const actions = [
-        {
-            href: '/checkouts?ia=1',
-            title: 'Criar um checkout com IA',
-            description:
-                'Escolha o produto e descreva a oferta. A IA monta estrutura, cores e textos.',
-            icon: 'cart' as const,
-        },
-        {
-            href: '/checkouts',
-            title: 'Ajustar o checkout ou o pagamento de um funil',
-            description:
-                'Abra um checkout e use o assistente no editor da página ou no fluxo de pagamento.',
-            icon: 'route' as const,
-        },
-    ];
-    return (
-        <div className="flex h-full flex-col overflow-y-auto px-5 py-6">
-            <div className="flex flex-col items-center text-center">
-                <span className="grid size-12 place-items-center rounded-2xl border border-border bg-surface shadow-[0_8px_24px_rgba(16,18,20,0.06)]">
-                    <SparkleIcon className="size-5" />
-                </span>
-                <h3 className="mt-4 text-[17px] font-semibold tracking-[-0.02em]">
-                    O que vamos criar?
-                </h3>
-                <p className="mt-1.5 max-w-[320px] text-[12.5px] leading-5 text-muted">
-                    O assistente monta checkouts e fluxos de pagamento com os blocos e gateways da
-                    sua conta. Nada vai ao ar sem você publicar.
-                </p>
-            </div>
-            <ul className="mt-6 grid gap-2">
-                {actions.map((action) => (
-                    <li key={action.href}>
-                        <Link
-                            href={action.href}
-                            onClick={() => {
-                                if (pathname === action.href.split('?')[0]) onNavigate();
-                            }}
-                            className="group flex items-start gap-3 rounded-2xl border border-border bg-surface p-3.5 transition hover:-translate-y-px hover:border-foreground/25"
-                        >
-                            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface-muted">
-                                <Icon name={action.icon} className="size-4" />
-                            </span>
-                            <span className="min-w-0 flex-1">
-                                <span className="block text-[13px] font-semibold">
-                                    {action.title}
-                                </span>
-                                <span className="mt-0.5 block text-[12px] leading-5 text-muted">
-                                    {action.description}
-                                </span>
-                            </span>
-                            <Icon
-                                name="arrow-right"
-                                className="mt-2.5 size-3.5 text-muted transition group-hover:translate-x-0.5"
-                            />
-                        </Link>
-                    </li>
-                ))}
-            </ul>
-        </div>
     );
 }

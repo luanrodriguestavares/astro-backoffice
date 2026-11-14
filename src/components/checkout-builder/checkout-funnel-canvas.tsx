@@ -23,7 +23,6 @@ import {
     type ReactFlowInstance,
 } from '@xyflow/react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
 
 import { ContextMenu, type MenuEntry } from '@/components/orchestration/flow-editor/context-menu';
 import { IssueBadge } from '@/components/orchestration/flow-editor/flow-node';
@@ -101,7 +100,6 @@ export function CheckoutFunnelCanvas({
     onSetTriggerTarget,
     onPosition,
     onAdd,
-    actionsSlot,
     fullscreen,
     onToggleFullscreen,
     payment,
@@ -122,8 +120,6 @@ export function CheckoutFunnelCanvas({
     onSetTriggerTarget(pageId: string, triggerId: string, target: string | null): void;
     onPosition(pageId: string, position: BuilderFunnelPosition): void;
     onAdd(template: FunnelPageTemplateId, placement: FunnelPagePlacement): void;
-    /** Header do quadro: recebe problemas, Organizar e Nova página, como no orquestrador. */
-    actionsSlot?: HTMLElement | null;
     fullscreen?: boolean;
     onToggleFullscreen?(): void;
     /** Com resumo, o canvas mostra o nó Pagamento ligado ao fluxo de nós. */
@@ -570,6 +566,37 @@ export function CheckoutFunnelCanvas({
                     onRedo={onRedo}
                 />
                 <ZoomControls fullscreen={fullscreen} onToggleFullscreen={onToggleFullscreen} />
+                <div className="flow-canvas-actions" aria-label="Ações do funil">
+                    <IssuesButton
+                        errors={[]}
+                        warnings={diagnostics.messages.map((problem) => ({
+                            nodeId: problem.pageId,
+                            severity: 'warning' as const,
+                            message: problem.message,
+                        }))}
+                        onFocus={(pageId) => {
+                            setInspectedId(pageId);
+                            void flow?.fitView({
+                                nodes: [{ id: pageId }],
+                                duration: 300,
+                                maxZoom: 1,
+                            });
+                        }}
+                    />
+                    <Button type="button" variant="ghost" onClick={arrange}>
+                        <Icon name="route" className="size-3.5" />
+                        Organizar
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        className="h-9"
+                        onClick={() => onAdd('blank', {})}
+                    >
+                        <Icon name="plus" className="size-3.5" />
+                        Nova página
+                    </Button>
+                </div>
             </ReactFlow>
             {selectedPage?.kind === 'content' && linkOpen && (
                 <aside className="ce-flow-link-inspector">
@@ -713,41 +740,6 @@ export function CheckoutFunnelCanvas({
                     }
                 />
             )}
-            {actionsSlot &&
-                createPortal(
-                    <>
-                        <IssuesButton
-                            errors={[]}
-                            warnings={diagnostics.messages.map((problem) => ({
-                                nodeId: problem.pageId,
-                                severity: 'warning' as const,
-                                message: problem.message,
-                            }))}
-                            onFocus={(pageId) => {
-                                setInspectedId(pageId);
-                                void flow?.fitView({
-                                    nodes: [{ id: pageId }],
-                                    duration: 300,
-                                    maxZoom: 1,
-                                });
-                            }}
-                        />
-                        <Button type="button" variant="ghost" onClick={arrange}>
-                            <Icon name="route" className="size-3.5" />
-                            Organizar
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            className="h-9"
-                            onClick={() => onAdd('blank', {})}
-                        >
-                            <Icon name="plus" className="size-3.5" />
-                            Nova página
-                        </Button>
-                    </>,
-                    actionsSlot,
-                )}
             {picker && (
                 <FunnelPagePicker
                     screen={picker.screen}
@@ -1256,12 +1248,12 @@ function withPages(
     );
 }
 
-// Mesmo ritmo visual do orquestrador: card compacto e folga para o rótulo da ligação.
-const columnGap = 380;
-const mainRow = 360;
+// Organizado para leitura contínua: próximo o bastante para comparar, sem colidir cards e rótulos.
+const columnGap = 300;
+const mainRow = 240;
 
 function entryPosition() {
-    return { x: -360, y: mainRow + 100 };
+    return { x: -300, y: mainRow + 60 };
 }
 
 function paymentPosition(contentCount: number) {
@@ -1516,8 +1508,8 @@ function arrangedPositionsFromCount(
     if (page.kind === 'checkout') return { x: contentCount * columnGap, y: mainRow };
     // O nó Pagamento ocupa a coluna logo depois do checkout; os resultados vêm depois dele.
     const branchX = (contentCount + (withPayment ? 2 : 1)) * columnGap;
-    if (page.kind === 'pix') return { x: branchX, y: -220 };
-    if (page.kind === 'boleto') return { x: branchX, y: 100 };
-    if (page.kind === 'failure') return { x: branchX, y: 620 };
+    if (page.kind === 'pix') return { x: branchX, y: -80 };
+    if (page.kind === 'boleto') return { x: branchX, y: 130 };
+    if (page.kind === 'failure') return { x: branchX, y: 390 };
     return { x: (contentCount + (withPayment ? 3 : 2)) * columnGap, y: mainRow };
 }

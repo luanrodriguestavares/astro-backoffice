@@ -10,6 +10,7 @@ import {
     type ReactElement,
     useEffect,
     useMemo,
+    useRef,
     useState,
 } from 'react';
 import { createPortal } from 'react-dom';
@@ -21,7 +22,20 @@ import { Icon, type IconName } from '@/components/ui/icon';
 import { CustomSelect, type SelectOption } from '@/components/ui/custom-select';
 import { showToast } from '@/components/ui/toast';
 import { useEscapeClose } from '@/hooks/use-escape-close';
-import type { MediaFile, Price, Product } from '@/lib/api/types';
+import type { MediaFile, Plan, Price, Product } from '@/lib/api/types';
+
+import { PlanCard } from './plan-editor';
+import {
+    legacyPlanFromPrice,
+    newPlan,
+    persistPlan,
+    type PlanDraft,
+    type PlanErrors,
+    planFromApi,
+    recurringByDefault,
+    validatePlans,
+} from './plan-model';
+import { defaultProductColor, ProductColorPicker, ProductGlyph } from './product-color';
 
 type StatusFilter = 'all' | Product['status'];
 
@@ -54,6 +68,12 @@ export function ProductManager({
     const [statusChanging, setStatusChanging] = useState<string>();
     const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
     const [selectedImageFileId, setSelectedImageFileId] = useState<string | null>();
+    const [productColor, setProductColor] = useState(defaultProductColor);
+    const [plansLoading, setPlansLoading] = useState(false);
+    /** A API ainda não tem planos: o formulário edita só os preços, como antes. */
+    const [plansUnavailable, setPlansUnavailable] = useState(false);
+    /** Produto cujo carregamento de planos vale: ignora respostas de um modal já fechado. */
+    const plansRequest = useRef<string>(undefined);
 
     const visibleProducts = useMemo(() => {
         const term = normalize(query.trim());
@@ -119,6 +139,7 @@ export function ProductManager({
             shortDescription: editing ? shortDescription : shortDescription || undefined,
             status: form.get('status'),
             deliveryMode: form.get('type') === 'digital' ? 'digital' : 'none',
+            color: productColor,
             ...(editing
                 ? { imageFileId: imageFileId ?? null }
                 : imageFileId
@@ -126,28 +147,29 @@ export function ProductManager({
                   : {}),
         };
 
-        const activePlans = plans.filter((plan) => !plan.removed);
-        const invalid = activePlans.find((plan) => !plan.name.trim() || plan.amountMinor <= 0);
-        if (activePlans.length === 0 || invalid) {
+        const checked = validatePlans(plans);
+        if (!checked.valid) {
             setLoading(false);
+            setPlans(checked.plans);
+            const activeCount = plans.filter((plan) => !plan.removed).length;
             showToast({
                 tone: 'error',
                 description:
-                    activePlans.length === 0
+                    activeCount === 0
                         ? 'Adicione pelo menos um plano.'
-                        : 'Todo plano precisa de um nome e de um valor maior que zero.',
+                        : 'Revise os planos destacados antes de salvar.',
             });
             return;
         }
 
-        let productId = editing?.id;
+        let product = editing;
         if (editing) {
             const response = await fetch(`/api/products/${editing.id}`, {
                 method: 'PATCH',
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({ ...productPayload, version: editing.version }),
             });
-            const body = (await response.json()) as { detail?: string };
+            const body = (await response.json()) as { data?: Product; detail?: string };
             if (!response.ok) {
                 setLoading(false);
                 showToast({
@@ -156,6 +178,7 @@ export function ProductManager({
                 });
                 return;
             }
+            product = body.data ?? { ...editing, version: editing.version + 1 };
         } else {
             const response = await fetch('/api/products', {
                 method: 'POST',
@@ -175,37 +198,49 @@ export function ProductManager({
                 });
                 return;
             }
-            productId = body.data.id;
+            product = body.data;
         }
+        // Daqui em diante o produto existe: salvar de novo atualiza em vez de criar outro.
+        setEditing(product);
+        const created = !editing;
 
-        // Planos: em sequência, para cada falha virar uma mensagem clara.
-        const failures: string[] = [];
-        for (const plan of plans) {
-            const label = plan.name.trim() || 'Plano sem nome';
-            const result = await savePlan(productId as string, plan);
-            if (result) failures.push(`${label}: ${result}`);
+        // Planos em sequência (plano primeiro, depois os preços dele), cada erro no seu cartão.
+        const next: PlanDraft[] = [];
+        let sortOrder = 0;
+        let fellBack = false;
+        for (const plan of checked.plans) {
+            const outcome = await persistPlan(product.id, plan, plan.removed ? 0 : sortOrder);
+            if (!plan.removed) sortOrder += 1;
+            if (outcome.plansUnavailable) fellBack = true;
+            if (outcome.plan) next.push(outcome.plan);
         }
+        const failed = next.filter((plan) => plan.errors);
+        setPlans(next.map((plan) => (plan.errors ? { ...plan, expanded: true } : plan)));
+        if (fellBack) setPlansUnavailable(true);
         setLoading(false);
         router.refresh();
-        // Fecha mesmo com falha: salvar de novo duplicaria o que já foi criado.
-        setOpen(false);
-        setEditing(undefined);
-        if (failures.length > 0) {
+        if (failed.length > 0) {
+            // O formulário fica aberto: o que já foi salvo está marcado e não duplica.
             showToast({
                 tone: 'warning',
-                title: editing
-                    ? 'Produto salvo, mas alguns planos falharam'
-                    : 'Produto criado, mas há planos pendentes',
-                description: failures.join(' · '),
+                title: created
+                    ? 'Produto criado, mas há planos pendentes'
+                    : 'Produto salvo, mas alguns planos falharam',
+                description: `Revise ${failed.map((plan) => plan.name.trim() || 'o plano sem nome').join(', ')} e salve de novo.`,
             });
             return;
         }
+        setOpen(false);
+        setEditing(undefined);
+        const activeCount = next.filter((plan) => !plan.removed).length;
         showToast({
-            tone: 'success',
-            title: editing ? 'Produto atualizado' : 'Produto criado',
-            description: editing
-                ? 'As alterações do produto e dos planos foram salvas.'
-                : `O produto foi adicionado ao catálogo com ${String(activePlans.length)} ${activePlans.length === 1 ? 'plano' : 'planos'}.`,
+            tone: fellBack ? 'warning' : 'success',
+            title: created ? 'Produto criado' : 'Produto atualizado',
+            description: fellBack
+                ? 'Os preços foram salvos, mas a API ainda não aceita planos: código, benefícios e limites não foram gravados.'
+                : created
+                  ? `O produto foi adicionado ao catálogo com ${String(activeCount)} ${activeCount === 1 ? 'plano' : 'planos'}.`
+                  : 'As alterações do produto e dos planos foram salvas.',
         });
     }
 
@@ -258,37 +293,108 @@ export function ProductManager({
     }
 
     function openCreate() {
+        plansRequest.current = undefined;
         setEditing(undefined);
         setProductType('digital');
         setPlans([newPlan('digital')]);
         setSelectedImageFileId(null);
+        setProductColor(defaultProductColor);
+        setPlansUnavailable(false);
+        setPlansLoading(false);
         setOpen(true);
     }
 
-    function openEdit(product: Product) {
+    async function openEdit(product: Product) {
         setEditing(product);
         setProductType(product.type);
-        setPlans(
-            (prices[product.id] ?? [])
-                .filter((price) => price.status !== 'archived')
-                .map(planFromPrice),
-        );
         setSelectedImageFileId(product.imageFileId);
+        setProductColor(product.color ?? defaultProductColor);
+        setPlans([]);
+        setPlansLoading(true);
         setOpen(true);
+        plansRequest.current = product.id;
+        const productPrices = (prices[product.id] ?? []).filter(
+            (price) => price.status !== 'archived',
+        );
+        const loaded = await fetch(`/api/products/${product.id}/plans`)
+            .then(async (response) =>
+                response.ok ? ((await response.json()) as { data?: Plan[] }).data : undefined,
+            )
+            .catch(() => undefined);
+        if (plansRequest.current !== product.id) return;
+        setPlansLoading(false);
+        if (!loaded) {
+            // API sem planos: mostra os preços como antes.
+            setPlansUnavailable(true);
+            setPlans(productPrices.map(legacyPlanFromPrice));
+            return;
+        }
+        setPlansUnavailable(false);
+        const drafts = loaded
+            .filter((plan) => plan.status !== 'archived')
+            .toSorted((left, right) => left.sortOrder - right.sortOrder)
+            .map(planFromApi);
+        // Preço que ficou sem plano (não deveria após a migração) continua editável.
+        const loose = productPrices
+            .filter((price) => !price.planId)
+            .filter(
+                (price) => !loaded.some((plan) => plan.prices.some((item) => item.id === price.id)),
+            )
+            .map(legacyPlanFromPrice);
+        const all = [...drafts, ...loose];
+        setPlans(all.length === 1 ? all.map((plan) => ({ ...plan, expanded: true })) : all);
     }
 
-    function updatePlan(key: string, change: Partial<PlanDraft>) {
+    function updatePlan(uid: string, change: Partial<PlanDraft>) {
         setPlans((current) =>
-            current.map((plan) => (plan.key === key ? withAutoName({ ...plan, ...change }) : plan)),
+            current.map((plan) => {
+                if (plan.uid !== uid) return plan;
+                const errors = clearedErrors(plan.errors, change);
+                return { ...plan, ...change, errors };
+            }),
         );
+    }
+
+    function movePlan(uid: string, direction: -1 | 1) {
+        setPlans((current) => {
+            const visible = current.filter((plan) => !plan.removed);
+            const index = visible.findIndex((plan) => plan.uid === uid);
+            const target = visible[index + direction];
+            if (index < 0 || !target) return current;
+            const reordered = [...visible];
+            [reordered[index], reordered[index + direction]] = [
+                target,
+                visible[index] as PlanDraft,
+            ];
+            return [...reordered, ...current.filter((plan) => plan.removed)];
+        });
+    }
+
+    function removePlan(plan: PlanDraft) {
+        setPlans((current) =>
+            plan.id || plan.legacy
+                ? current.map((item) => (item.uid === plan.uid ? { ...item, removed: true } : item))
+                : current.filter((item) => item.uid !== plan.uid),
+        );
+    }
+
+    function addPlan() {
+        setPlans((current) => [
+            ...current.map((plan) => ({ ...plan, expanded: false })),
+            plansUnavailable ? { ...newPlan(productType), legacy: true } : newPlan(productType),
+        ]);
     }
 
     function closeForm() {
         if (loading) return;
+        plansRequest.current = undefined;
         setOpen(false);
         setMediaPickerOpen(false);
         setEditing(undefined);
     }
+
+    const visiblePlans = plans.filter((plan) => !plan.removed);
+    const removedPlans = plans.filter((plan) => plan.removed && (plan.id || plan.legacy)).length;
 
     useEscapeClose((open || Boolean(deleteTarget)) && !mediaPickerOpen, () => {
         if (deleteTarget && !deleting) setDeleteTarget(undefined);
@@ -421,7 +527,7 @@ export function ProductManager({
                         {/* Altura fixa: o cabeçalho e o rodapé ficam parados e só o conteúdo rola. */}
                         <form
                             onSubmit={submit}
-                            className="product-modal theme-modal modal-surface glass-panel flex h-[min(760px,calc(100dvh-32px))] w-full max-w-5xl flex-col overflow-hidden rounded-[28px]"
+                            className="product-modal theme-modal modal-surface glass-panel flex h-[min(760px,calc(100dvh-32px))] w-full max-w-6xl flex-col overflow-hidden rounded-[28px]"
                         >
                             <header className="flex shrink-0 items-start justify-between gap-5 border-b border-border px-5 py-5 sm:px-7">
                                 <div>
@@ -447,7 +553,7 @@ export function ProductManager({
                                 </Button>
                             </header>
 
-                            <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:overflow-hidden">
+                            <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:overflow-hidden">
                                 <section className="space-y-4 px-5 py-6 sm:px-7 lg:overflow-y-auto">
                                     <h3 className="text-[14px] font-semibold">Produto</h3>
                                     <div className="grid gap-4 sm:grid-cols-2">
@@ -471,19 +577,13 @@ export function ProductManager({
                                             onChange={(event) => {
                                                 const type = event.target.value as Product['type'];
                                                 setProductType(type);
-                                                // Plano novo ainda intocado acompanha o tipo.
+                                                // Preços novos acompanham o tipo do produto.
+                                                const pricingType = recurringByDefault(type)
+                                                    ? 'recurring'
+                                                    : 'one_time';
                                                 setPlans((current) =>
                                                     current.map((plan) =>
-                                                        !plan.id && !plan.touched
-                                                            ? withAutoName({
-                                                                  ...plan,
-                                                                  pricingType: recurringByDefault(
-                                                                      type,
-                                                                  )
-                                                                      ? 'recurring'
-                                                                      : 'one_time',
-                                                              })
-                                                            : plan,
+                                                        withPricingType(plan, pricingType),
                                                     ),
                                                 );
                                             }}
@@ -511,6 +611,11 @@ export function ProductManager({
                                             className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-border bg-[var(--control-bg)] p-3.5 font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_14%,transparent)]"
                                         />
                                     </label>
+                                    <ProductColorPicker
+                                        value={productColor}
+                                        icon={productIcon(productType)}
+                                        onChange={setProductColor}
+                                    />
                                     {/* Upload depende da biblioteca de mídia, desligada na V1. */}
                                     {mediaLibraryEnabled && (
                                         <div className="text-[13px] font-semibold">
@@ -574,62 +679,83 @@ export function ProductManager({
                                     <div className="flex shrink-0 items-center justify-between gap-3 px-5 pb-3 pt-6 sm:px-7">
                                         <div>
                                             <h3 className="text-[14px] font-semibold">
-                                                Planos e preços
+                                                {plansUnavailable ? 'Preços' : 'Planos e preços'}
                                             </h3>
                                             <p className="mt-0.5 text-[12px] text-muted">
-                                                {recurringByDefault(productType)
-                                                    ? 'Ex.: Mensal e Anual, ou Básico e Pro.'
-                                                    : 'Um preço único ou opções do mesmo produto.'}
+                                                {plansUnavailable
+                                                    ? 'Cada preço que o cliente pode escolher.'
+                                                    : recurringByDefault(productType)
+                                                      ? 'Cada plano com seus preços (mensal, anual...), benefícios e limites.'
+                                                      : 'Um plano com pagamento único, ou opções do mesmo produto.'}
                                             </p>
                                         </div>
                                         <Button
                                             type="button"
                                             variant="secondary"
                                             className="!h-9 shrink-0 px-3 text-[12px]"
-                                            onClick={() =>
-                                                setPlans((current) => [
-                                                    ...current,
-                                                    newPlan(productType),
-                                                ])
-                                            }
+                                            disabled={plansLoading}
+                                            onClick={addPlan}
                                         >
                                             <Icon name="plus" className="size-3.5" />
-                                            Adicionar plano
+                                            {plansUnavailable
+                                                ? 'Adicionar preço'
+                                                : 'Adicionar plano'}
                                         </Button>
                                     </div>
-                                    <div className="min-h-0 flex-1 space-y-3 px-5 pb-6 sm:px-7 lg:overflow-y-auto">
-                                        {plans.map((plan, index) =>
-                                            plan.removed ? null : (
+                                    <div className="min-h-0 flex-1 space-y-2.5 px-5 pb-6 sm:px-7 lg:overflow-y-auto">
+                                        {plansUnavailable && !plansLoading && (
+                                            <p className="flex items-start gap-2 rounded-xl border border-border bg-[var(--control-bg)] px-3 py-2.5 text-[12px] leading-4 text-muted">
+                                                <Icon
+                                                    name="help"
+                                                    className="mt-px size-3.5 shrink-0"
+                                                />
+                                                Planos com código, benefícios e limites ainda não
+                                                estão disponíveis nesta conta. Os preços seguem
+                                                editáveis normalmente.
+                                            </p>
+                                        )}
+                                        {plansLoading ? (
+                                            <PlansSkeleton />
+                                        ) : (
+                                            visiblePlans.map((plan, index) => (
                                                 <PlanCard
-                                                    key={plan.key}
+                                                    key={plan.uid}
                                                     plan={plan}
                                                     index={index}
-                                                    removable={
-                                                        plans.filter((item) => !item.removed)
-                                                            .length > 1
-                                                    }
+                                                    count={visiblePlans.length}
+                                                    productType={productType}
                                                     onChange={(change) =>
-                                                        updatePlan(plan.key, change)
+                                                        updatePlan(plan.uid, change)
                                                     }
-                                                    onRemove={() =>
+                                                    onMove={(direction) =>
+                                                        movePlan(plan.uid, direction)
+                                                    }
+                                                    onRemove={() => removePlan(plan)}
+                                                />
+                                            ))
+                                        )}
+                                        {removedPlans > 0 && !plansLoading && (
+                                            <p className="flex items-center gap-2 px-1 text-[11px] text-muted">
+                                                {removedPlans}{' '}
+                                                {removedPlans === 1
+                                                    ? 'plano será arquivado'
+                                                    : 'planos serão arquivados'}{' '}
+                                                ao salvar. Assinaturas existentes continuam.
+                                                <button
+                                                    type="button"
+                                                    className="font-semibold text-foreground underline-offset-2 hover:underline"
+                                                    onClick={() =>
                                                         setPlans((current) =>
-                                                            plan.id
-                                                                ? current.map((item) =>
-                                                                      item.key === plan.key
-                                                                          ? {
-                                                                                ...item,
-                                                                                removed: true,
-                                                                            }
-                                                                          : item,
-                                                                  )
-                                                                : current.filter(
-                                                                      (item) =>
-                                                                          item.key !== plan.key,
-                                                                  ),
+                                                            current.map((plan) => ({
+                                                                ...plan,
+                                                                removed: false,
+                                                            })),
                                                         )
                                                     }
-                                                />
-                                            ),
+                                                >
+                                                    Desfazer
+                                                </button>
+                                            </p>
                                         )}
                                     </div>
                                 </section>
@@ -637,16 +763,24 @@ export function ProductManager({
 
                             <footer className="flex shrink-0 flex-col-reverse gap-2 border-t border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
                                 <p className="text-[12px] text-muted">
-                                    {plans.filter((plan) => !plan.removed).length}{' '}
-                                    {plans.filter((plan) => !plan.removed).length === 1
-                                        ? 'plano'
-                                        : 'planos'}
+                                    {visiblePlans.length}{' '}
+                                    {plansUnavailable
+                                        ? visiblePlans.length === 1
+                                            ? 'preço'
+                                            : 'preços'
+                                        : visiblePlans.length === 1
+                                          ? 'plano'
+                                          : 'planos'}
                                 </p>
                                 <div className="flex flex-col-reverse gap-2 sm:flex-row">
                                     <Button type="button" variant="secondary" onClick={closeForm}>
                                         Cancelar
                                     </Button>
-                                    <Button variant="primary" disabled={loading} className="px-6">
+                                    <Button
+                                        variant="primary"
+                                        disabled={loading || plansLoading}
+                                        className="px-6"
+                                    >
                                         {loading
                                             ? editing
                                                 ? 'Salvando...'
@@ -780,8 +914,8 @@ function ProductTable({
                                     >
                                         <td className="px-6 py-4">
                                             <div className="flex min-w-0 items-center gap-3">
-                                                <span className="product-table-icon relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-[13px] border border-white/80 bg-gradient-to-br from-white/75 to-brand-soft/65 text-brand">
-                                                    {product.imageFileId ? (
+                                                {product.imageFileId ? (
+                                                    <span className="product-table-icon relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-[13px] border border-white/80 bg-gradient-to-br from-white/75 to-brand-soft/65 text-brand">
                                                         <Image
                                                             src={`/api/files/${encodeURIComponent(product.imageFileId)}/content`}
                                                             alt={product.name}
@@ -790,13 +924,13 @@ function ProductTable({
                                                             sizes="40px"
                                                             className="object-cover"
                                                         />
-                                                    ) : (
-                                                        <Icon
-                                                            name={productIcon(product.type)}
-                                                            className="size-4"
-                                                        />
-                                                    )}
-                                                </span>
+                                                    </span>
+                                                ) : (
+                                                    <ProductGlyph
+                                                        icon={productIcon(product.type)}
+                                                        color={product.color}
+                                                    />
+                                                )}
                                                 <div className="min-w-0">
                                                     <p className="max-w-[260px] truncate font-semibold text-foreground">
                                                         {product.name}
@@ -1100,236 +1234,6 @@ function SelectField({
     );
 }
 
-type PlanDraft = {
-    key: string;
-    /** Preço já salvo: só nome e valor podem mudar (a API não troca cobrança/periodicidade). */
-    id?: string;
-    version?: number;
-    name: string;
-    pricingType: 'one_time' | 'recurring';
-    amountMinor: number;
-    interval: 'week' | 'month' | 'year';
-    /** O nome foi escrito à mão: deixa de acompanhar cobrança e periodicidade. */
-    touched?: boolean;
-    removed?: boolean;
-    saved?: { name: string; amountMinor: number };
-};
-
-function recurringByDefault(type: Product['type']) {
-    return type === 'saas' || type === 'service';
-}
-
-function autoPlanName(plan: Pick<PlanDraft, 'pricingType' | 'interval'>) {
-    if (plan.pricingType === 'one_time') return 'Pagamento único';
-    return plan.interval === 'year'
-        ? 'Plano anual'
-        : plan.interval === 'week'
-          ? 'Plano semanal'
-          : 'Plano mensal';
-}
-
-function withAutoName(plan: PlanDraft): PlanDraft {
-    return plan.touched || plan.id ? plan : { ...plan, name: autoPlanName(plan) };
-}
-
-function newPlan(type: Product['type']): PlanDraft {
-    return withAutoName({
-        key: crypto.randomUUID(),
-        name: '',
-        pricingType: recurringByDefault(type) ? 'recurring' : 'one_time',
-        amountMinor: 0,
-        interval: 'month',
-    });
-}
-
-function planFromPrice(price: Price): PlanDraft {
-    return {
-        key: price.id,
-        id: price.id,
-        version: price.version,
-        name: price.name,
-        pricingType: price.pricingType === 'recurring' ? 'recurring' : 'one_time',
-        amountMinor: price.amountMinor,
-        interval:
-            price.recurringInterval === 'year' || price.recurringInterval === 'week'
-                ? price.recurringInterval
-                : 'month',
-        saved: { name: price.name, amountMinor: price.amountMinor },
-    };
-}
-
-/** Cria, atualiza ou remove um plano. Devolve a mensagem de erro, ou nada se deu certo. */
-async function savePlan(productId: string, plan: PlanDraft): Promise<string | undefined> {
-    const json = { 'content-type': 'application/json' };
-    let response: Response | undefined;
-    if (plan.id && plan.removed) {
-        response = await fetch(`/api/prices/${plan.id}`, { method: 'DELETE' });
-    } else if (plan.id) {
-        if (plan.saved?.name === plan.name.trim() && plan.saved.amountMinor === plan.amountMinor)
-            return undefined;
-        response = await fetch(`/api/prices/${plan.id}`, {
-            method: 'PATCH',
-            headers: json,
-            body: JSON.stringify({
-                name: plan.name.trim(),
-                amountMinor: plan.amountMinor,
-                version: plan.version,
-            }),
-        });
-    } else if (!plan.removed) {
-        const recurring = plan.pricingType === 'recurring';
-        response = await fetch(`/api/products/${productId}/prices`, {
-            method: 'POST',
-            headers: json,
-            body: JSON.stringify({
-                name: plan.name.trim(),
-                pricingType: plan.pricingType,
-                amountMinor: plan.amountMinor,
-                currency: 'BRL',
-                ...(recurring
-                    ? {
-                          recurringInterval: plan.interval,
-                          recurringIntervalCount: 1,
-                          billingMode: 'gateway_managed',
-                      }
-                    : {}),
-                status: 'active',
-                allowQuantity: false,
-                minimumQuantity: 1,
-                maximumQuantity: 1,
-                metadata: {},
-            }),
-        });
-    }
-    if (!response || response.ok) return undefined;
-    const body = (await response.json().catch(() => ({}))) as { detail?: string };
-    return body.detail ?? 'não foi possível salvar';
-}
-
-function PlanCard({
-    plan,
-    index,
-    removable,
-    onChange,
-    onRemove,
-}: {
-    plan: PlanDraft;
-    index: number;
-    removable: boolean;
-    onChange(change: Partial<PlanDraft>): void;
-    onRemove(): void;
-}) {
-    const saved = Boolean(plan.id);
-    return (
-        <article className="rounded-2xl border border-border bg-[var(--control-bg)] p-4">
-            <div className="flex items-end gap-2">
-                <label className="min-w-0 flex-1 text-[12px] font-semibold">
-                    Nome do plano
-                    <input
-                        value={plan.name}
-                        placeholder={`Plano ${String(index + 1)}`}
-                        onChange={(event) => onChange({ name: event.target.value, touched: true })}
-                        className="mt-1.5 h-10 w-full rounded-xl border border-border bg-surface px-3 text-[13px] font-normal outline-none transition placeholder:text-muted focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)]"
-                    />
-                </label>
-                {removable && (
-                    <Button
-                        type="button"
-                        variant="icon"
-                        className="size-10 shrink-0"
-                        aria-label={`Remover ${plan.name || 'plano'}`}
-                        onClick={onRemove}
-                    >
-                        <Icon name="trash" className="size-3.5" />
-                    </Button>
-                )}
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                <label className="text-[12px] font-semibold">
-                    Cobrança
-                    <div className="mt-1.5">
-                        <CustomSelect
-                            name={`pricing_${plan.key}`}
-                            value={plan.pricingType}
-                            disabled={saved}
-                            options={[
-                                { value: 'one_time', label: 'Pagamento único' },
-                                { value: 'recurring', label: 'Recorrente' },
-                            ]}
-                            onValueChange={(value) =>
-                                onChange({ pricingType: value as PlanDraft['pricingType'] })
-                            }
-                        />
-                    </div>
-                </label>
-                {plan.pricingType === 'recurring' ? (
-                    <label className="text-[12px] font-semibold">
-                        Periodicidade
-                        <div className="mt-1.5">
-                            <CustomSelect
-                                name={`interval_${plan.key}`}
-                                value={plan.interval}
-                                disabled={saved}
-                                options={[
-                                    { value: 'month', label: 'Mensal' },
-                                    { value: 'year', label: 'Anual' },
-                                    { value: 'week', label: 'Semanal' },
-                                ]}
-                                onValueChange={(value) =>
-                                    onChange({ interval: value as PlanDraft['interval'] })
-                                }
-                            />
-                        </div>
-                    </label>
-                ) : (
-                    <span className="hidden sm:block" />
-                )}
-                <MoneyInput
-                    label="Valor"
-                    value={plan.amountMinor}
-                    onChange={(amountMinor) => onChange({ amountMinor })}
-                />
-            </div>
-            {saved && (
-                <p className="mt-2.5 text-[11px] text-muted">
-                    Cobrança e periodicidade não mudam depois de criadas. Para outra, adicione um
-                    plano novo.
-                </p>
-            )}
-        </article>
-    );
-}
-
-function MoneyInput({
-    label,
-    value,
-    onChange,
-}: {
-    label: string;
-    value: number;
-    onChange(value: number): void;
-}) {
-    return (
-        <label className="text-[12px] font-semibold">
-            {label}
-            <div className="relative mt-1.5">
-                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[12px] text-muted">
-                    R$
-                </span>
-                <input
-                    inputMode="numeric"
-                    value={new Intl.NumberFormat('pt-BR', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                    }).format(value / 100)}
-                    onChange={(event) => onChange(Number(event.target.value.replace(/\D/g, '')))}
-                    className="h-10 w-full rounded-xl border border-border bg-surface pl-9 pr-3 text-[13px] font-normal tabular-nums outline-none transition focus:border-brand/70 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--brand)_16%,transparent)]"
-                />
-            </div>
-        </label>
-    );
-}
-
 async function uploadProductImage(file: File): Promise<{ id?: string; detail?: string }> {
     if (file.size > 5_000_000) return { detail: 'A imagem deve ter no máximo 5 MB.' };
     const contentBase64 = await fileToBase64(file);
@@ -1436,4 +1340,55 @@ function shortDate(value: string) {
         month: 'short',
         year: 'numeric',
     }).format(new Date(value));
+}
+
+/** Erros somem do campo assim que ele é editado. */
+function clearedErrors(errors: PlanErrors | undefined, change: Partial<PlanDraft>) {
+    if (!errors) return undefined;
+    const next: PlanErrors = { ...errors };
+    if ('name' in change) delete next.name;
+    if ('key' in change) delete next.key;
+    if ('prices' in change) delete next.prices;
+    if ('features' in change) delete next.features;
+    if ('entitlements' in change) delete next.entitlements;
+    if ('description' in change || 'badge' in change || 'badgeEnabled' in change)
+        delete next.general;
+    return Object.keys(next).length > 0 ? next : undefined;
+}
+
+/** Preços ainda não salvos acompanham o tipo do produto (recorrente ou pagamento único). */
+function withPricingType(plan: PlanDraft, pricingType: 'recurring' | 'one_time'): PlanDraft {
+    const saved = plan.prices.filter((price) => price.id);
+    const fresh = plan.prices.filter((price) => !price.id);
+    if (fresh.every((price) => price.pricingType === pricingType)) return plan;
+    const first = fresh[0];
+    // Pagamento único: um preço só. Recorrente: o preço novo vira mensal.
+    const converted =
+        pricingType === 'one_time'
+            ? first
+                ? [
+                      {
+                          ...first,
+                          pricingType,
+                          interval: 'month' as const,
+                          intervalCount: 1,
+                          trialDays: 0,
+                      },
+                  ]
+                : []
+            : fresh.map((price) => ({ ...price, pricingType }));
+    return { ...plan, prices: [...saved, ...converted] };
+}
+
+function PlansSkeleton() {
+    return (
+        <div className="space-y-2.5" aria-busy="true" aria-label="Carregando planos">
+            {[0, 1, 2].map((item) => (
+                <div
+                    key={item}
+                    className="h-[58px] animate-pulse rounded-2xl border border-border bg-[var(--control-bg)]"
+                />
+            ))}
+        </div>
+    );
 }

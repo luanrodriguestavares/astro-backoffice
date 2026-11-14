@@ -3628,8 +3628,11 @@ html::-webkit-scrollbar,
  * Fundo de modais e do menu no celular: só escurece, sem desfoque. O desfoque de tela cheia era
  * refeito a cada quadro ao rolar ou animar o modal (o próprio fundo é o contêiner que rola).
  */
+/* Fundo dos modais: escurece e desfoca a tela atrás (era o backdrop-blur-sm de cada modal). */
 .ui-overlay {
     background-color: rgb(12 12 12 / 36%);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
 }
 
 .dashboard-dark .ui-overlay,
@@ -3711,4 +3714,56 @@ html::-webkit-scrollbar,
 
 .ai-composer textarea.ai-composer-input:not(#\#):focus-visible {
     box-shadow: none !important;
+}
+
+/* Lista de checkouts: cards entram em cascata suave e a miniatura respira até carregar. */
+.checkout-card-enter {
+    animation: checkout-card-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes checkout-card-enter {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.checkout-thumb-skeleton {
+    background: linear-gradient(
+        100deg,
+        transparent 30%,
+        rgb(255 255 255 / 45%) 50%,
+        transparent 70%
+    );
+    background-size: 220% 100%;
+    animation: checkout-thumb-shimmer 1.4s ease-in-out infinite;
+}
+
+.dashboard-dark .checkout-thumb-skeleton {
+    background-image: linear-gradient(
+        100deg,
+        transparent 30%,
+        rgb(255 255 255 / 6%) 50%,
+        transparent 70%
+    );
+}
+
+@keyframes checkout-thumb-shimmer {
+    from {
+        background-position: 120% 0;
+    }
+    to {
+        background-position: -100% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .checkout-card-enter,
+    .checkout-thumb-skeleton {
+        animation: none;
+    }
 }

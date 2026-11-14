@@ -34,10 +34,16 @@ export const FlowNodeCard = memo(function FlowNodeCard({
     const node = data.flow;
     if (node.type === 'note') return <NoteCard node={node} selected={selected} />;
     if (node.type === 'section') return <SectionCard node={node} selected={selected} />;
-    return <Card node={node} />;
+    return <Card node={node} selected={selected} />;
 });
 
-function Card({ node }: { node: Exclude<FlowNodeModel, { type: 'note' | 'section' }> }) {
+function Card({
+    node,
+    selected,
+}: {
+    node: Exclude<FlowNodeModel, { type: 'note' | 'section' }>;
+    selected: boolean;
+}) {
     const editor = useFlowEditor();
     const block = blockOf(node);
     const issues = editor.issues.get(node.id) ?? [];
@@ -86,6 +92,7 @@ function Card({ node }: { node: Exclude<FlowNodeModel, { type: 'note' | 'section
             data-kind={kind}
             data-compact={compact}
             data-sim={simState}
+            data-selected={selected || undefined}
         >
             {fallback && (node.type === 'gateway' || node.type === 'cheapest') && (
                 <span className="absolute -top-2.5 right-3 rounded-full bg-[#6366f1] px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
@@ -115,9 +122,11 @@ function Card({ node }: { node: Exclude<FlowNodeModel, { type: 'note' | 'section
                     <p className="truncate text-[13px] font-semibold leading-5 tracking-[-0.01em]">
                         {nodeTitle(node, editor.connections)}
                     </p>
-                    <p className="truncate font-mono text-[10px] text-muted">{node.id}</p>
+                    <p className="flow-node-id truncate font-mono text-[10px] text-muted">
+                        {node.id}
+                    </p>
                     {!compact && (
-                        <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-muted">
+                        <p className="flow-node-description mt-1 line-clamp-2 text-[11px] leading-4 text-muted">
                             {nodeDescription(node, editor)}
                         </p>
                     )}
@@ -136,6 +145,7 @@ function Card({ node }: { node: Exclude<FlowNodeModel, { type: 'note' | 'section
                 <Metrics
                     stats={editor.stats.get(connection.id)}
                     unstable={connection.status === 'degraded'}
+                    simulated={connection.provider === 'mock'}
                 />
             )}
             {node.type === 'gateway' && node.config.methods && (
@@ -337,17 +347,38 @@ function ConditionPreview({ node }: { node: Extract<FlowNodeModel, { type: 'cond
     );
 }
 
-function Metrics({ stats, unstable }: { stats: GatewayStats | undefined; unstable: boolean }) {
+function Metrics({
+    stats,
+    unstable,
+    simulated,
+}: {
+    stats: GatewayStats | undefined;
+    unstable: boolean;
+    /** Gateway simulado: as métricas vêm de testes e não podem parecer resultado real. */
+    simulated: boolean;
+}) {
     return (
         <div className="flex flex-wrap items-center gap-1.5 px-4 pb-4 text-[10.5px] font-medium tabular-nums">
+            {simulated && (
+                <span
+                    className="flow-pill inline-flex items-center gap-1 rounded-lg px-2 py-1"
+                    data-tone="warning"
+                    title="Gateway simulado: não cobra de verdade. Aprovação e tempo de resposta vêm de testes."
+                >
+                    <Icon name="alert" className="size-3" />
+                    Simulado
+                </span>
+            )}
             <span
                 className="flow-pill inline-flex items-center gap-1 rounded-lg px-2 py-1"
-                data-tone="success"
+                data-tone={simulated ? undefined : 'success'}
             >
                 <Icon name="check-circle" className="size-3" />
                 {stats?.approvalRate == null
-                    ? 'sem vendas'
-                    : `${percent(stats.approvalRate)} aprovação`}
+                    ? simulated
+                        ? 'sem testes'
+                        : 'sem vendas'
+                    : `${percent(stats.approvalRate)} aprovação${simulated ? ' em teste' : ''}`}
             </span>
             {stats?.avgLatencyMs != null && (
                 <span className="flow-pill inline-flex items-center gap-1 rounded-lg px-2 py-1">

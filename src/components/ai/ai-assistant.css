@@ -1,0 +1,425 @@
+/* Painel contextual: anima só composição (transform/opacity), nunca o layout pesado do editor. */
+
+/* Acento da IA: o verde Astro, usado só nos pontos de ação (botão, marca, envio, aplicar). */
+.ai-fab,
+.ai-window,
+.ai-chat {
+    --ai-accent: var(--highlight, #2ee37f);
+    --ai-accent-ink: var(--highlight-contrast, #04170c);
+    --ai-accent-soft: color-mix(in srgb, var(--ai-accent) 14%, transparent);
+    --ai-accent-line: color-mix(in srgb, var(--ai-accent) 38%, var(--border));
+}
+
+.ai-fab {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    border-radius: 999px;
+}
+
+.ai-fab-pill {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    border: 1px solid color-mix(in srgb, var(--ai-accent) 26%, #101214);
+    background: #101214;
+    color: var(--ai-accent);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 10%),
+        0 1px 2px rgb(4 23 12 / 20%),
+        0 10px 28px color-mix(in srgb, #101214 72%, transparent);
+    transition:
+        transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 180ms ease-out,
+        filter 180ms ease-out;
+}
+
+.ai-fab:hover .ai-fab-pill {
+    transform: translateY(-2px);
+    filter: brightness(1.03);
+}
+
+.ai-fab:active .ai-fab-pill {
+    transform: scale(0.98);
+}
+
+.ai-fab:focus-visible {
+    outline-color: var(--ai-accent);
+}
+
+.ai-fab,
+.ai-window button:not(:disabled) {
+    cursor: default;
+}
+
+.ai-window :is(a[href], [role='link']) {
+    cursor: pointer;
+}
+
+/* Um reflexo curto e espaçado chama atenção sem manter o botão pulsando o tempo todo. */
+.ai-fab-pill::before {
+    position: absolute;
+    z-index: -0;
+    inset: -40% auto -40% -55%;
+    width: 42%;
+    background: linear-gradient(
+        100deg,
+        transparent 0%,
+        rgb(255 255 255 / 10%) 20%,
+        rgb(255 255 255 / 55%) 50%,
+        rgb(255 255 255 / 10%) 78%,
+        transparent 100%
+    );
+    content: '';
+    opacity: 0;
+    pointer-events: none;
+    transform: translate3d(-60%, 0, 0) skewX(-14deg);
+    animation: ai-fab-glint 9s 2s infinite cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ai-fab-pill > * {
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes ai-fab-glint {
+    0%,
+    72% {
+        opacity: 0;
+        transform: translate3d(-60%, 0, 0) skewX(-14deg);
+    }
+
+    75% {
+        opacity: 0.8;
+    }
+
+    84% {
+        opacity: 0.45;
+        transform: translate3d(430%, 0, 0) skewX(-14deg);
+    }
+
+    86%,
+    100% {
+        opacity: 0;
+        transform: translate3d(430%, 0, 0) skewX(-14deg);
+    }
+}
+
+.ai-window {
+    top: 68px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+    width: min(448px, calc(100vw - 24px)) !important;
+    height: calc(100dvh - 80px) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 22px !important;
+    background: var(--surface) !important;
+    box-shadow:
+        0 1px 2px rgb(16 18 20 / 5%),
+        0 8px 24px rgb(16 18 20 / 8%),
+        0 32px 72px rgb(16 18 20 / 14%) !important;
+    contain: layout paint;
+    transform: translate3d(0, 0, 0) !important;
+    /* Ampliar/reduzir anima a largura; a janela tem `contain`, então o reflow fica nela. */
+    transition:
+        opacity 140ms ease-out,
+        transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+        width 320ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+    will-change: transform, opacity, width;
+}
+
+.ai-window[aria-hidden='true'] {
+    transform: translate3d(16px, 0, 0) !important;
+}
+
+.ai-window[data-expanded='true'] {
+    width: min(640px, calc(100vw - 24px)) !important;
+}
+
+.ai-window > header {
+    min-height: 72px;
+    padding-inline: 18px 12px;
+    background: transparent;
+}
+
+/* Um brilho verde bem leve no canto, atrás do cabeçalho. */
+.ai-window::before {
+    position: absolute;
+    z-index: 0;
+    top: -120px;
+    right: -80px;
+    width: 340px;
+    height: 260px;
+    border-radius: 999px;
+    background: radial-gradient(
+        closest-side,
+        color-mix(in srgb, var(--highlight, #2ee37f) 16%, transparent),
+        transparent
+    );
+    content: '';
+    pointer-events: none;
+}
+
+.ai-window > * {
+    position: relative;
+    z-index: 1;
+}
+
+.ai-window > header button {
+    border-radius: 10px;
+}
+
+/* Marca da IA: quadrado verde com o brilho escuro, como o botão que abriu a janela. */
+.ai-mark {
+    background: var(--ai-accent);
+    color: var(--ai-accent-ink);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 35%),
+        0 4px 12px color-mix(in srgb, var(--ai-accent) 28%, transparent);
+}
+
+.ai-online-dot {
+    position: relative;
+    width: 6px;
+    height: 6px;
+    flex: none;
+    border-radius: 999px;
+    background: var(--ai-accent);
+    box-shadow: 0 0 0 3px var(--ai-accent-soft);
+}
+
+.ai-welcome-mark {
+    border: 1px solid var(--ai-accent-line);
+    background: var(--ai-accent-soft);
+    color: color-mix(in srgb, var(--ai-accent) 55%, var(--foreground));
+}
+
+/* Conversa */
+.ai-chat .ai-bubble {
+    background: var(--surface-muted);
+    color: var(--foreground);
+}
+
+.ai-chat .ai-bubble-user {
+    background: var(--foreground);
+    color: var(--background);
+}
+
+.ai-chat .ai-suggestion:hover {
+    border-color: var(--ai-accent-line);
+    background: color-mix(in srgb, var(--ai-accent) 4%, var(--surface));
+}
+
+.ai-chat .ai-suggestion-icon {
+    background: var(--surface-muted);
+    color: var(--muted);
+    transition:
+        background 160ms ease-out,
+        color 160ms ease-out;
+}
+
+.ai-chat .ai-suggestion:hover .ai-suggestion-icon {
+    background: var(--ai-accent-soft);
+    color: color-mix(in srgb, var(--ai-accent) 55%, var(--foreground));
+}
+
+.ai-chat .ai-composer:focus-within {
+    border-color: var(--ai-accent-line);
+    box-shadow: 0 0 0 4px var(--ai-accent-soft);
+}
+
+.ai-chat .ai-send,
+.ai-chat .ai-primary {
+    background: var(--ai-accent);
+    color: var(--ai-accent-ink);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 30%);
+}
+
+.ai-chat .ai-send:hover:not(:disabled),
+.ai-chat .ai-primary:hover:not(:disabled) {
+    filter: brightness(1.04);
+}
+
+.ai-chat .ai-send:disabled {
+    background: color-mix(in srgb, var(--ai-accent) 14%, var(--surface));
+    color: color-mix(in srgb, var(--ai-accent) 50%, var(--foreground));
+    box-shadow: none;
+    opacity: 0.8;
+}
+
+/* Proposta aplicada: verde bem claro, como confirmação, não como alerta. */
+.ai-chat .ai-applied {
+    border-color: color-mix(in srgb, var(--ai-accent) 22%, var(--border));
+    background: color-mix(in srgb, var(--ai-accent) 7%, var(--surface));
+}
+
+.ai-chat .ai-applied-check {
+    background: color-mix(in srgb, var(--ai-accent) 85%, #1a9a52);
+    color: #ffffff;
+}
+
+.ai-chat .ai-applied-action {
+    border-color: color-mix(in srgb, var(--border) 90%, transparent);
+    background: var(--surface);
+    box-shadow: 0 1px 3px rgb(16 18 20 / 5%);
+}
+
+.ai-chat .ai-applied-action:hover {
+    border-color: color-mix(in srgb, var(--ai-accent) 40%, var(--border));
+}
+
+.ai-window .ai-chat {
+    background: var(--surface);
+}
+
+@media (max-width: 1179px) {
+    .ai-window,
+    .ai-window[data-expanded='true'] {
+        width: min(420px, calc(100vw - 24px)) !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ai-fab-pill::before {
+        animation: none;
+    }
+
+    .ai-window {
+        transition: none !important;
+    }
+}
+
+.ai-chat .ai-dots {
+    color: color-mix(in srgb, var(--ai-accent) 60%, var(--foreground));
+}
+
+/* Conversa sobre a superfície branca, bolhas com borda leve. */
+.ai-window .ai-scroller {
+    background: transparent;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--muted) 35%, transparent) transparent;
+}
+
+.ai-window .ai-chat .ai-bubble {
+    border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+    background: var(--surface);
+    box-shadow: 0 2px 8px rgb(16 18 20 / 4%);
+}
+
+.ai-window .ai-chat,
+.ai-window .ai-chat .ai-footer {
+    background: transparent;
+}
+
+.ai-window .ai-result {
+    box-shadow:
+        0 1px 2px rgb(16 18 20 / 4%),
+        0 8px 22px rgb(16 18 20 / 5%);
+}
+
+/* Rodapé flutua sobre a conversa, sem linha dura separando. */
+.ai-chat .ai-footer {
+    position: relative;
+    background: var(--surface);
+}
+
+.ai-window .ai-chat .ai-footer {
+    border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    padding-top: 12px;
+}
+
+.ai-chat .ai-composer {
+    border-color: color-mix(in srgb, var(--border) 90%, transparent);
+    background: var(--surface);
+    box-shadow: 0 2px 10px rgb(16 18 20 / 5%);
+}
+
+.ai-chat .ai-meta-button {
+    color: var(--muted);
+    transition:
+        background 140ms ease-out,
+        color 140ms ease-out;
+}
+
+.ai-chat .ai-meta-button:hover {
+    background: var(--surface-muted);
+    color: var(--foreground);
+}
+
+.ai-chat .ai-credits {
+    background: var(--surface-muted);
+}
+
+/* Sugestões na janela: uma lista única, com divisórias, em vez de vários cartões soltos. */
+.ai-chat .ai-suggestion-list {
+    background: var(--surface);
+    box-shadow: 0 1px 2px rgb(16 18 20 / 4%);
+}
+
+.ai-chat .ai-suggestion-list > .ai-suggestion + .ai-suggestion {
+    border-top: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+}
+
+.ai-chat .ai-suggestion-list > .ai-suggestion:hover {
+    border-color: color-mix(in srgb, var(--border) 75%, transparent);
+}
+
+/* Marca e imagens */
+.ai-brand-toggle {
+    width: calc(100% + 16px);
+    transition: background 140ms ease-out;
+}
+
+.ai-brand-toggle:hover {
+    background: var(--surface-muted);
+}
+
+.ai-brand-icon {
+    background: var(--surface-muted);
+    color: var(--muted);
+}
+
+.ai-brand-toggle[aria-expanded='true'] .ai-brand-icon {
+    background: var(--ai-accent-soft, color-mix(in srgb, var(--highlight) 14%, transparent));
+    color: color-mix(in srgb, var(--highlight) 55%, var(--foreground));
+}
+
+.ai-field:focus-within {
+    border-color: color-mix(in srgb, var(--highlight) 38%, var(--border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--highlight) 14%, transparent);
+}
+
+/* Simulação: âmbar e no topo do cartão, para nunca passar por configuração real. */
+.ai-simulated {
+    border-color: #f1dfb5;
+    background: #fffaf0;
+    color: #7a4f00;
+}
+
+.dashboard-dark .ai-simulated {
+    border-color: rgb(242 198 109 / 22%);
+    background: rgb(140 100 0 / 14%);
+    color: #f2c66d;
+}
+
+/* Aster: imagem sem fundo; só uma sombra verde suave para assentar na superfície. */
+/* Na tela inicial ele flutua de leve, como quem espera o pedido. */
+.ai-aster-float {
+    animation: ai-aster-float 4.8s ease-in-out infinite;
+}
+
+@keyframes ai-aster-float {
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-4px) rotate(-2deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ai-aster-float {
+        animation: none;
+    }
+}

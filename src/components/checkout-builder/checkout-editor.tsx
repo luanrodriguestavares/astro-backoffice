@@ -12,6 +12,7 @@ import {
     useCallback,
     useContext,
     useEffect,
+    useLayoutEffect,
     useMemo,
     useRef,
     useState,
@@ -19,7 +20,7 @@ import {
     type ReactElement,
     type ReactNode,
 } from 'react';
-import { createPortal } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import {
     CHECKOUT_PAGE_ID,
     createPageId,
@@ -733,7 +734,6 @@ function CheckoutPreviewFrame({ children }: { children: ReactNode }) {
             data-preview-mode={previewMode}
         >
             <PuckZoomSelectEnhancer />
-            <PuckScreenSelectEnhancer />
             {previewMode === 'interactive' && <PreviewTestBar />}
             {device === 'phone' ? (
                 <PhoneMockupShell browser address={publicUrl.replace(/^https?:\/\//, '')}>
@@ -776,35 +776,32 @@ function CheckoutPreviewFrame({ children }: { children: ReactNode }) {
     );
 }
 
-/**
- * Seletor da tela em edição dentro da pílula de dispositivo e zoom da prévia: troca entre
- * checkout, páginas e resultados (aprovado, recusado, Pix) em qualquer dispositivo.
- */
-function PuckScreenSelectEnhancer() {
+function ScreenMenuActions({ onSelect }: { onSelect(): void }) {
     const preview = useContext(CheckoutBuilderPreviewContext);
     if (!preview?.openPage) return null;
     const kinds = new Map(preview.pages.map((page) => [page.id, page.kind]));
-    // Ícone por tipo de tela no lugar do selo: os nomes já dizem o tipo e cabem inteiros.
-    const label = (option: SelectOption) => (
-        <span className="ce-screen-option">
-            <Icon name={screenIcons[kinds.get(option.value) ?? 'checkout']} className="size-3.5" />
-            <span>{option.label}</span>
-        </span>
-    );
     return (
-        <BottomDockPortal>
-            <span className="ce-toolbar-divider" aria-hidden="true" />
-            <div className="ce-toolbar-screen" title="Tela em edição">
-                <CustomSelect
-                    name="preview-screen"
-                    value={preview.screen}
-                    options={preview.pages.map((page) => ({ value: page.id, label: page.name }))}
-                    renderOption={label}
-                    renderValue={label}
-                    onValueChange={preview.openPage}
-                />
-            </div>
-        </BottomDockPortal>
+        <>
+            <span className="ce-menu-caption">Tela em edição</span>
+            {preview.pages.map((page) => (
+                <button
+                    key={page.id}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={page.id === preview.screen}
+                    className="ce-menu-item"
+                    onClick={() => {
+                        preview.openPage?.(page.id);
+                        onSelect();
+                    }}
+                >
+                    <Icon name={screenIcons[kinds.get(page.id) ?? 'checkout']} className="size-4" />
+                    <span>{page.name}</span>
+                    {page.id === preview.screen && <Icon name="check" className="ml-auto size-3.5" />}
+                </button>
+            ))}
+            <span className="ce-menu-separator" />
+        </>
     );
 }
 
@@ -818,6 +815,28 @@ const screenIcons: Record<CheckoutPageKind, IconName> = {
 };
 
 /** Coloca conteúdo dentro do dock branco de baixo (a barra de dispositivo e zoom do Puck). */
+function renderPageToolbar({ children }: { children?: ReactNode }) {
+    return <header className="ce-header ce-page-toolbar">{children}</header>;
+}
+
+function PageHeaderActions({ onViewportChange }: { onViewportChange(mobile: boolean): void }) {
+    const [menuOpen, setMenuOpen] = useState(false);
+    return (
+        <>
+            <EditorViewportTracker onChange={onViewportChange} />
+            <ComponentLibraryPinned />
+            <BottomDockPortal>
+                <PreviewModeToggle />
+                <EditorMoreMenu open={menuOpen} onOpenChange={setMenuOpen} attention={false}>
+                    <ScreenMenuActions onSelect={() => setMenuOpen(false)} />
+                    <HistoryMenuActions />
+                    <EditorAppearanceButton />
+                </EditorMoreMenu>
+            </BottomDockPortal>
+        </>
+    );
+}
+
 function BottomDockPortal({ children }: { children: ReactNode }) {
     const [dock, setDock] = useState<HTMLElement | null>(null);
 
@@ -1087,20 +1106,29 @@ function CheckoutContextMenu({
     onClose(): void;
 }) {
     const menuRef = useRef<HTMLDivElement>(null);
-    const [position, setPosition] = useState({ left: x, top: y });
+    const hostDocument = ownerDocument.defaultView?.frameElement?.ownerDocument ?? ownerDocument;
+    const anchor = contextMenuHostPoint(x, y, ownerDocument);
+    const [position, setPosition] = useState(anchor);
 
     useEffect(() => {
         const menu = menuRef.current;
         if (!menu) return;
         const rect = menu.getBoundingClientRect();
+        const nextAnchor = contextMenuHostPoint(x, y, ownerDocument);
         setPosition({
             left: Math.max(
                 8,
-                Math.min(x, ownerDocument.documentElement.clientWidth - rect.width - 8),
+                Math.min(
+                    nextAnchor.left,
+                    hostDocument.documentElement.clientWidth - rect.width - 8,
+                ),
             ),
             top: Math.max(
                 8,
-                Math.min(y, ownerDocument.documentElement.clientHeight - rect.height - 8),
+                Math.min(
+                    nextAnchor.top,
+                    hostDocument.documentElement.clientHeight - rect.height - 8,
+                ),
             ),
         });
         const close = (event: Event) => {
@@ -1111,13 +1139,12 @@ function CheckoutContextMenu({
             if (event.key === 'Escape') onClose();
         };
         const parentDocument = ownerDocument.defaultView?.frameElement?.ownerDocument;
-        const frameWindow = ownerDocument.defaultView;
         ownerDocument.addEventListener('pointerdown', close);
         ownerDocument.addEventListener('scroll', close, true);
         ownerDocument.addEventListener('keydown', escape);
         parentDocument?.addEventListener('pointerdown', close);
         parentDocument?.addEventListener('scroll', close, true);
-        frameWindow?.addEventListener('blur', onClose);
+        parentDocument?.addEventListener('keydown', escape);
         menu.querySelector<HTMLButtonElement>('button')?.focus();
         return () => {
             ownerDocument.removeEventListener('pointerdown', close);
@@ -1125,9 +1152,9 @@ function CheckoutContextMenu({
             ownerDocument.removeEventListener('keydown', escape);
             parentDocument?.removeEventListener('pointerdown', close);
             parentDocument?.removeEventListener('scroll', close, true);
-            frameWindow?.removeEventListener('blur', onClose);
+            parentDocument?.removeEventListener('keydown', escape);
         };
-    }, [ownerDocument, onClose, x, y]);
+    }, [hostDocument, ownerDocument, onClose, x, y]);
 
     return createPortal(
         <div
@@ -1155,8 +1182,21 @@ function CheckoutContextMenu({
                 </button>
             ))}
         </div>,
-        ownerDocument.body,
+        hostDocument.body,
     );
+}
+
+/** Converte um ponto do viewport escalado do iframe para o viewport estável do workspace. */
+function contextMenuHostPoint(x: number, y: number, ownerDocument: Document) {
+    const frameElement = ownerDocument.defaultView?.frameElement as HTMLElement | null;
+    if (!frameElement) return { left: x, top: y };
+    const rect = frameElement.getBoundingClientRect();
+    const scaleX = rect.width / Math.max(frameElement.clientWidth, 1);
+    const scaleY = rect.height / Math.max(frameElement.clientHeight, 1);
+    return {
+        left: rect.left + x * scaleX,
+        top: rect.top + y * scaleY,
+    };
 }
 
 const viewportLabels: Record<number, string> = { 414: 'Celular', 768: 'Tablet', 1440: 'Desktop' };
@@ -1366,14 +1406,15 @@ function CheckoutBrowserBar() {
  */
 const editorFrameStyles = `
 :root {
-  --puck-color-selection-border: #22c46c;
-  --puck-color-selection-bg: transparent;
-  --puck-slot-color-border: #22c46c;
+  --puck-color-focus-ring: rgb(17 20 19 / 22%);
+  --puck-color-selection-border: rgb(17 20 19 / 24%);
+  --puck-color-selection-bg: rgb(17 20 19 / 1.5%);
+  --puck-slot-color-border: rgb(17 20 19 / 20%);
   --puck-slot-color-bg: transparent;
-  --puck-slot-component-color-border-dragging: #22c46c;
-  --puck-slot-component-color-overlay-border: rgb(46 227 127 / 70%);
-  --puck-slot-component-color-border-selected: #22c46c;
-  --puck-slot-component-color-placeholder: #2ee37f;
+  --puck-slot-component-color-border-dragging: rgb(34 196 108 / 48%);
+  --puck-slot-component-color-overlay-border: rgb(17 20 19 / 20%);
+  --puck-slot-component-color-border-selected: rgb(17 20 19 / 26%);
+  --puck-slot-component-color-placeholder: rgb(34 196 108 / 55%);
   --puck-actionbar-color-bg: #121514;
   --puck-actionbar-color-text: #ffffff;
   --puck-actionbar-color-separator: rgb(255 255 255 / 14%);
@@ -1726,86 +1767,56 @@ function CheckoutEditorFrame({
     );
 }
 
-function HistoryControls() {
+function HistoryMenuActions() {
     const back = useCheckoutPuck((puck) => puck.history.back);
     const forward = useCheckoutPuck((puck) => puck.history.forward);
     const hasPast = useCheckoutPuck((puck) => puck.history.hasPast);
     const hasFuture = useCheckoutPuck((puck) => puck.history.hasFuture);
     return (
-        <div className="ce-segment" role="group" aria-label="Histórico de edição">
+        <>
             <button
                 type="button"
-                className="ce-icon-button"
+                className="ce-menu-item"
                 aria-label="Desfazer"
                 title="Desfazer (Ctrl+Z)"
                 disabled={!hasPast}
                 onClick={() => back()}
             >
                 <Icon name="undo" className="size-4" />
+                <span>Desfazer</span>
             </button>
             <button
                 type="button"
-                className="ce-icon-button"
+                className="ce-menu-item"
                 aria-label="Refazer"
                 title="Refazer (Ctrl+Shift+Z)"
                 disabled={!hasFuture}
                 onClick={() => forward()}
             >
                 <Icon name="redo" className="size-4" />
+                <span>Refazer</span>
             </button>
-        </div>
+        </>
     );
 }
 
-function ComponentLibraryToggle() {
+/** Em telas de trabalho a biblioteca é parte fixa do workspace, não um painel descartável. */
+function ComponentLibraryPinned() {
     const dispatch = useCheckoutPuck((puck) => puck.dispatch);
     const visible = useCheckoutPuck((puck) => puck.appState.ui.leftSideBarVisible);
-    const wasCompact = useRef(false);
 
     useEffect(() => {
-        const wideEditor = window.matchMedia('(min-width: 638px)');
-        const restoreAfterCompactLayout = () => {
-            if (!wideEditor.matches) {
-                wasCompact.current = true;
-                return;
-            }
-            if (!wasCompact.current) return;
-            wasCompact.current = false;
-            dispatch({
-                type: 'setUi',
-                ui: {
-                    leftSideBarVisible: true,
-                    plugin: { current: 'legacy-side-bar' },
-                },
-            });
-        };
+        if (visible || !window.matchMedia('(min-width: 638px)').matches) return;
+        dispatch({
+            type: 'setUi',
+            ui: {
+                leftSideBarVisible: true,
+                plugin: { current: 'legacy-side-bar' },
+            },
+        });
+    }, [dispatch, visible]);
 
-        restoreAfterCompactLayout();
-        wideEditor.addEventListener('change', restoreAfterCompactLayout);
-        return () => wideEditor.removeEventListener('change', restoreAfterCompactLayout);
-    }, [dispatch]);
-
-    return (
-        <button
-            type="button"
-            className="ce-icon-button ce-library-toggle"
-            data-active={visible || undefined}
-            aria-label={visible ? 'Fechar componentes' : 'Abrir componentes'}
-            aria-pressed={visible}
-            title={visible ? 'Fechar componentes' : 'Abrir componentes'}
-            onClick={() =>
-                dispatch({
-                    type: 'setUi',
-                    ui: {
-                        leftSideBarVisible: !visible,
-                        plugin: { current: 'legacy-side-bar' },
-                    },
-                })
-            }
-        >
-            <Icon name="layers" className="size-4" />
-        </button>
-    );
+    return null;
 }
 
 function EditorMoreMenu({
@@ -1823,6 +1834,40 @@ function EditorMoreMenu({
     children: ReactNode;
 }) {
     const ref = useRef<HTMLDivElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const [portalHost, setPortalHost] = useState<Element | null>(null);
+    const [position, setPosition] = useState({ left: -9999, top: -9999 });
+    const attachTrigger = useCallback((node: HTMLDivElement | null) => {
+        ref.current = node;
+        setPortalHost(node?.closest('.astro-checkout-editor') ?? null);
+    }, []);
+
+    useLayoutEffect(() => {
+        if (!open) return;
+        const trigger = ref.current;
+        const menu = menuRef.current;
+        if (!trigger || !menu) return;
+
+        const place = () => {
+            const triggerRect = trigger.getBoundingClientRect();
+            const menuRect = menu.getBoundingClientRect();
+            const gap = 10;
+            const roomBelow = window.innerHeight - triggerRect.bottom;
+            const top =
+                roomBelow >= menuRect.height + gap
+                    ? triggerRect.bottom + gap
+                    : triggerRect.top - menuRect.height - gap;
+            setPosition({
+                left: Math.max(8, Math.min(triggerRect.right - menuRect.width, window.innerWidth - menuRect.width - 8)),
+                top: Math.max(8, Math.min(top, window.innerHeight - menuRect.height - 8)),
+            });
+        };
+
+        place();
+        window.addEventListener('resize', place);
+        return () => window.removeEventListener('resize', place);
+        // portalHost: o menu só existe no DOM depois que o host do portal é encontrado.
+    }, [open, portalHost]);
 
     useEffect(() => {
         if (!open) return;
@@ -1832,7 +1877,10 @@ function EditorMoreMenu({
                 if (event.key === 'Escape') onOpenChange(false);
                 return;
             }
-            if (!ref.current?.contains(event.target as Node)) onOpenChange(false);
+            const target = event.target as Node;
+            if (!ref.current?.contains(target) && !menuRef.current?.contains(target)) {
+                onOpenChange(false);
+            }
         }
         // Cliques no canvas acontecem dentro do iframe e só chegam aqui como `blur`.
         const closeOnBlur = () => onOpenChange(false);
@@ -1847,7 +1895,7 @@ function EditorMoreMenu({
     }, [open, onOpenChange]);
 
     return (
-        <div className="ce-more" ref={ref}>
+        <div className="ce-more" ref={attachTrigger}>
             <button
                 type="button"
                 className={dock ? 'ce-dock-item' : 'ce-button ce-button--icon'}
@@ -1860,11 +1908,19 @@ function EditorMoreMenu({
                 <Icon name="dots" className="size-4" />
                 {attention && <span className="ce-attention-dot" aria-hidden="true" />}
             </button>
-            {open && (
-                <div className="ce-menu" role="menu">
-                    {children}
-                </div>
-            )}
+            {open && portalHost
+                ? createPortal(
+                      <div
+                          ref={menuRef}
+                          className="ce-menu ce-menu--portal"
+                          role="menu"
+                          style={{ left: position.left, top: position.top }}
+                      >
+                          {children}
+                      </div>,
+                      portalHost,
+                  )
+                : null}
         </div>
     );
 }
@@ -1875,6 +1931,7 @@ function EditorMoreMenu({
  * no inspector do nó Pagamento, e o editor de nós abre por cima, em tela cheia.
  */
 type WorkspaceTab = 'funnel' | `page:${string}`;
+type DockPreviewTarget = WorkspaceTab | 'payment';
 const CHECKOUT_WORKSPACE_TAB: WorkspaceTab = `page:${CHECKOUT_PAGE_ID}`;
 
 /**
@@ -1889,32 +1946,6 @@ function measureDockLabel(element: HTMLSpanElement | null) {
     measure();
     // A fonte da interface pode chegar depois: mede de novo para não cortar a última letra.
     void document.fonts.ready.then(measure);
-}
-
-/**
- * Esquerda da barra de cada área (funil, página no construtor, pagamento): o mesmo ícone,
- * nome e uma linha curta, para as três telas terem um cabeçalho só.
- */
-function AreaIdentity({
-    icon,
-    title,
-    subtitle,
-}: {
-    icon: IconName;
-    title: string;
-    subtitle: string;
-}) {
-    return (
-        <div className="ce-header-identity">
-            <span className="ce-page-toolbar-icon">
-                <Icon name={icon} className="size-4" />
-            </span>
-            <div className="ce-page-toolbar-title">
-                <strong title={title}>{title}</strong>
-                {subtitle && <small title={subtitle}>{subtitle}</small>}
-            </div>
-        </div>
-    );
 }
 
 function tabPreviewKind(tab: WorkspaceTab): DockPreviewKind | null {
@@ -2144,7 +2175,10 @@ export function CheckoutEditor({
     });
     const [draggedTab, setDraggedTab] = useState<WorkspaceTab | null>(null);
     const [tabDropTarget, setTabDropTarget] = useState<WorkspaceTab | null>(null);
-    const [funnelLibraryOpen, setFunnelLibraryOpen] = useState(true);
+    const [dockPreview, setDockPreview] = useState<DockPreviewTarget | null>(null);
+    const dockPreviewTimer = useRef<number | null>(null);
+    // Canvas primeiro: a biblioteca continua a um clique, mas não ocupa espaço até ser necessária.
+    const [funnelLibraryOpen, setFunnelLibraryOpen] = useState(false);
     const funnelPast = useRef<FunnelSnapshot[]>([]);
     const funnelFuture = useRef<FunnelSnapshot[]>([]);
     const funnelHistoryAction = useRef<{ key: string; at: number } | null>(null);
@@ -2163,17 +2197,30 @@ export function CheckoutEditor({
     const current = useRef<BuilderData>(editorData);
     const revision = useRef(draft.revision);
     const document = useRef<CheckoutDocument>(draft.document);
+    const stage = useRef<HTMLDivElement>(null);
+    const workspaceTransitionId = useRef(0);
+    const pendingBuilderCommit = useRef<{
+        data: BuilderData;
+        screen: CheckoutPreviewScreen;
+        frame: number;
+        timer?: number;
+    } | null>(null);
     const saving = useRef(false);
     const mobileViewport = useRef(false);
     const trackViewport = useCallback((mobile: boolean) => {
         mobileViewport.current = mobile;
     }, []);
+    // O Puck transforma `renderHeaderActions` em componente: uma função nova a cada render
+    // remontava o dock inteiro (e o menu "Mais ações" abria fora da tela). Precisa ser estável.
+    const renderPageHeaderActions = useCallback(
+        () => <PageHeaderActions onViewportChange={trackViewport} />,
+        [trackViewport],
+    );
     // Tela da prévia: estado do editor, fora do documento (não vai para histórico nem publicação).
     const [previewScreen, setPreviewScreen] = useState<CheckoutPreviewScreen>(
         tabPage(tab) ?? CHECKOUT_PAGE_ID,
     );
     const [funnelPages, setFunnelPages] = useState(() => documentPagesOf(draft.document));
-    const [funnelActions, setFunnelActions] = useState<HTMLDivElement | null>(null);
     const [funnelFullscreen, setFunnelFullscreen] = useState(false);
     // Mesmo comportamento do orquestrador: tela cheia do navegador e o quadro cobrindo a janela.
     const funnelFullscreenRef = useRef(false);
@@ -2190,6 +2237,38 @@ export function CheckoutEditor({
         }
         setFunnelFullscreen(next);
     }, []);
+
+    const cancelDockPreviewTimer = useCallback(() => {
+        if (dockPreviewTimer.current === null) return;
+        window.clearTimeout(dockPreviewTimer.current);
+        dockPreviewTimer.current = null;
+    }, []);
+    const scheduleDockPreview = useCallback(
+        (target: DockPreviewTarget) => {
+            cancelDockPreviewTimer();
+            setDockPreview(null);
+            dockPreviewTimer.current = window.setTimeout(() => {
+                setDockPreview(target);
+                dockPreviewTimer.current = null;
+            }, 240);
+        },
+        [cancelDockPreviewTimer],
+    );
+    const showDockPreview = useCallback(
+        (target: DockPreviewTarget) => {
+            cancelDockPreviewTimer();
+            setDockPreview(target);
+        },
+        [cancelDockPreviewTimer],
+    );
+    const hideDockPreview = useCallback(
+        (target: DockPreviewTarget) => {
+            cancelDockPreviewTimer();
+            setDockPreview((current) => (current === target ? null : current));
+        },
+        [cancelDockPreviewTimer],
+    );
+    useEffect(() => cancelDockPreviewTimer, [cancelDockPreviewTimer]);
     useEffect(() => {
         function sync() {
             if (window.document.fullscreenElement) return;
@@ -2266,7 +2345,6 @@ export function CheckoutEditor({
             dock.removeEventListener('focusout', settle);
         };
     }, []);
-    const [pageMenuOpen, setPageMenuOpen] = useState(false);
     const [environment, setEnvironment] = useState<CheckoutEnvironment>(
         draft.document.settings.environment ?? 'sandbox',
     );
@@ -2372,6 +2450,68 @@ export function CheckoutEditor({
             }
         },
         [previewScreen, tab],
+    );
+
+    const transformWorkspace = useCallback(
+        (target: 'builder' | 'funnel' | 'payment', update: () => void) => {
+            const transitionDocument = window.document as Document & {
+                startViewTransition?: (callback: () => void) => { finished: Promise<void> };
+            };
+            if (
+                !transitionDocument.startViewTransition ||
+                window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ) {
+                update();
+                return;
+            }
+
+            const transitionId = ++workspaceTransitionId.current;
+            window.document.documentElement.dataset.workspaceTransition = target;
+            const transition = transitionDocument.startViewTransition(() => flushSync(update));
+            const clearTransitionTarget = () => {
+                if (workspaceTransitionId.current === transitionId) {
+                    delete window.document.documentElement.dataset.workspaceTransition;
+                }
+            };
+            void transition.finished.then(clearTransitionTarget, clearTransitionTarget);
+        },
+        [],
+    );
+
+    const commitPendingBuilder = useCallback(() => {
+        const pending = pendingBuilderCommit.current;
+        if (!pending) return;
+        window.cancelAnimationFrame(pending.frame);
+        if (pending.timer !== undefined) window.clearTimeout(pending.timer);
+        pendingBuilderCommit.current = null;
+        document.current = puckToDocument(pending.data, document.current, pending.screen);
+        setFunnelPages(documentPagesOf(document.current));
+        setBuilderContent(checkoutContentOf(document.current));
+    }, []);
+
+    const deferBuilderCommit = useCallback(() => {
+        commitPendingBuilder();
+        const pending = {
+            data: current.current,
+            screen: previewScreen,
+            frame: 0,
+            timer: undefined as number | undefined,
+        };
+        pending.frame = window.requestAnimationFrame(() => {
+            // A nova aba ganha um frame para aparecer antes da conversão mais cara do documento.
+            pending.timer = window.setTimeout(commitPendingBuilder, 0);
+        });
+        pendingBuilderCommit.current = pending;
+    }, [commitPendingBuilder, previewScreen]);
+
+    useEffect(
+        () => () => {
+            const pending = pendingBuilderCommit.current;
+            if (!pending) return;
+            window.cancelAnimationFrame(pending.frame);
+            if (pending.timer !== undefined) window.clearTimeout(pending.timer);
+        },
+        [],
     );
 
     const addFunnelPage = useCallback(
@@ -2582,20 +2722,26 @@ export function CheckoutEditor({
     );
 
     const openTab = useCallback(
-        (next: WorkspaceTab) => {
-            const page = tabPage(next);
-            if (page !== null) navigatePreview(page);
-            else if (tabPage(tab) !== null) {
-                // Saindo do builder: o que foi editado na página entra no documento.
-                document.current = puckToDocument(current.current, document.current, previewScreen);
-                setFunnelPages(documentPagesOf(document.current));
-                setBuilderContent(checkoutContentOf(document.current));
-            }
-            if (next !== 'funnel')
-                setWorkspaceTabs((tabs) => (tabs.includes(next) ? tabs : [...tabs, next]));
-            setTab(next);
+        (next: WorkspaceTab, payment = false) => {
+            const target = payment ? 'payment' : next === 'funnel' ? 'funnel' : 'builder';
+            transformWorkspace(target, () => {
+                const page = tabPage(next);
+                if (page !== null) {
+                    // Se o usuário voltar antes do commit o documento precisa estar coerente.
+                    commitPendingBuilder();
+                    navigatePreview(page);
+                } else if (tabPage(tab) !== null) {
+                    deferBuilderCommit();
+                }
+                if (next !== 'funnel')
+                    setWorkspaceTabs((tabs) =>
+                        tabs.includes(next) ? tabs : [...tabs, next],
+                    );
+                setPaymentAdvancedOpen(payment);
+                setTab(next);
+            });
         },
-        [navigatePreview, previewScreen, tab],
+        [commitPendingBuilder, deferBuilderCommit, navigatePreview, tab, transformWorkspace],
     );
 
     const closeTab = useCallback(
@@ -2615,20 +2761,19 @@ export function CheckoutEditor({
     }, [paymentAdvancedOpen, tab]);
 
     const openPaymentAdvanced = useCallback(() => {
-        openTab('funnel');
-        setPaymentAdvancedOpen(true);
+        openTab('funnel', true);
     }, [openTab]);
     useEffect(() => {
         if (!paymentAdvancedOpen) return;
 
         function close(event: KeyboardEvent) {
             if (event.key !== 'Escape' || event.defaultPrevented) return;
-            setPaymentAdvancedOpen(false);
+            transformWorkspace('funnel', () => setPaymentAdvancedOpen(false));
         }
 
         window.addEventListener('keydown', close);
         return () => window.removeEventListener('keydown', close);
-    }, [paymentAdvancedOpen]);
+    }, [paymentAdvancedOpen, transformWorkspace]);
     const changePaymentFlow = useCallback((next: FlowGraph | undefined) => {
         setPaymentFlow(next);
         if (next === undefined) setPaymentIssues([]);
@@ -2890,6 +3035,19 @@ export function CheckoutEditor({
         });
     }
 
+    /** Fluxo gerado de qualquer área do workspace: aplica e leva o usuário para revisar os nós. */
+    function applyAiPaymentFlow(generated: FlowGraph) {
+        changePaymentFlow(generated);
+        openPaymentAdvanced();
+        setPublicationError(null);
+        showToast({
+            tone: 'success',
+            title: 'Orquestração da IA aplicada',
+            description:
+                'O editor de pagamento foi aberto para você revisar. Salve e publique quando estiver pronto.',
+        });
+    }
+
     function restoreVersion(restoredDraft: CheckoutDraft, version: CheckoutVersion) {
         const restoredData = documentToPuck(restoredDraft.document);
         const restoredEnvironment = restoredDraft.document.settings.environment ?? 'sandbox';
@@ -3075,7 +3233,7 @@ export function CheckoutEditor({
                     role="toolbar"
                     aria-label="Editor do checkout"
                 >
-                    <div className="ce-dock-group">
+                    <div className="ce-dock-group ce-dock-identity">
                         <Link
                             href="/checkouts"
                             className="ce-dock-item"
@@ -3097,7 +3255,7 @@ export function CheckoutEditor({
                             </span>
                         </div>
                     </div>
-                    <span className="ce-dock-sep" aria-hidden="true" />
+                    <span className="ce-dock-sep ce-dock-sep--before-tabs" aria-hidden="true" />
                     <nav
                         className="ce-dock-group ce-tabs"
                         role="tablist"
@@ -3114,10 +3272,16 @@ export function CheckoutEditor({
                                     key={item}
                                     className="ce-tab"
                                     data-selected={selected || undefined}
+                                    data-preview-open={dockPreview === item || undefined}
                                     data-kind={closable ? 'open' : 'fixed'}
                                     data-dragging={draggedTab === item || undefined}
                                     data-drop-target={tabDropTarget === item || undefined}
                                     draggable
+                                    onPointerEnter={(event) => {
+                                        if (event.pointerType === 'mouse')
+                                            scheduleDockPreview(item);
+                                    }}
+                                    onPointerLeave={() => hideDockPreview(item)}
                                     onDragStart={(event) => {
                                         setDraggedTab(item);
                                         event.dataTransfer.effectAllowed = 'move';
@@ -3148,8 +3312,11 @@ export function CheckoutEditor({
                                         role="tab"
                                         aria-selected={selected}
                                         aria-label={tabLabel(item)}
+                                        onFocus={() => showDockPreview(item)}
+                                        onBlur={() => hideDockPreview(item)}
                                         onClick={() => {
-                                            setPaymentAdvancedOpen(false);
+                                            hideDockPreview(item);
+                                            if (selected) return;
                                             openTab(item);
                                         }}
                                         onKeyDown={(event) => {
@@ -3169,7 +3336,7 @@ export function CheckoutEditor({
                                             <span>{tabLabel(item)}</span>
                                         </span>
                                     </button>
-                                    {!selected && previewKind && (
+                                    {previewKind && (
                                         <DockPreview kind={previewKind} title={tabLabel(item)} />
                                     )}
                                     {closable && (
@@ -3190,6 +3357,12 @@ export function CheckoutEditor({
                             className="ce-tab"
                             data-kind="fixed"
                             data-selected={paymentAdvancedOpen || undefined}
+                            data-preview-open={dockPreview === 'payment' || undefined}
+                            onPointerEnter={(event) => {
+                                if (event.pointerType === 'mouse')
+                                    scheduleDockPreview('payment');
+                            }}
+                            onPointerLeave={() => hideDockPreview('payment')}
                         >
                             <button
                                 type="button"
@@ -3197,7 +3370,12 @@ export function CheckoutEditor({
                                 aria-selected={paymentAdvancedOpen}
                                 aria-label="Pagamento"
                                 data-tour="builder-payment"
-                                onClick={openPaymentAdvanced}
+                                onFocus={() => showDockPreview('payment')}
+                                onBlur={() => hideDockPreview('payment')}
+                                onClick={() => {
+                                    hideDockPreview('payment');
+                                    if (!paymentAdvancedOpen) openPaymentAdvanced();
+                                }}
                             >
                                 <Icon name="bolt" className="size-4" />
                                 <span className="ce-dock-label" ref={measureDockLabel}>
@@ -3207,11 +3385,11 @@ export function CheckoutEditor({
                                     <i className="ce-tab-alert" aria-label="Pagamento pendente" />
                                 )}
                             </button>
-                            {!paymentAdvancedOpen && <DockPreview kind="payment" />}
+                            <DockPreview kind="payment" />
                         </div>
                     </nav>
-                    <span className="ce-dock-sep" aria-hidden="true" />
-                    <div className="ce-dock-group">
+                    <span className="ce-dock-sep ce-dock-sep--after-tabs" aria-hidden="true" />
+                    <div className="ce-dock-group ce-dock-tools">
                         <span className="ce-dock-slot">
                             <button
                                 type="button"
@@ -3324,7 +3502,7 @@ export function CheckoutEditor({
                         </EditorMoreMenu>
                     </div>
                     <span className="ce-dock-sep" aria-hidden="true" />
-                    <div className="ce-dock-group">
+                    <div className="ce-dock-group ce-dock-primary">
                         <span className="ce-dock-slot">
                             <button
                                 type="button"
@@ -3365,7 +3543,11 @@ export function CheckoutEditor({
                     </div>
                 </div>
             </header>
-            <div className="ce-stage">
+            <div
+                ref={stage}
+                className="ce-stage"
+                data-workspace={paymentAdvancedOpen ? 'payment' : activePage ? 'builder' : 'funnel'}
+            >
                 <EditorChromeContext.Provider value={{ publicUrl, checkoutId: checkout.id }}>
                     <CheckoutBuilderMediaContext.Provider
                         value={{ files: mediaFiles, apiUrl: mediaApiUrl }}
@@ -3408,42 +3590,8 @@ export function CheckoutEditor({
                                         onPublish={publish}
                                         // Sem cabeçalho: o dock escuro fica em cima e os controles
                                         // da página vão para o dock branco de baixo.
-                                        renderHeader={({ children }) => (
-                                            <header className="ce-header ce-page-toolbar">
-                                                {children}
-                                            </header>
-                                        )}
-                                        renderHeaderActions={() => (
-                                            <>
-                                                <EditorViewportTracker onChange={trackViewport} />
-                                                <BottomDockPortal>
-                                                    <span className="ce-dock-lead">
-                                                        <ComponentLibraryToggle />
-                                                        <span
-                                                            className="ce-toolbar-divider"
-                                                            aria-hidden="true"
-                                                        />
-                                                    </span>
-                                                    <span
-                                                        className="ce-toolbar-divider"
-                                                        aria-hidden="true"
-                                                    />
-                                                    <HistoryControls />
-                                                    <span
-                                                        className="ce-toolbar-divider"
-                                                        aria-hidden="true"
-                                                    />
-                                                    <PreviewModeToggle />
-                                                    <EditorMoreMenu
-                                                        open={pageMenuOpen}
-                                                        onOpenChange={setPageMenuOpen}
-                                                        attention={false}
-                                                    >
-                                                        <EditorAppearanceButton />
-                                                    </EditorMoreMenu>
-                                                </BottomDockPortal>
-                                            </>
-                                        )}
+                                        renderHeader={renderPageToolbar}
+                                        renderHeaderActions={renderPageHeaderActions}
                                     />
                                 )}
                                 {tab === 'funnel' && (
@@ -3453,17 +3601,6 @@ export function CheckoutEditor({
                                         data-tour="builder-funnel"
                                         data-fullscreen={funnelFullscreen || undefined}
                                     >
-                                        <div className="ce-board-head ce-area-bar">
-                                            <AreaIdentity
-                                                icon="route"
-                                                title="Funil"
-                                                subtitle={`${String(funnelCanvasPages.length)} páginas · clique num card para configurar`}
-                                            />
-                                            <div
-                                                ref={setFunnelActions}
-                                                className="ce-area-actions flex shrink-0 items-center gap-2"
-                                            />
-                                        </div>
                                         <div className="ce-funnel-workspace">
                                             <div
                                                 className="ce-funnel-library-shell"
@@ -3488,7 +3625,6 @@ export function CheckoutEditor({
                                                 onSetTriggerTarget={setFunnelPageTriggerTarget}
                                                 onPosition={updateFunnelPosition}
                                                 onAdd={addFunnelPage}
-                                                actionsSlot={funnelActions}
                                                 fullscreen={funnelFullscreen}
                                                 onToggleFullscreen={toggleFunnelFullscreen}
                                                 payment={paymentSummary}
@@ -3516,19 +3652,6 @@ export function CheckoutEditor({
                         aria-label="Editor avançado do pagamento"
                     >
                         <PaymentFlowTab
-                            leading={
-                                <div className="ce-area-leading">
-                                    <AreaIdentity
-                                        icon="bolt"
-                                        title="Pagamento"
-                                        subtitle={
-                                            paymentFlow
-                                                ? 'Orquestrador · configurado neste checkout'
-                                                : 'Orquestrador · usando o padrão'
-                                        }
-                                    />
-                                </div>
-                            }
                             flow={paymentFlow}
                             connections={gatewayConnections}
                             resources={flowResources}
@@ -3561,7 +3684,7 @@ export function CheckoutEditor({
                         ? null
                         : {
                               kind: 'checkout',
-                              label: `${checkout.name} · aplica na página do checkout`,
+                              label: `${checkout.name} · página, funil e pagamento`,
                               productName: checkout.products?.[0]?.productName ?? checkout.name,
                               prices: (checkout.products ?? []).map((item) => ({
                                   priceId: item.priceId,
@@ -3572,6 +3695,7 @@ export function CheckoutEditor({
                                   recurringInterval: item.recurringInterval,
                               })),
                               apply: applyAiDocument,
+                              applyPaymentFlow: applyAiPaymentFlow,
                           }
                 }
             />

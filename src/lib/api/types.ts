@@ -270,6 +270,8 @@ export interface Product {
     shortDescription: string | null;
     description: string | null;
     imageFileId: string | null;
+    /** Cor do produto (#rrggbb), usada no ícone do catálogo. Ausente antes da migração. */
+    color?: string | null;
     status: 'draft' | 'active' | 'inactive';
     inventoryMode: string;
     deliveryMode: string;
@@ -356,8 +358,38 @@ export interface Price {
     currency: string;
     recurringInterval: string | null;
     recurringIntervalCount: number | null;
+    trialDays?: number | null;
+    allowQuantity?: boolean;
+    /** A API devolve quantidades como string decimal. */
+    minimumQuantity?: string | number;
+    maximumQuantity?: string | number;
     status: string;
+    /** Plano do preço; ausentes antes da migração de planos. */
+    planId?: string | null;
+    planKey?: string | null;
     version?: number;
+}
+
+/** Valor de um limite do plano: número, sim/não, texto ou null (ilimitado). */
+export type PlanEntitlementValue = number | boolean | string | null;
+
+export interface Plan {
+    id: string;
+    productId: string;
+    /** Código estável do plano, usado nos webhooks e na API. */
+    key: string;
+    name: string;
+    description: string | null;
+    features: string[];
+    entitlements: Record<string, PlanEntitlementValue>;
+    badge: string | null;
+    sortOrder: number;
+    status: 'active' | 'archived';
+    metadata: Record<string, unknown>;
+    prices: Price[];
+    version: number;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface Customer {

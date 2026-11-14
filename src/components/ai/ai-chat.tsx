@@ -1,8 +1,12 @@
 'use client';
 
+import './ai-assistant.css';
+
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
-import { Icon } from '@/components/ui/icon';
+import { Icon, type IconName } from '@/components/ui/icon';
+
+import { ASTER_NAME, AsterAvatar } from './aster';
 
 /**
  * Chat de IA do Astro: conversa curta em que cada mensagem refina o pedido anterior. Cada envio
@@ -17,6 +21,8 @@ export interface AiStatus {
     credits: { limit: number | null; used: number; remaining: number | null } | null;
 }
 
+export type AiTask = 'checkout' | 'payment_flow';
+
 export interface AiReply<Result> {
     id: string;
     /** O que a IA respondeu, como mensagem de conversa. */
@@ -25,6 +31,8 @@ export interface AiReply<Result> {
     hasResult: boolean;
     result: Result;
     remaining: number | null;
+    /** Especialidade usada nesta resposta, para conversas que roteiam mais de um agente. */
+    task?: AiTask;
 }
 
 /** Uma fala da conversa enviada à IA como contexto. */
@@ -40,6 +48,7 @@ type Message<Result> =
 
 export function AiChat<Result>({
     task,
+    taskForRequest,
     title,
     subtitle,
     placeholder,
@@ -51,7 +60,9 @@ export function AiChat<Result>({
     compact = false,
     storageKey,
 }: {
-    task: 'checkout' | 'payment_flow';
+    task: AiTask;
+    /** Decide a especialidade a partir do pedido; ausente nos chats de propósito único. */
+    taskForRequest?: (request: string) => AiTask;
     title: string;
     subtitle: string;
     placeholder: string;
@@ -126,7 +137,8 @@ export function AiChat<Result>({
         input.current?.focus();
     }, [status]);
 
-    const cost = status && status !== 'error' ? (status.costs[task] ?? 0) : 0;
+    const activeTask = taskForRequest?.(draft) ?? task;
+    const cost = status && status !== 'error' ? (status.costs[activeTask] ?? 0) : 0;
     const remaining =
         status && status !== 'error' ? (status.credits?.remaining ?? null) : null;
     const outOfCredits = remaining !== null && remaining < cost;
@@ -149,13 +161,21 @@ export function AiChat<Result>({
 
     async function send(text: string) {
         const trimmed = text.trim();
-        if (!trimmed || loading || !enabled || outOfCredits) return;
+        if (!trimmed || loading || !enabled) return;
         const request = trimmed.slice(0, maxLength);
+        const requestedTask = taskForRequest?.(request) ?? task;
+        const requestedCost = status.costs[requestedTask] ?? 0;
+        if (remaining !== null && remaining < requestedCost) return;
         const conversation = conversationTurns();
         // O ajuste parte da última versão gerada (respostas só em texto não contam).
         const previous = [...messages]
             .reverse()
-            .find((message) => message.role === 'assistant' && message.reply.hasResult !== false);
+            .find(
+                (message) =>
+                    message.role === 'assistant' &&
+                    message.reply.hasResult !== false &&
+                    (taskForRequest === undefined || message.reply.task === requestedTask),
+            );
         setMessages((current) => [
             ...current.filter((message) => message.role !== 'error'),
             { id: crypto.randomUUID(), role: 'user', text: trimmed },
@@ -163,11 +183,12 @@ export function AiChat<Result>({
         setDraft('');
         setLoading(true);
         try {
-            const reply = await generate(
+            const generated = await generate(
                 request,
                 previous?.role === 'assistant' ? previous.reply.id : undefined,
                 conversation,
             );
+            const reply = { ...generated, task: generated.task ?? requestedTask };
             setMessages((current) => [
                 ...current,
                 { id: reply.id, role: 'assistant', reply },
@@ -200,7 +221,7 @@ export function AiChat<Result>({
 
     return (
         <div className="ai-chat flex h-full min-h-0 flex-col">
-            <div ref={scroller} className={`min-h-0 flex-1 overflow-y-auto ${compact ? 'px-4 py-4' : 'px-6 py-6'}`}>
+            <div ref={scroller} className={`ai-scroller min-h-0 flex-1 overflow-y-auto ${compact ? 'px-5 py-5' : 'px-6 py-6'}`}>
                 <div className="mx-auto flex max-w-[760px] flex-col gap-5">
                     {messages.length === 0 && (
                         <Welcome
@@ -216,7 +237,7 @@ export function AiChat<Result>({
                     {messages.map((message) =>
                         message.role === 'user' ? (
                             <div key={message.id} className="ai-fade-in flex justify-end">
-                                <p className="max-w-[78%] whitespace-pre-wrap rounded-[18px] rounded-br-md bg-foreground px-4 py-2.5 text-[13px] leading-5 text-background">
+                                <p className="ai-bubble-user max-w-[86%] whitespace-pre-wrap rounded-[20px] px-[18px] py-3 text-[13.5px] leading-[21px]">
                                     {message.text}
                                 </p>
                             </div>
@@ -238,7 +259,7 @@ export function AiChat<Result>({
                             <AssistantRow key={message.id} compact={compact}>
                                 <div className="grid gap-2.5">
                                     {replyText(message.reply) !== '' && (
-                                        <p className="max-w-[92%] whitespace-pre-wrap rounded-[18px] rounded-bl-md border border-border bg-surface px-4 py-2.5 text-[13px] leading-5">
+                                        <p className="ai-bubble whitespace-pre-wrap rounded-[20px] px-[18px] py-3 text-[13.5px] leading-[21px]">
                                             {replyText(message.reply)}
                                         </p>
                                     )}
@@ -254,7 +275,7 @@ export function AiChat<Result>({
                     )}
                     {loading && (
                         <AssistantRow compact={compact}>
-                            <div className="inline-flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
+                            <div className="ai-bubble inline-flex items-center gap-3 rounded-[20px] px-[18px] py-3">
                                 <span className="ai-dots" aria-hidden>
                                     <i />
                                     <i />
@@ -274,14 +295,14 @@ export function AiChat<Result>({
             </div>
 
             <form
-                className={`border-t border-border bg-surface ${compact ? 'px-3 py-3' : 'px-6 py-4'}`}
+                className={`ai-footer ${compact ? 'px-4 pb-4 pt-2' : 'px-6 py-4'}`}
                 onSubmit={(event) => {
                     event.preventDefault();
                     void send(draft);
                 }}
             >
                 <div className="mx-auto max-w-[760px]">
-                    <div className="ai-composer flex items-end gap-2 rounded-2xl border border-border bg-[var(--control-bg)] py-1.5 pl-3.5 pr-1.5 transition focus-within:border-foreground/30 focus-within:shadow-[0_0_0_4px_rgb(16_18_20/5%)]">
+                    <div className="ai-composer flex items-end gap-2 rounded-[20px] border py-2 pl-[18px] pr-2 transition">
                         <textarea
                             ref={input}
                             value={draft}
@@ -307,37 +328,43 @@ export function AiChat<Result>({
                                     : placeholder
                             }
                             aria-label="Mensagem para a IA"
-                            className="ai-composer-input max-h-40 flex-1 resize-none bg-transparent py-[7px] text-[13px] leading-5 outline-none placeholder:text-muted disabled:cursor-not-allowed"
+                            className="ai-composer-input max-h-40 flex-1 resize-none bg-transparent py-2.5 text-[14px] leading-5 outline-none placeholder:text-muted disabled:cursor-not-allowed"
                         />
                         <button
                             type="submit"
                             disabled={!draft.trim() || loading || !enabled || outOfCredits}
                             aria-label="Enviar"
-                            className="grid size-8 shrink-0 place-items-center rounded-xl bg-foreground text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30"
+                            className="ai-send grid size-10 shrink-0 place-items-center rounded-full transition disabled:cursor-not-allowed"
                         >
                             <Icon name="arrow-up" className="size-4" />
                         </button>
                     </div>
-                    <div className="mt-2 flex items-center justify-between gap-3 whitespace-nowrap px-1 text-[11px] text-muted">
-                        <span className="truncate">
+                    <div className="mt-2 flex min-h-6 items-center justify-between gap-3 whitespace-nowrap px-1 text-[11px] text-muted">
+                        <span className="flex min-w-0 items-center gap-2">
                             {messages.length > 0 && !loading && (
                                 <button
                                     type="button"
                                     onClick={() => setMessages([])}
-                                    className="mr-1.5 font-semibold text-foreground/70 underline-offset-2 hover:text-foreground hover:underline"
+                                    className="ai-meta-button inline-flex h-6 items-center gap-1 rounded-full px-2 font-semibold"
                                 >
-                                    Nova conversa
+                                    <Icon name="plus" className="size-3" /> Nova conversa
                                 </button>
                             )}
-                            {messages.length > 0 && !loading && '· '}
-                            {compact ? 'Enter envia' : 'Enter envia · Shift+Enter quebra linha'}
-                            {cost > 0 && ` · ${String(cost)} créditos por geração`}
+                            {!compact && (
+                                <span className="truncate">Enter envia · Shift+Enter quebra linha</span>
+                            )}
                         </span>
-                        {remaining !== null && (
-                            <span className={outOfCredits ? 'font-semibold text-danger' : ''}>
+                        {(remaining !== null || cost > 0) && (
+                            <span
+                                className={`ai-credits inline-flex h-6 items-center gap-1 rounded-full px-2 ${outOfCredits ? 'font-semibold text-danger' : ''}`}
+                                title={cost > 0 ? `${String(cost)} créditos por geração` : undefined}
+                            >
+                                <Icon name="coins" className="size-3" />
                                 {outOfCredits
-                                    ? 'Créditos do mês esgotados'
-                                    : `${String(remaining)} restantes`}
+                                    ? 'Créditos esgotados'
+                                    : remaining !== null
+                                      ? `${String(remaining)} créditos`
+                                      : `${String(cost)} por geração`}
                             </span>
                         )}
                     </div>
@@ -347,14 +374,16 @@ export function AiChat<Result>({
     );
 }
 
-function AssistantRow({ children, compact }: { children: ReactNode; compact: boolean }) {
-    // Na janela flutuante o cartão usa a largura toda; o avatar só aparece no chat grande.
-    if (compact) return <div className="ai-fade-in min-w-0">{children}</div>;
+function AssistantRow({
+    children,
+    compact,
+}: {
+    children: ReactNode;
+    compact: boolean;
+}) {
     return (
-        <div className="ai-fade-in flex items-start gap-3">
-            <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-xl border border-border bg-surface text-foreground">
-                <SparkleIcon className="size-4" />
-            </span>
+        <div className={`ai-fade-in flex items-start ${compact ? 'gap-2.5' : 'gap-3'}`}>
+            <AsterAvatar size={compact ? 30 : 34} className="-ml-1 mt-1" />
             <div className="min-w-0 flex-1">{children}</div>
         </div>
     );
@@ -378,19 +407,23 @@ function Welcome({
     onPick(text: string): void;
 }) {
     return (
-        <div className={`ai-fade-in flex flex-col items-center text-center ${compact ? 'pt-2' : 'pt-6'}`}>
-            <span
-                className={`grid place-items-center rounded-2xl border border-border bg-surface shadow-[0_8px_24px_rgba(16,18,20,0.06)] ${compact ? 'size-10' : 'size-12'}`}
-            >
-                <SparkleIcon className={compact ? 'size-[18px]' : 'size-5'} />
-            </span>
+        <div
+            className={`ai-fade-in flex flex-col ${compact ? 'items-start pt-1 text-left' : 'items-center pt-6 text-center'}`}
+        >
+            <AsterAvatar
+                size={compact ? 104 : 112}
+                className="ai-aster-float -mb-1"
+            />
+            <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+                {ASTER_NAME} · assistente do Astro
+            </p>
             <h3
-                className={`font-semibold tracking-[-0.025em] ${compact ? 'mt-3 text-[16px]' : 'mt-4 text-[19px]'}`}
+                className={`mt-1.5 font-semibold tracking-[-0.03em] text-balance ${compact ? 'text-[19px] leading-6' : 'text-[19px]'}`}
             >
                 {title}
             </h3>
             <p
-                className={`mt-1.5 max-w-[460px] text-muted ${compact ? 'text-[12.5px] leading-[19px]' : 'text-[13px] leading-5'}`}
+                className={`mt-2 max-w-[460px] text-muted ${compact ? 'text-[13px] leading-5' : 'text-[13px] leading-5'}`}
             >
                 {subtitle}
             </p>
@@ -404,19 +437,29 @@ function Welcome({
                     A IA ainda não está ligada nesta conta.
                 </p>
             )}
-            <div className={`grid w-full gap-2 ${compact ? 'mt-5' : 'mt-6 sm:grid-cols-2'}`}>
+            {compact && (
+                <p className="mt-6 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted">
+                    Comece por aqui
+                </p>
+            )}
+            <div
+                className={`w-full ${compact ? 'ai-suggestion-list mt-2 grid overflow-hidden rounded-2xl border border-border' : 'mt-6 grid gap-2 sm:grid-cols-2'}`}
+            >
                 {suggestions.map((suggestion) => (
                     <button
                         key={suggestion}
                         type="button"
                         disabled={disabled}
                         onClick={() => onPick(suggestion)}
-                        className="group rounded-xl border border-border bg-surface px-3.5 py-2.5 text-left text-[12.5px] leading-[18px] text-foreground/80 transition hover:-translate-y-px hover:border-foreground/25 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                        className={`ai-suggestion group flex items-center gap-3 bg-surface text-left text-[12.5px] leading-[18px] text-foreground/85 transition hover:text-foreground disabled:pointer-events-none disabled:opacity-50 ${compact ? 'px-3.5 py-3' : 'rounded-xl border border-border px-3 py-2.5'}`}
                     >
-                        {suggestion}
+                        <span className="ai-suggestion-icon grid size-6 shrink-0 place-items-center rounded-lg">
+                            <SparkleIcon className="size-3.5" />
+                        </span>
+                        <span className="min-w-0 flex-1">{suggestion}</span>
                         <Icon
                             name="arrow-right"
-                            className="ml-1 inline size-3 opacity-0 transition group-hover:opacity-60"
+                            className="size-3 shrink-0 -translate-x-1 opacity-0 transition group-hover:translate-x-0 group-hover:opacity-60"
                         />
                     </button>
                 ))}
@@ -464,7 +507,28 @@ export async function aiRequest<T>(path: string, body: unknown): Promise<T> {
 
 /** Marca a geração como aplicada (medida de aproveitamento); não bloqueia o lojista. */
 export function markAiApplied(id: string) {
+    // Guarda localmente também: o cartão continua "Aplicado" ao reabrir ou remontar o chat.
+    try {
+        window.localStorage.setItem(`${appliedPrefix}${id}`, '1');
+    } catch {
+        // Sem armazenamento, o estado vale até recarregar.
+    }
+    window.dispatchEvent(new CustomEvent(appliedEvent, { detail: id }));
     void fetch(`/api/ai/generations/${encodeURIComponent(id)}/applied`, { method: 'POST' });
+}
+
+const appliedPrefix = 'astro-ai-applied:';
+/** Pedido para a janela do assistente fechar (ex.: "Ver no fluxo" depois de aplicar). */
+export const AI_CLOSE_EVENT = 'astro-ai-close';
+const appliedEvent = 'astro-ai-applied';
+
+function wasApplied(id: string | undefined) {
+    if (!id) return false;
+    try {
+        return window.localStorage.getItem(`${appliedPrefix}${id}`) === '1';
+    } catch {
+        return false;
+    }
 }
 
 /**
@@ -479,8 +543,11 @@ export function ResultActions({
     confirmLabel = 'Substituir',
     disabled,
     busy = false,
+    generationId,
     onConfirm,
 }: {
+    /** Geração que este cartão aplica: se já foi aplicada, o botão nasce como "Aplicado". */
+    generationId?: string;
     note: string;
     label: string;
     doneLabel?: string;
@@ -492,13 +559,16 @@ export function ResultActions({
     onConfirm(): void;
 }) {
     const [confirming, setConfirming] = useState(false);
-    const [done, setDone] = useState(false);
+    const applied = useAiApplied(generationId);
+    const [confirmedHere, setDone] = useState(false);
+    const done = applied || confirmedHere;
+    const [discarded, setDiscarded] = useState(false);
     const primary =
-        'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-foreground px-4 text-[12.5px] font-semibold text-background transition hover:opacity-90 disabled:opacity-40';
+        'ai-primary inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-4 text-[12.5px] font-semibold transition disabled:opacity-40';
 
     function run() {
         setConfirming(false);
-        if (doneLabel) setDone(true);
+        setDone(true);
         onConfirm();
     }
 
@@ -521,29 +591,49 @@ export function ResultActions({
             </footer>
         );
 
+    if (discarded)
+        return (
+            <footer className="mt-4 flex items-center gap-2 border-t border-border px-4 py-3 text-[12px] text-muted">
+                <Icon name="close" className="size-3.5" /> Proposta descartada · nenhuma alteração
+                foi aplicada
+            </footer>
+        );
+
     return (
         <footer className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5 border-t border-border px-4 py-3">
             <span className="min-w-[180px] flex-1 text-[11.5px] leading-[17px] text-muted">
                 {note}
             </span>
-            <button
-                type="button"
-                disabled={disabled || done || busy}
-                onClick={() => (confirmText ? setConfirming(true) : run())}
-                className={primary}
-            >
-                {done ? (
-                    <>
-                        <Icon name="check" className="size-3.5" /> {doneLabel}
-                    </>
-                ) : busy ? (
-                    'Aguarde…'
-                ) : (
-                    <>
-                        {label} <Icon name="arrow-right" className="size-3.5" />
-                    </>
+            <span className="flex items-center gap-2">
+                {!done && (
+                    <button
+                        type="button"
+                        disabled={disabled || busy}
+                        onClick={() => setDiscarded(true)}
+                        className="inline-flex h-9 items-center rounded-xl px-3 text-[12px] font-semibold text-muted transition hover:bg-surface-muted hover:text-foreground disabled:opacity-40"
+                    >
+                        Descartar
+                    </button>
                 )}
-            </button>
+                <button
+                    type="button"
+                    disabled={disabled || done || busy}
+                    onClick={() => (confirmText ? setConfirming(true) : run())}
+                    className={primary}
+                >
+                    {done ? (
+                        <>
+                            <Icon name="check" className="size-3.5" /> {doneLabel ?? 'Aplicado'}
+                        </>
+                    ) : busy ? (
+                        'Aguarde…'
+                    ) : (
+                        <>
+                            {label} <Icon name="arrow-right" className="size-3.5" />
+                        </>
+                    )}
+                </button>
+            </span>
         </footer>
     );
 }
@@ -577,4 +667,58 @@ function replyText<Result>(reply: AiReply<Result>) {
     if (typeof reply.text === 'string') return reply.text;
     const legacy = (reply.result as { explanation?: unknown } | null)?.explanation;
     return typeof legacy === 'string' ? legacy : '';
+}
+
+/** Se a geração já foi aplicada (neste navegador), e acompanha quando for. */
+export function useAiApplied(generationId: string | undefined) {
+    // Cartões de resultado só existem no cliente (a conversa vem do armazenamento local).
+    const [applied, setApplied] = useState(() => wasApplied(generationId));
+    useEffect(() => {
+        const listener = (event: Event) => {
+            if ((event as CustomEvent<string>).detail === generationId) setApplied(true);
+        };
+        window.addEventListener(appliedEvent, listener);
+        return () => window.removeEventListener(appliedEvent, listener);
+    }, [generationId]);
+    return applied;
+}
+
+/** Cartão verde de "aplicado": resumo do que entrou e o atalho para ver no editor. */
+export function AppliedCard({
+    title,
+    items,
+    actionLabel,
+}: {
+    title: string;
+    items: { icon: IconName; label: string }[];
+    actionLabel: string;
+}) {
+    return (
+        <article className="ai-applied ai-fade-in rounded-[20px] border px-5 py-4">
+            <p className="flex items-center gap-2.5 text-[14.5px] font-semibold tracking-[-0.015em]">
+                <span className="ai-applied-check grid size-[22px] place-items-center rounded-full">
+                    <Icon name="check" className="size-3.5" />
+                </span>
+                {title}
+            </p>
+            {items.length > 0 && (
+                <ul className="mt-3.5 grid gap-2.5 text-[13px]">
+                    {items.map((item) => (
+                        <li key={item.label} className="flex items-center gap-3">
+                            <Icon name={item.icon} className="size-4 shrink-0 text-foreground/75" />
+                            {item.label}
+                        </li>
+                    ))}
+                </ul>
+            )}
+            <button
+                type="button"
+                onClick={() => window.dispatchEvent(new Event(AI_CLOSE_EVENT))}
+                className="ai-applied-action mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-[14px] border text-[13px] font-semibold transition"
+            >
+                {actionLabel}
+                <Icon name="arrow-right" className="size-3.5 -rotate-45" />
+            </button>
+        </article>
+    );
 }

@@ -3,9 +3,18 @@
 import { useState } from 'react';
 
 import { Icon } from '@/components/ui/icon';
-import type { CheckoutDocument } from '@/lib/api/types';
+import type { CheckoutDocument, FlowGraph } from '@/lib/api/types';
+import { checkoutAssistantTask } from '@/lib/ai/assistant-routing';
 
-import { AiChat, aiRequest, ResultActions, type AiReply } from './ai-chat';
+import {
+    AiChat,
+    aiRequest,
+    AppliedCard,
+    ResultActions,
+    useAiApplied,
+    type AiReply,
+} from './ai-chat';
+import { FlowResult, type FlowGeneration } from './flow-ai-chat';
 
 export interface CheckoutAiPrice {
     priceId: string;
@@ -44,11 +53,17 @@ const suggestions = [
 ] as const;
 
 const loadingSteps = [
-    'Entendendo a oferta…',
-    'Escolhendo estrutura e hierarquia…',
-    'Combinando cores e tipografia…',
-    'Escrevendo os textos…',
-    'Conferindo contraste e blocos obrigatórios…',
+    'Entendendo o pedido e a tela atual…',
+    'Escolhendo o agente certo…',
+    'Montando a alteração…',
+    'Validando antes de aplicar…',
+] as const;
+
+const workspaceSuggestions = [
+    suggestions[0],
+    suggestions[1],
+    'Pix na AbacatePay; cartão e boleto no Mercado Pago.',
+    'No sucesso envie e-mail ao cliente e chame o webhook; no erro avise a equipe.',
 ] as const;
 
 const areaLabels: Record<string, string> = {
@@ -88,6 +103,7 @@ export function CheckoutAiChat({
     actionLabel = 'Criar checkout com este',
     confirmText,
     storageKey,
+    onApplyPaymentFlow,
 }: {
     storageKey?: string;
     productName: string;
@@ -98,6 +114,8 @@ export function CheckoutAiChat({
     actionLabel?: string;
     /** Pede confirmação no cartão antes de aplicar (substitui a página existente). */
     confirmText?: string;
+    /** No workspace, permite encaminhar pedidos operacionais ao orquestrador de pagamento. */
+    onApplyPaymentFlow?: (graph: FlowGraph) => void;
 }) {
     const [brand, setBrand] = useState<Brand>({
         accentColor: '',
@@ -110,18 +128,23 @@ export function CheckoutAiChat({
 
     return (
         <div className="flex h-full min-h-0 flex-col">
-            <div className={`shrink-0 border-b border-border ${compact ? 'px-4' : 'px-6'} py-3`}>
+            <div className={`ai-brand-bar shrink-0 border-b border-border ${compact ? 'px-5 py-2.5' : 'px-6 py-3'}`}>
                 <div className="mx-auto max-w-[760px]">
                     <button
                         type="button"
                         onClick={() => setBrandOpen((open) => !open)}
                         aria-expanded={brandOpen}
-                        className="flex w-full items-center justify-between gap-3 text-left text-[12.5px]"
+                        className="ai-brand-toggle flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left text-[12.5px] -mx-2"
                     >
-                        <span className="font-semibold">
-                            Marca e imagens{' '}
-                            <span className="font-normal text-muted">
-                                · opcional{filled > 0 ? ` · ${String(filled)} preenchido(s)` : ''}
+                        <span className="ai-brand-icon grid size-7 shrink-0 place-items-center rounded-lg">
+                            <Icon name="image" className="size-3.5" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                            <span className="block font-semibold leading-4">Marca e imagens</span>
+                            <span className="block truncate text-[11.5px] leading-4 text-muted">
+                                {filled > 0
+                                    ? `${String(filled)} de 4 preenchidos`
+                                    : 'Opcional · cor, logo, banner e garantia'}
                             </span>
                         </span>
                         <Icon
@@ -163,25 +186,57 @@ export function CheckoutAiChat({
                 </div>
             </div>
             <div className="min-h-0 flex-1">
-                <AiChat<CheckoutGeneration>
+                <AiChat<CheckoutGeneration | FlowGeneration>
                     task="checkout"
-                    title={`Descreva o checkout de ${productName}`}
-                    subtitle="Conte para quem você vende, de onde vem o tráfego e o clima da marca. A IA monta estrutura, cores, tipografia e textos com os blocos do editor; você revisa e ajusta tudo depois."
+                    {...(onApplyPaymentFlow
+                        ? { taskForRequest: checkoutAssistantTask }
+                        : {})}
+                    title={
+                        onApplyPaymentFlow
+                            ? `O que você quer ajustar em ${productName}?`
+                            : `Descreva o checkout de ${productName}`
+                    }
+                    subtitle={
+                        onApplyPaymentFlow
+                            ? 'Posso editar a página ou montar a orquestração de pagamento. Identifico o destino pelo pedido e mostro a alteração antes de aplicar.'
+                            : 'Conte para quem você vende, de onde vem o tráfego e o clima da marca. A IA monta estrutura, cores, tipografia e textos com os blocos do editor; você revisa e ajusta tudo depois.'
+                    }
                     placeholder={
                         compact
                             ? 'Descreva a oferta, o público e o estilo…'
                             : 'Ex.: curso de confeitaria para iniciantes, tráfego do Instagram, visual acolhedor.'
                     }
-                    suggestions={suggestions}
+                    suggestions={onApplyPaymentFlow ? workspaceSuggestions : suggestions}
                     loadingSteps={loadingSteps}
                     maxLength={2000}
                     compact={compact}
-            {...(storageKey ? { storageKey } : {})}
-            generate={async (
+                    {...(storageKey ? { storageKey } : {})}
+                    generate={async (
                         request,
                         previousGenerationId,
                         conversation,
-                    ): Promise<AiReply<CheckoutGeneration>> => {
+                    ): Promise<AiReply<CheckoutGeneration | FlowGeneration>> => {
+                        if (
+                            onApplyPaymentFlow &&
+                            checkoutAssistantTask(request) === 'payment_flow'
+                        ) {
+                            const result = await aiRequest<FlowGeneration>(
+                                '/api/ai/payment-flow-generations',
+                                {
+                                    request,
+                                    conversation,
+                                    ...(previousGenerationId ? { previousGenerationId } : {}),
+                                },
+                            );
+                            return {
+                                id: result.id,
+                                text: result.reply,
+                                hasResult: result.graph !== null,
+                                result,
+                                remaining: result.credits.remaining,
+                                task: 'payment_flow',
+                            };
+                        }
                         const result = await aiRequest<CheckoutGeneration>(
                             '/api/ai/checkout-generations',
                             {
@@ -196,20 +251,32 @@ export function CheckoutAiChat({
                             hasResult: result.document !== null,
                             result,
                             remaining: result.credits.remaining,
+                            task: 'checkout',
                         };
                     }}
-                    renderResult={(result, _reply, latest) => (
-                        <CheckoutResult
-                            result={result}
-                            latest={latest}
-                            creating={creating}
-                            actionLabel={actionLabel}
-                            {...(confirmText ? { confirmText } : {})}
-                            onCreate={() => {
-                                if (result.document) onCreate(result.document, result.id);
-                            }}
-                        />
-                    )}
+                    renderResult={(result, _reply, latest) =>
+                        'graph' in result ? (
+                            result.graph && onApplyPaymentFlow ? (
+                                <FlowResult
+                                    result={result}
+                                    graph={result.graph}
+                                    latest={latest}
+                                    onApply={onApplyPaymentFlow}
+                                />
+                            ) : null
+                        ) : (
+                            <CheckoutResult
+                                result={result}
+                                latest={latest}
+                                creating={creating}
+                                actionLabel={actionLabel}
+                                {...(confirmText ? { confirmText } : {})}
+                                onCreate={() => {
+                                    if (result.document) onCreate(result.document, result.id);
+                                }}
+                            />
+                        )
+                    }
                 />
             </div>
         </div>
@@ -267,7 +334,7 @@ function BrandField({
     return (
         <label className="grid gap-1 text-[11.5px] text-muted">
             {label}
-            <span className="flex h-9 items-center gap-2 rounded-xl border border-border bg-[var(--control-bg)] px-3 focus-within:border-foreground/30">
+            <span className="ai-field flex h-9 items-center gap-2 rounded-xl border border-border bg-[var(--control-bg)] px-3 transition">
                 {swatch && (
                     <span
                         className="size-4 shrink-0 rounded-md border border-border"
@@ -301,16 +368,35 @@ function CheckoutResult({
     onCreate(): void;
 }) {
     const [showAdjustments, setShowAdjustments] = useState(false);
+    const applied = useAiApplied(result.id);
     if (!result.document || !result.quality) return null;
     const theme = result.document.theme as Record<string, string | undefined>;
     const outline = outlineOf(result.document);
+    // No workspace (com confirmação) o cartão vira o resumo; na criação, o editor abre em seguida.
+    if (applied && confirmText) {
+        const blocks = outline.reduce((total, area) => total + area.blocks.length, 0);
+        return (
+            <AppliedCard
+                title="Proposta aplicada na página"
+                items={[
+                    { icon: 'layers', label: `${String(blocks)} blocos na página` },
+                    {
+                        icon: 'type',
+                        label: `Tipografia ${fontLabel(theme.headingFontFamily, theme.fontFamily)}`,
+                    },
+                    { icon: 'check-circle', label: `Qualidade ${String(result.quality.score)}` },
+                ]}
+                actionLabel="Ver na página"
+            />
+        );
+    }
     const errors = result.quality.issues.filter((issue) => issue.severity === 'error');
     const score = result.quality.score;
     return (
-        <article className="@container overflow-hidden rounded-2xl border border-border bg-surface">
+        <article className="ai-result @container overflow-hidden rounded-2xl border border-border bg-surface">
             <div className="flex items-start justify-between gap-4 px-4 pt-4">
                 <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-muted">
-                    Nova versão
+                    Proposta de checkout
                 </p>
                 <span
                     title="Nota do verificador de design (contraste, blocos obrigatórios, organização)"
@@ -433,6 +519,7 @@ function CheckoutResult({
                 {...(confirmText ? { confirmText, doneLabel: 'Aplicado' } : {})}
                 disabled={!latest}
                 busy={creating}
+                generationId={result.id}
                 onConfirm={onCreate}
             />
         </article>

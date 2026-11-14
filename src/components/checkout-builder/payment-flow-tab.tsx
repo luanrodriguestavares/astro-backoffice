@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 
 import type { FunnelPaymentSummary } from '@/components/checkout-builder/checkout-funnel-canvas';
 import { FlowEditor } from '@/components/orchestration/flow-editor/flow-editor';
@@ -142,7 +142,6 @@ export function PaymentFlowTab({
     canManageGateways,
     onChange,
     onIssues,
-    leading,
 }: {
     flow: FlowGraph | undefined;
     connections: GatewayConnection[];
@@ -150,8 +149,6 @@ export function PaymentFlowTab({
     canManageGateways: boolean;
     onChange(flow: FlowGraph | undefined): void;
     onIssues(issues: FlowIssue[]): void;
-    /** Esquerda da barra do editor (voltar e identidade da área). */
-    leading?: ReactNode;
 }) {
     const [resetCount, setResetCount] = useState(0);
 
@@ -186,7 +183,6 @@ export function PaymentFlowTab({
                 webhooks={resources.webhooks}
                 onChange={onChange}
                 onIssues={onIssues}
-                leading={leading}
                 actions={
                     flow === undefined ? undefined : (
                         <>

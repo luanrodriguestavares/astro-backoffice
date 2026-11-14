@@ -86,8 +86,6 @@ interface Props {
     onChange(graph: FlowGraph): void;
     /** Problemas atuais do fluxo, para quem mostra o resumo fora do editor. */
     onIssues?(issues: FlowIssue[]): void;
-    /** Esquerda da barra (identidade da área); sem ela, o título padrão do fluxo. */
-    leading?: ReactNode;
     actions?: ReactNode;
 }
 
@@ -107,7 +105,6 @@ function Editor({
     webhooks,
     onChange,
     onIssues,
-    leading,
     actions,
 }: Props) {
     const reactFlow = useReactFlow<FlowCanvasNode, FlowCanvasEdge>();
@@ -122,7 +119,8 @@ function Editor({
     const [simulation, setSimulation] = useState<FlowSimulation | null>(null);
     const [simulating, setSimulating] = useState(false);
     const [picker, setPicker] = useState<PickerRequest | null>(null);
-    const [paletteOpen, setPaletteOpen] = useState(true);
+    // Progressive disclosure: o fluxo abre com o canvas livre; blocos ficam no botão do quadro.
+    const [paletteOpen, setPaletteOpen] = useState(false);
     const [galleryOpen, setGalleryOpen] = useState(false);
     useAiTarget({
         kind: 'payment_flow',
@@ -1080,7 +1078,11 @@ function Editor({
     }
 
     function arrange() {
-        const arranged = autoLayout(graph);
+        const arranged = autoLayout(graph, {
+            columnGap: 300,
+            rowGap: 24,
+            bandGap: 72,
+        });
         setNodes((current) =>
             current.map((item) => {
                 const node = arranged.nodes.find((candidate) => candidate.id === item.id);
@@ -1504,41 +1506,6 @@ function Editor({
                             : 'flow-embedded flex h-full min-h-0 flex-col'
                     }
                 >
-                    <div className="flow-embedded-toolbar">
-                        {leading ?? (
-                            <div className="min-w-0">
-                                <strong>Fluxo de pagamento</strong>
-                                <span>
-                                    O checkout entrega a venda em “Venda iniciada”; as saídas levam
-                                    às páginas de resultado do funil.
-                                </span>
-                            </div>
-                        )}
-                        <div className="flow-embedded-actions flex shrink-0 items-center gap-2">
-                            {actions}
-                            <IssuesButton errors={errors} warnings={warnings} onFocus={focusNode} />
-                            <Button type="button" variant="ghost" onClick={arrange}>
-                                <Icon name="route" className="size-3.5" />
-                                Organizar
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                aria-pressed={panel === 'simulation'}
-                                className="h-9"
-                                onClick={() => {
-                                    if (panel === 'simulation') {
-                                        setPanel(null);
-                                        setSimulation(null);
-                                    } else setPanel('simulation');
-                                }}
-                            >
-                                <Icon name="play" className="size-3.5" />
-                                Simular
-                            </Button>
-                        </div>
-                    </div>
-
                     <div className="glass-panel relative flex min-h-0 flex-1 overflow-hidden rounded-none border-0">
                         <div
                             className="flow-palette-shell absolute inset-y-0 left-0 z-20 shrink-0 lg:static"
@@ -1787,6 +1754,33 @@ function Editor({
                                     fullscreen={fullscreen}
                                     onToggleFullscreen={toggleFullscreen}
                                 />
+                                <div className="flow-canvas-actions" aria-label="Ações do fluxo">
+                                    {actions}
+                                    <IssuesButton
+                                        errors={errors}
+                                        warnings={warnings}
+                                        onFocus={focusNode}
+                                    />
+                                    <Button type="button" variant="ghost" onClick={arrange}>
+                                        <Icon name="route" className="size-3.5" />
+                                        Organizar
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        aria-pressed={panel === 'simulation'}
+                                        className="h-9"
+                                        onClick={() => {
+                                            if (panel === 'simulation') {
+                                                setPanel(null);
+                                                setSimulation(null);
+                                            } else setPanel('simulation');
+                                        }}
+                                    >
+                                        <Icon name="play" className="size-3.5" />
+                                        Simular
+                                    </Button>
+                                </div>
                                 <ConnectionLegend />
                                 {simulation && simulation.path.length > 0 && (
                                     <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-[#101214] px-4 py-2 text-[12px] font-semibold text-white shadow-lg">
@@ -1798,7 +1792,7 @@ function Editor({
                         </div>
 
                         {panelOpen && (
-                            <div className="absolute inset-y-0 right-0 z-30 w-[min(380px,100%)] shrink-0 shadow-[-12px_0_32px_rgba(16,18,20,0.08)] lg:static lg:shadow-none">
+                            <div className="flow-context-panel absolute inset-y-0 right-0 z-30 w-[min(380px,100%)] shrink-0 shadow-[-12px_0_32px_rgba(16,18,20,0.08)] lg:static lg:shadow-none">
                                 {panel === 'simulation' ? (
                                     <SimulationPanel
                                         defaultEnvironment={simulationEnvironment}
@@ -1919,12 +1913,8 @@ export function IssuesButton({
         return () => window.removeEventListener('pointerdown', close);
     }, [open]);
     const all = [...errors, ...warnings];
-    if (all.length === 0)
-        return (
-            <span className="inline-flex h-11 items-center gap-1.5 rounded-xl px-2 text-[12px] font-semibold text-success">
-                <Icon name="check-circle" className="size-4" /> Sem problemas
-            </span>
-        );
+    // O estado saudável já aparece no cabeçalho global. Aqui só entram pendências acionáveis.
+    if (all.length === 0) return null;
     return (
         <div ref={root} className="relative">
             <Button
