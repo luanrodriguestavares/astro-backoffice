@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 
 import { AuthToast } from '@/components/auth/auth-toast';
+import { LoginSubmitButton } from '@/components/auth/login-submit-button';
 import { PasswordInput } from '@/components/auth/password-input';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { LOGIN_EMAIL_COOKIE } from '@/lib/auth/session';
@@ -67,10 +68,7 @@ export default async function LoginPage({
                         Esqueci minha senha
                     </Link>
                 </div>
-                <button type="submit" className="auth-cta !mt-6">
-                    Entrar no Astro
-                    <Icon name="arrow-right" className="size-[18px]" />
-                </button>
+                <LoginSubmitButton />
             </form>
             <p
                 style={{ animationDelay: '220ms' }}
