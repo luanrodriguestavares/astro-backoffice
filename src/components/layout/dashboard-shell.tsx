@@ -11,6 +11,7 @@ import { Brand } from '@/components/brand';
 import { isHiddenInV1 } from '@/lib/features/release';
 import { AppearanceOnboarding } from '@/components/dashboard/appearance-onboarding';
 import { HeaderSearch } from '@/components/layout/header-search';
+import { NavigationPending } from '@/components/layout/navigation-pending';
 import { NotificationCenter } from '@/components/layout/notification-center';
 import { ProfileMenu } from '@/components/layout/profile-menu';
 import { ShellActionsProvider } from '@/components/layout/shell-actions';
@@ -549,7 +550,7 @@ export function DashboardShell({
                                 </>
                             }
                         >
-                            {children}
+                            <NavigationPending>{children}</NavigationPending>
                         </ShellActionsProvider>
                     </main>
                 </div>

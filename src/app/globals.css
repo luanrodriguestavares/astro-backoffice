@@ -3752,10 +3752,37 @@ html::-webkit-scrollbar,
     );
 }
 
-/* Esqueleto de carregamento das telas do painel ((dashboard)/loading.tsx). Entra com um pequeno
-   atraso para não piscar quando a tela abre rápido. */
+/* Navegação do painel (components/layout/navigation-pending.tsx): barra fina no topo enquanto a
+   próxima tela carrega; o esqueleto só entra se demorar. */
+.nav-progress {
+    position: fixed;
+    z-index: 200;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--highlight, #2ee37f);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--highlight, #2ee37f) 60%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition:
+        transform 200ms ease-out,
+        opacity 250ms ease 150ms;
+}
+
+.nav-progress[data-phase='pending'],
+.nav-progress[data-phase='slow'] {
+    opacity: 1;
+    transform: scaleX(0.85);
+    transition:
+        transform 8s cubic-bezier(0.1, 0.7, 0.2, 1),
+        opacity 120ms ease;
+}
+
 .page-skeleton {
-    animation: page-skeleton-in 200ms ease-out 150ms backwards;
+    animation: page-skeleton-in 160ms ease-out;
 }
 
 .skeleton-block {
@@ -3784,6 +3811,10 @@ html.astro-dark-portals .skeleton-block {
     .page-skeleton,
     .skeleton-block {
         animation: none;
+    }
+
+    .nav-progress {
+        transition: opacity 120ms ease;
     }
 }
 
