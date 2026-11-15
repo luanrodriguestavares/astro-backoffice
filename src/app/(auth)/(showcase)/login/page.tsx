@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 
 import { AuthToast } from '@/components/auth/auth-toast';
-import { LoginSubmitButton } from '@/components/auth/login-submit-button';
+import { LoginForm } from '@/components/auth/login-form';
 import { PasswordInput } from '@/components/auth/password-input';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { LOGIN_EMAIL_COOKIE } from '@/lib/auth/session';
@@ -31,7 +31,7 @@ export default async function LoginPage({
             <p className="mt-1.5 text-[14px] leading-5 text-[#6a6e73]">
                 Entre para continuar cuidando da sua operação no Astro.
             </p>
-            <form action={`/api/auth/login${inviteQuery}`} method="post" className="mt-7 space-y-4">
+            <LoginForm action={`/api/auth/login${inviteQuery}`}>
                 {invite && <input type="hidden" name="invitationToken" value={invite} />}
                 <Field label="E-mail" icon="mail">
                     <input
@@ -68,8 +68,7 @@ export default async function LoginPage({
                         Esqueci minha senha
                     </Link>
                 </div>
-                <LoginSubmitButton />
-            </form>
+            </LoginForm>
             <p
                 style={{ animationDelay: '220ms' }}
                 className="auth-swap mt-6 text-center text-[13px] text-[#6a6e73]"
