@@ -8,7 +8,14 @@ import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 import { useEscapeClose } from '@/hooks/use-escape-close';
+import {
+    CategoryIcon,
+    SuggestionModal,
+    categoryLabel,
+    roadmapCategories,
+} from './suggestion-modal';
 import type {
+    RoadmapCategory,
     RoadmapDashboard,
     RoadmapIdea,
     RoadmapModerationIdea,
@@ -665,7 +672,8 @@ function RoadmapCard({
                 moving ? 'animate-pulse opacity-60' : ''
             }`}
         >
-            <div className="flex items-start justify-between gap-3">
+            <CategoryBadge category={idea.category} />
+            <div className="mt-2.5 flex items-start justify-between gap-3">
                 <h3 className="text-[13px] font-semibold leading-5 tracking-[-0.01em]">
                     {idea.title}
                 </h3>
@@ -807,6 +815,7 @@ function MySuggestions({
                             <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <p className="text-[13px] font-semibold">{idea.title}</p>
+                                    <CategoryBadge category={idea.category} />
                                     <SubmissionStatus status={idea.moderationStatus} />
                                 </div>
                                 <p className="mt-1.5 line-clamp-2 max-w-3xl text-[11px] leading-5 text-muted">
@@ -829,6 +838,18 @@ function MySuggestions({
                 })}
             </div>
         </section>
+    );
+}
+
+function CategoryBadge({ category }: { category: RoadmapCategory | undefined }) {
+    return (
+        <span
+            className="idea-category inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-semibold"
+            data-category={category ?? 'improvement'}
+        >
+            <CategoryIcon category={category} className="size-3" />
+            {categoryLabel(category)}
+        </span>
     );
 }
 
@@ -901,104 +922,6 @@ function ModalHeader({
     );
 }
 
-function SuggestionModal({
-    pending,
-    editing = false,
-    adminCreate = false,
-    initial,
-    onClose,
-    onSubmit,
-}: {
-    pending: boolean;
-    editing?: boolean;
-    adminCreate?: boolean;
-    initial?: Pick<RoadmapSubmission, 'title' | 'description'>;
-    onClose: () => void;
-    onSubmit: (value: { title: string; description: string }) => Promise<void>;
-}) {
-    return (
-        <ModalShell onClose={onClose}>
-            <form
-                onSubmit={(event) => {
-                    event.preventDefault();
-                    const data = new FormData(event.currentTarget);
-                    void onSubmit({
-                        title: String(data.get('title') ?? '').trim(),
-                        description: String(data.get('description') ?? '').trim(),
-                    });
-                }}
-                className="theme-modal modal-surface modal-form-layout glass-panel my-6 w-full max-w-xl rounded-[28px] p-5 shadow-[0_32px_100px_rgba(37,31,76,.2)] sm:p-7"
-            >
-                <ModalHeader
-                    eyebrow={
-                        editing
-                            ? 'Sugestão em análise'
-                            : adminCreate
-                              ? 'Publicação oficial'
-                              : 'Sua voz no produto'
-                    }
-                    title={
-                        editing
-                            ? 'Editar sugestão'
-                            : adminCreate
-                              ? 'Criar ideia do Astro'
-                              : 'Sugerir uma melhoria'
-                    }
-                    description={
-                        editing
-                            ? 'Você pode ajustar o texto enquanto a equipe ainda não concluiu a análise.'
-                            : adminCreate
-                              ? 'A ideia será publicada imediatamente na primeira coluna do quadro, em Backlog.'
-                              : 'Tem algo que deixaria seu dia mais simples? Conte para a gente. Sua ideia pode ser a próxima melhoria do Astro.'
-                    }
-                    onClose={onClose}
-                />
-                <div className="mt-7 space-y-4">
-                    <label className="block text-[12px] font-semibold">
-                        Título
-                        <input
-                            name="title"
-                            required
-                            minLength={5}
-                            maxLength={160}
-                            autoFocus
-                            defaultValue={initial?.title}
-                            placeholder="Dê um nome claro para a sua ideia"
-                            className="ui-control mt-2 h-11 w-full px-3.5 font-normal"
-                        />
-                    </label>
-                    <label className="block text-[12px] font-semibold">
-                        Descrição
-                        <textarea
-                            name="description"
-                            required
-                            minLength={20}
-                            maxLength={3000}
-                            defaultValue={initial?.description}
-                            placeholder="Que problema ela resolve e como faria diferença no seu dia?"
-                            className="ui-control mt-2 min-h-36 w-full resize-y p-3.5 font-normal leading-6"
-                        />
-                    </label>
-                </div>
-                <div className="mt-6 flex justify-end gap-2">
-                    <Button type="button" variant="secondary" onClick={onClose} disabled={pending}>
-                        Cancelar
-                    </Button>
-                    <Button type="submit" variant="primary" disabled={pending}>
-                        {pending
-                            ? 'Salvando...'
-                            : editing
-                              ? 'Salvar alterações'
-                              : adminCreate
-                                ? 'Publicar no Backlog'
-                                : 'Colocar minha ideia no radar'}
-                    </Button>
-                </div>
-            </form>
-        </ModalShell>
-    );
-}
-
 function ModerationModal({
     target,
     pending,
@@ -1013,11 +936,15 @@ function ModerationModal({
     onSubmit: (value: {
         title: string;
         description: string;
+        category: RoadmapCategory;
         stage: RoadmapStage;
         moderationStatus: 'approved' | 'rejected';
     }) => Promise<void>;
 }) {
     const [title, setTitle] = useState(target.idea.title);
+    const [category, setCategory] = useState<RoadmapCategory>(
+        target.idea.category ?? 'improvement',
+    );
     const [description, setDescription] = useState(target.idea.description);
     const [stage, setStage] = useState<RoadmapStage>(target.idea.stage);
 
@@ -1025,6 +952,7 @@ function ModerationModal({
         return {
             title: title.trim(),
             description: description.trim(),
+            category,
             stage: forceBacklog ? ('backlog' as const) : stage,
             moderationStatus,
         };
@@ -1088,6 +1016,20 @@ function ModerationModal({
                             maxLength={3000}
                             className="ui-control mt-2 min-h-28 w-full resize-y p-3.5 font-normal leading-6"
                         />
+                    </label>
+                    <label className="block text-[12px] font-semibold">
+                        Tipo
+                        <div className="mt-2">
+                            <CustomSelect
+                                name="category"
+                                value={category}
+                                onValueChange={(value) => setCategory(value as RoadmapCategory)}
+                                options={roadmapCategories.map((item) => ({
+                                    value: item.id,
+                                    label: item.label,
+                                }))}
+                            />
+                        </div>
                     </label>
                     {forceBacklog ? (
                         <div className="flex items-center gap-3 rounded-2xl border border-brand/12 bg-brand-soft/45 p-3.5">

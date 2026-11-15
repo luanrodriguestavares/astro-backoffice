@@ -320,10 +320,14 @@ export interface StorageUsage {
 
 export type RoadmapStage = 'backlog' | 'planned' | 'in_progress' | 'completed';
 
+export type RoadmapCategory = 'improvement' | 'problem' | 'feature';
+
 export interface RoadmapIdea {
     id: string;
     title: string;
     description: string;
+    /** Ausente em respostas de uma API anterior ao campo: trate como melhoria. */
+    category?: RoadmapCategory;
     stage: RoadmapStage;
     position: number;
     likesCount: number;

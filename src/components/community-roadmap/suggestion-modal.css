@@ -1,0 +1,124 @@
+/* "Compartilhe uma ideia com o Astro": segue os tokens do tema (claro ou escuro), com o verde
+   Astro só nos pontos de destaque e um brilho bem leve no canto. */
+.idea-modal {
+    --idea-accent: var(--highlight, #2ee37f);
+    --idea-accent-ink: color-mix(in srgb, var(--idea-accent) 58%, var(--foreground));
+    --idea-accent-soft: color-mix(in srgb, var(--idea-accent) 12%, transparent);
+    --idea-accent-line: color-mix(in srgb, var(--idea-accent) 45%, var(--border));
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--foreground);
+    box-shadow:
+        0 1px 2px rgb(16 18 20 / 5%),
+        0 32px 90px rgb(16 18 20 / 18%);
+}
+
+.idea-modal::before {
+    position: absolute;
+    z-index: -1;
+    top: -160px;
+    right: -120px;
+    width: 420px;
+    height: 320px;
+    border-radius: 999px;
+    background: radial-gradient(
+        closest-side,
+        color-mix(in srgb, var(--idea-accent) 16%, transparent),
+        transparent
+    );
+    content: '';
+    pointer-events: none;
+}
+
+.idea-modal-accent {
+    color: var(--idea-accent-ink);
+}
+
+.idea-modal-mark {
+    border: 1px solid var(--idea-accent-line);
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--idea-accent) 22%, var(--surface)),
+        color-mix(in srgb, var(--idea-accent) 6%, var(--surface))
+    );
+    color: var(--idea-accent-ink);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 18%),
+        0 10px 24px color-mix(in srgb, var(--idea-accent) 16%, transparent);
+}
+
+.idea-modal-close {
+    border-color: var(--border);
+    background: color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    color: var(--muted);
+}
+
+.idea-modal-close:hover {
+    background: var(--surface-muted);
+    color: var(--foreground);
+}
+
+.idea-modal-chip {
+    border-color: var(--border);
+    background: color-mix(in srgb, var(--surface-muted) 55%, transparent);
+    color: var(--muted);
+}
+
+.idea-modal-chip:hover {
+    color: var(--foreground);
+}
+
+.idea-modal-chip[data-active='true'] {
+    border-color: var(--idea-accent-line);
+    background: var(--idea-accent-soft);
+    color: var(--foreground);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--idea-accent) 10%, transparent);
+}
+
+.idea-modal-chip[data-active='true'] svg {
+    color: var(--idea-accent-ink);
+}
+
+.idea-modal-chip:has(input:focus-visible) {
+    outline: 2px solid var(--idea-accent);
+    outline-offset: 2px;
+}
+
+.idea-modal-field:focus {
+    border-color: var(--idea-accent-line);
+    box-shadow: 0 0 0 4px var(--idea-accent-soft);
+}
+
+.idea-modal-submit {
+    background: var(--idea-accent);
+    color: var(--highlight-contrast, #04170c);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 30%),
+        0 10px 24px color-mix(in srgb, var(--idea-accent) 22%, transparent);
+}
+
+.idea-modal-submit:hover:not(:disabled) {
+    filter: brightness(1.04);
+}
+
+/* Tipo no card do quadro e na lista de sugestões. */
+.idea-category {
+    border: 1px solid var(--border);
+    background: var(--surface-muted);
+    color: var(--muted);
+}
+
+.idea-category[data-category='problem'] {
+    border-color: color-mix(in srgb, var(--danger, #c33b53) 25%, var(--border));
+    background: color-mix(in srgb, var(--danger, #c33b53) 8%, var(--surface));
+    color: var(--danger, #c33b53);
+}
+
+.idea-category[data-category='feature'] {
+    border-color: color-mix(in srgb, var(--highlight, #2ee37f) 35%, var(--border));
+    background: color-mix(in srgb, var(--highlight, #2ee37f) 10%, var(--surface));
+    color: color-mix(in srgb, var(--highlight, #2ee37f) 55%, var(--foreground));
+}
