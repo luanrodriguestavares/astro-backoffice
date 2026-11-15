@@ -120,7 +120,7 @@ export function SuggestionModal({
                         category,
                     });
                 }}
-                className="idea-modal theme-modal modal-surface modal-form-layout my-6 w-full max-w-[600px] rounded-[28px] p-6 sm:p-8"
+                className="idea-modal theme-modal my-6 max-h-[calc(100dvh-2rem)] w-full max-w-[600px] overflow-y-auto overscroll-contain rounded-[28px] p-6 sm:p-8"
             >
                 <Button
                     type="button"
@@ -232,10 +232,12 @@ export function SuggestionModal({
                     >
                         Cancelar
                     </Button>
+                    {/* `bg-brand` só tira o botão da regra global que acinzenta botões de modal no
+                        tema escuro; a cor vem de .idea-modal-submit. */}
                     <Button
                         type="submit"
                         disabled={pending}
-                        className="idea-modal-submit inline-flex h-12 items-center justify-center gap-2.5 rounded-full px-7 text-[13.5px] font-semibold transition disabled:opacity-50"
+                        className="idea-modal-submit bg-brand inline-flex h-12 items-center justify-center gap-2.5 rounded-full px-7 text-[13.5px] font-semibold transition disabled:opacity-50"
                     >
                         <svg
                             viewBox="0 0 24 24"
