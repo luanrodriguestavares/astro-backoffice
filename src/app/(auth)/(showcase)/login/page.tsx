@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 
-import { AuthDivider, GoogleButton } from '@/components/auth/auth-frame';
 import { AuthToast } from '@/components/auth/auth-toast';
 import { PasswordInput } from '@/components/auth/password-input';
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -73,8 +72,6 @@ export default async function LoginPage({
                     <Icon name="arrow-right" className="size-[18px]" />
                 </button>
             </form>
-            <AuthDivider />
-            <GoogleButton />
             <p
                 style={{ animationDelay: '220ms' }}
                 className="auth-swap mt-6 text-center text-[13px] text-[#6a6e73]"

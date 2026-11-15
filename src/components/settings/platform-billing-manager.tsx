@@ -101,20 +101,18 @@ export function PlatformBillingManager({
 
     return (
         <div className="space-y-5" data-tour="platform-billing">
-            {!summary.billingConfigured && (
-                <section className="flex items-start gap-3 rounded-[22px] border border-warning/20 bg-warning/10 p-4">
-                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-warning/10 text-warning">
-                        <Icon name="card" className="size-4" />
-                    </span>
-                    <div>
-                        <p className="text-[13px] font-semibold">Cobrança em configuração</p>
-                        <p className="mt-1 text-[12px] leading-5 text-muted">
-                            O formulário ficará disponível assim que as chaves da conta Stripe do
-                            Astro forem configuradas.
-                        </p>
-                    </div>
-                </section>
-            )}
+            <section className="flex items-start gap-3 rounded-[22px] border border-success/25 bg-success/10 p-4">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-success/12 text-success">
+                    <Icon name="gift" className="size-4" />
+                </span>
+                <div>
+                    <p className="text-[13px] font-semibold">O Astro está em período gratuito</p>
+                    <p className="mt-1 text-[12px] leading-5 text-muted">
+                        Por enquanto não cobramos nada: use todos os recursos sem custo. Avisaremos
+                        com antecedência antes de qualquer cobrança.
+                    </p>
+                </div>
+            </section>
 
             <BillingHero
                 summary={summary}

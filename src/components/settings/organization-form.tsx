@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 import { showToast } from '@/components/ui/toast';
 import type { Organization } from '@/lib/api/types';
@@ -17,11 +18,17 @@ export function OrganizationForm({ organization }: { organization: Organization 
         event.preventDefault();
         setLoading(true);
         const form = new FormData(event.currentTarget);
+        const documentNumber = String(form.get('documentNumber') ?? '').trim();
         const response = await fetch('/api/settings/organization', {
             method: 'PATCH',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({
                 displayName: form.get('displayName'),
+                legalName: String(form.get('legalName') ?? '').trim() || undefined,
+                // Documento só vai quando preenchido: em branco mantém o atual.
+                ...(documentNumber
+                    ? { documentType: form.get('documentType'), documentNumber }
+                    : {}),
                 version: organization.version,
             }),
         });
@@ -68,7 +75,46 @@ export function OrganizationForm({ organization }: { organization: Organization 
                     defaultValue={organization.slug}
                     disabled
                 />
+                <Field
+                    name="legalName"
+                    label="Razão social"
+                    defaultValue={organization.legalName}
+                    minLength={2}
+                    maxLength={200}
+                    required
+                />
+                <div className="grid grid-cols-[110px_1fr] gap-3">
+                    <div className="text-[13px] font-semibold">
+                        Documento
+                        <div className="mt-2">
+                            <CustomSelect
+                                name="documentType"
+                                defaultValue={organization.documentType ?? 'CNPJ'}
+                                options={[
+                                    { value: 'CNPJ', label: 'CNPJ' },
+                                    { value: 'CPF', label: 'CPF' },
+                                    { value: 'OTHER', label: 'Outro' },
+                                ]}
+                            />
+                        </div>
+                    </div>
+                    <Field
+                        name="documentNumber"
+                        label={organization.documentNumberMasked ? 'Alterar número' : 'Número'}
+                        minLength={5}
+                        maxLength={40}
+                        inputMode="numeric"
+                        autoComplete="off"
+                        placeholder={organization.documentNumberMasked ?? '00.000.000/0001-00'}
+                    />
+                </div>
             </div>
+            {!organization.documentNumberMasked && (
+                <p className="mt-3 text-[11.5px] text-muted">
+                    Informe o CNPJ (ou CPF) da empresa. Ele não é pedido no cadastro e pode ser
+                    preenchido aqui quando quiser.
+                </p>
+            )}
             <div className="mt-7 flex justify-end">
                 <Button variant="primary" disabled={loading} className="px-6">
                     {loading ? 'Salvando...' : 'Salvar alterações'}

@@ -224,6 +224,10 @@ export interface PaginatedAdminResult<T> {
 export interface Organization {
     id: string;
     legalName?: string;
+    /** CNPJ, CPF ou OTHER; null enquanto a empresa não informou o documento. */
+    documentType?: string | null;
+    /** Só os últimos dígitos (ex.: "•••• 0100"). */
+    documentNumberMasked?: string | null;
     displayName?: string;
     slug?: string;
     status?: string;

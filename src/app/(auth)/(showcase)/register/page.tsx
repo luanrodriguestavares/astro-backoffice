@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { AuthDivider, GoogleButton } from '@/components/auth/auth-frame';
 import { AuthToast } from '@/components/auth/auth-toast';
 import { RegisterForm } from '@/components/auth/register-form';
 import { getInvitationPreview } from '@/lib/auth/invitation';
@@ -35,17 +34,7 @@ export default async function RegisterPage({
                         : 'Três passos para preparar sua operação.'}
                 </p>
             </header>
-            <RegisterForm
-                invitation={invitation ? { ...invitation, token: invite! } : undefined}
-                social={
-                    invitation === undefined && (
-                        <>
-                            <AuthDivider />
-                            <GoogleButton />
-                        </>
-                    )
-                }
-            />
+            <RegisterForm invitation={invitation ? { ...invitation, token: invite! } : undefined} />
             <p
                 style={{ animationDelay: '220ms' }}
                 className="auth-swap mt-5 text-center text-[13px] text-[#6a6e73]"

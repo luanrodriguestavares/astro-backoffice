@@ -3,7 +3,6 @@
 import { FormEvent, useRef, useState } from 'react';
 
 import { PasswordInput } from '@/components/auth/password-input';
-import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 import { privacyUrl, termsUrl } from '@/lib/legal/terms';
 
@@ -23,14 +22,7 @@ interface InvitationContext {
     role: string;
 }
 
-export function RegisterForm({
-    invitation,
-    social,
-}: {
-    invitation?: InvitationContext;
-    /** Atalhos de cadastro social: só aparecem na primeira etapa. */
-    social?: React.ReactNode;
-}) {
+export function RegisterForm({ invitation }: { invitation?: InvitationContext }) {
     const formRef = useRef<HTMLFormElement>(null);
     const passwordRef = useRef<HTMLInputElement>(null);
     const confirmationRef = useRef<HTMLInputElement>(null);
@@ -242,28 +234,6 @@ export function RegisterForm({
                                     className={inputClass}
                                 />
                             </Field>
-                            <Field label="Tipo de documento">
-                                <CustomSelect
-                                    name="documentType"
-                                    defaultValue="CNPJ"
-                                    options={[
-                                        { value: 'CNPJ', label: 'CNPJ' },
-                                        { value: 'CPF', label: 'CPF' },
-                                        { value: 'OTHER', label: 'Outro' },
-                                    ]}
-                                />
-                            </Field>
-                            <Field label="Número do documento">
-                                <input
-                                    name="documentNumber"
-                                    required
-                                    minLength={5}
-                                    maxLength={40}
-                                    inputMode="numeric"
-                                    placeholder="00.000.000/0001-00"
-                                    className={inputClass}
-                                />
-                            </Field>
                         </div>
                     </section>
                 )}
@@ -336,7 +306,6 @@ export function RegisterForm({
                     </button>
                 )}
             </div>
-            {step === 0 && social}
         </form>
     );
 }

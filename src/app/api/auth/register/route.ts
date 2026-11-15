@@ -16,8 +16,6 @@ export async function POST(request: Request) {
         legalName: field(form, 'legalName'),
         displayName: field(form, 'displayName'),
         slug: normalizeSlug(field(form, 'slug')),
-        documentType: field(form, 'documentType'),
-        documentNumber: field(form, 'documentNumber'),
         acceptedTerms: form.get('terms') === 'on',
         invitationToken: field(form, 'invitationToken'),
     };
@@ -44,8 +42,6 @@ export async function POST(request: Request) {
                               legalName: input.legalName,
                               displayName: input.displayName,
                               slug: input.slug,
-                              documentType: input.documentType,
-                              documentNumber: input.documentNumber,
                           },
                       }),
             }),
@@ -58,7 +54,7 @@ export async function POST(request: Request) {
                 problem.code === 'INVALID_INVITATION'
                     ? 'Este convite expirou, já foi usado ou pertence a outro e-mail.'
                     : response.status === 409
-                      ? 'Já existe uma conta, organização ou documento com esses dados.'
+                      ? 'Já existe uma conta ou organização com esses dados.'
                       : problem.detail || 'Não foi possível criar sua conta.';
             return registerError(request, message);
         }
@@ -109,13 +105,7 @@ async function requestVerificationEmail(email: string, clientIp: Record<string, 
 function validate(input: Record<string, string | boolean>) {
     const invitation = String(input.invitationToken).length > 0;
     const alwaysRequired = ['name', 'email', 'password', 'passwordConfirmation'];
-    const organizationRequired = [
-        'legalName',
-        'displayName',
-        'slug',
-        'documentType',
-        'documentNumber',
-    ];
+    const organizationRequired = ['legalName', 'displayName', 'slug'];
     if ([...alwaysRequired, ...(invitation ? [] : organizationRequired)].some((key) => !input[key]))
         return 'Preencha todos os campos obrigatórios.';
     if (String(input.password).length < 12) return 'A senha precisa ter pelo menos 12 caracteres.';
