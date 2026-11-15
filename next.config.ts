@@ -15,7 +15,7 @@ const contentSecurityPolicy = [
 ].join('; ');
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  output: process.env.VINEXT_CLOUDFLARE === '1' ? undefined : 'standalone',
   transpilePackages: ['@astro/checkout-renderer'],
   poweredByHeader: false,
   reactStrictMode: true,
