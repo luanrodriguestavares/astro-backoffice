@@ -52,8 +52,6 @@ export function NotificationCenter({ storageScope }: { storageScope: string }) {
                 setUnseenCount(notifications.filter((item) => !seen.has(item.id)).length);
             }
         } catch {
-            // HMR, navegação ou indisponibilidade momentânea podem interromper o fetch.
-            // A central se recupera na próxima atualização sem gerar uma rejeição global.
             if (!loadedRef.current) {
                 setItems([]);
                 setUnseenCount(0);
