@@ -18,7 +18,7 @@ export default defineConfig({
     env: {
       ASSETS: bindings.assets(),
       ASTRO_API_URL: bindings.text("https://api.astroengine.com.br"),
-      GATEWAY_PROVIDERS_ENABLED: bindings.text("stripe,mercado_pago"),
+      GATEWAY_PROVIDERS_ENABLED: bindings.text("stripe,mercado_pago,abacate_pay"),
       NEXT_PUBLIC_CHECKOUT_URL: bindings.text("https://checkout.astroengine.com.br"),
       NEXT_PUBLIC_FILES_ENABLED: bindings.text("false"),
       NEXT_PUBLIC_LANDING_URL: bindings.text("https://astroengine.com.br"),
