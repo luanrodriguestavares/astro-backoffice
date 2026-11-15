@@ -16,6 +16,14 @@ type Filter = 'all' | 'connected' | 'available';
 
 const catalog = [
     {
+        name: 'Asaas',
+        initials: 'AS',
+        color: 'bg-[#0030b9]',
+        logo: '/gateways/asaas.png',
+        logoFill: true,
+        description: 'Pix, boleto, cartão e assinaturas.',
+    },
+    {
         name: 'Pagar.me',
         initials: 'P',
         color: 'bg-[#54c7a0]',
