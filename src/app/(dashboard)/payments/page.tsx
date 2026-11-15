@@ -1,6 +1,7 @@
 import { PaymentsTable } from '@/components/payments/payments-table';
 import { PageHeader } from '@/components/ui/page-header';
 import { SummaryCard } from '@/components/ui/resource-table';
+import { apiFetchIfAllowed } from '@/lib/api/batched';
 import { apiFetch } from '@/lib/api/server';
 import { currentPermissions } from '@/lib/auth/permissions';
 import type { Customer, GatewayConnection, Payment, Refund } from '@/lib/api/types';
@@ -14,17 +15,16 @@ export default async function PaymentsPage({
 }) {
     const { payment, q = '', focus } = await searchParams;
     const highlightedPaymentId = focus ?? payment;
-    const permissions = await currentPermissions();
-    const [payments, customers, gateways, refunds] = await Promise.all([
+    // Tudo numa leva só; as permissões decidem depois o que entra na tela.
+    const [permissions, payments, allCustomers, allGateways, refunds] = await Promise.all([
+        currentPermissions(),
         apiFetch<Payment[]>('/api/v1/payments'),
-        permissions.has('products.read')
-            ? apiFetch<Customer[]>('/api/v1/customers')
-            : Promise.resolve([]),
-        permissions.has('gateway_connections.manage')
-            ? apiFetch<GatewayConnection[]>('/api/v1/gateway-connections')
-            : Promise.resolve([]),
+        apiFetchIfAllowed<Customer[]>('/api/v1/customers', []),
+        apiFetchIfAllowed<GatewayConnection[]>('/api/v1/gateway-connections', []),
         apiFetch<Refund[]>('/api/v1/refunds').catch(() => [] as Refund[]),
     ]);
+    const customers = permissions.has('products.read') ? allCustomers : [];
+    const gateways = permissions.has('gateway_connections.manage') ? allGateways : [];
     const currency = payments[0]?.currency ?? 'BRL';
     const approved = payments.filter((payment) => successfulStatuses.includes(payment.status));
     const received = approved.reduce((sum, payment) => sum + payment.capturedMinor, 0);

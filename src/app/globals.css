@@ -3752,6 +3752,41 @@ html::-webkit-scrollbar,
     );
 }
 
+/* Esqueleto de carregamento das telas do painel ((dashboard)/loading.tsx). Entra com um pequeno
+   atraso para não piscar quando a tela abre rápido. */
+.page-skeleton {
+    animation: page-skeleton-in 200ms ease-out 150ms backwards;
+}
+
+.skeleton-block {
+    background:
+        linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 45%) 50%, transparent 70%) 0 0 /
+            220% 100%,
+        var(--surface-muted);
+    animation: checkout-thumb-shimmer 1.4s ease-in-out infinite;
+}
+
+.dashboard-dark .skeleton-block,
+html.astro-dark-portals .skeleton-block {
+    background:
+        linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 5%) 50%, transparent 70%) 0 0 /
+            220% 100%,
+        var(--surface-muted);
+}
+
+@keyframes page-skeleton-in {
+    from {
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-skeleton,
+    .skeleton-block {
+        animation: none;
+    }
+}
+
 @keyframes checkout-thumb-shimmer {
     from {
         background-position: 120% 0;

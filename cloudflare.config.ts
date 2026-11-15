@@ -6,6 +6,10 @@ export default defineConfig({
     entrypoint: "vinext/server/fetch-handler",
     compatibilityDate: "2026-11-15",
     domains: ["app.astroengine.com.br"],
+    // Roda o worker perto da API (VPS em Oregon), não perto do usuário: cada tela faz várias
+    // chamadas à API, e atravessar o continente em cada uma custava ~600 ms. Assim o usuário
+    // cruza a distância uma vez só. Arquivos estáticos continuam saindo da borda mais próxima.
+    placement: { mode: "targeted", hostname: "api.astroengine.com.br" },
     assets: {
       htmlHandling: "none",
       notFoundHandling: "none",

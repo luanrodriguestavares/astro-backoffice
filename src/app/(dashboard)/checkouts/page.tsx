@@ -4,9 +4,10 @@ import {
 } from '@/components/checkout-builder/checkout-manager';
 import { PageHeader } from '@/components/ui/page-header';
 import { SummaryCard } from '@/components/ui/resource-table';
+import { pricesByProduct } from '@/lib/api/batched';
 import { apiFetch } from '@/lib/api/server';
 import { currentPermissions } from '@/lib/auth/permissions';
-import type { Checkout, Price, Product } from '@/lib/api/types';
+import type { Checkout, Product } from '@/lib/api/types';
 import { checkoutTemplates, type CheckoutTemplateId } from '@/lib/checkout/templates';
 import { CheckoutAreaNav } from '@/components/checkout-builder/checkout-area-nav';
 
@@ -19,11 +20,13 @@ export default async function CheckoutsPage({
     const initialTemplate = checkoutTemplates.some((item) => item.id === template)
         ? (template as CheckoutTemplateId)
         : undefined;
-    const permissions = await currentPermissions();
     // O catálogo só serve para o modal "Criar checkout": não segura a lista. Ele segue
     // como promessa para o cliente e resolve em paralelo enquanto os cards já aparecem.
     const catalog = loadCatalog();
-    const checkouts = await apiFetch<Checkout[]>('/api/v1/checkouts');
+    const [permissions, checkouts] = await Promise.all([
+        currentPermissions(),
+        apiFetch<Checkout[]>('/api/v1/checkouts'),
+    ]);
     const published = checkouts.filter((checkout) => checkout.status === 'published').length;
     const drafts = checkouts.filter((checkout) => checkout.status === 'draft').length;
 
@@ -76,14 +79,14 @@ export default async function CheckoutsPage({
 
 async function loadCatalog(): Promise<CheckoutCatalogOption[]> {
     try {
-        const products = await apiFetch<Product[]>('/api/v1/products?limit=100');
-        const active = products.filter((product) => product.status === 'active');
-        const entries = await Promise.all(
-            active.map(async (product) => ({
-                product,
-                prices: await apiFetch<Price[]>(`/api/v1/products/${product.id}/prices`),
-            })),
-        );
+        const productsRequest = apiFetch<Product[]>('/api/v1/products?limit=100');
+        const [products, prices] = await Promise.all([
+            productsRequest,
+            pricesByProduct(productsRequest),
+        ]);
+        const entries = products
+            .filter((product) => product.status === 'active')
+            .map((product) => ({ product, prices: prices.get(product.id) ?? [] }));
         return entries.flatMap(({ product, prices }) =>
             prices
                 .filter((price) => price.status === 'active')

@@ -17,7 +17,7 @@ import { Icon, type IconName } from '@/components/ui/icon';
 import { PageHeader } from '@/components/ui/page-header';
 import { PageHelp } from '@/components/ui/page-help';
 import { StatCard } from '@/components/ui/stat-card';
-import { apiFetch } from '@/lib/api/server';
+import { apiFetchIfAllowed } from '@/lib/api/batched';
 import { currentOrganization, currentUser } from '@/lib/auth/permissions';
 import type {
     Checkout,
@@ -31,25 +31,30 @@ import type {
 const approvedStatuses = new Set(['approved', 'paid', 'captured', 'succeeded']);
 
 export default async function DashboardPage() {
-    const [user, organization] = await Promise.all([currentUser(), currentOrganization()]);
+    // Tudo numa leva só (usuário, organização e dados); as permissões decidem depois o que
+    // entra na tela. Antes os dados esperavam as permissões: uma ida e volta a mais até a API.
+    const [user, organization, ...data] = await Promise.all([
+        currentUser(),
+        currentOrganization(),
+        apiFetchIfAllowed<Payment[]>('/api/v1/payments', []),
+        apiFetchIfAllowed<Subscription[]>('/api/v1/subscriptions', []),
+        apiFetchIfAllowed<GatewayConnection[]>('/api/v1/gateway-connections', []),
+        apiFetchIfAllowed<Product[]>('/api/v1/products?limit=100', []),
+        apiFetchIfAllowed<Checkout[]>('/api/v1/checkouts', []),
+        apiFetchIfAllowed<Refund[]>('/api/v1/refunds', []),
+    ] as const);
     const permissions = new Set(organization.permissions ?? []);
     const canReadPayments = permissions.has('payments.read');
     const canReadSubscriptions = permissions.has('subscriptions.read');
     const canReadProducts = permissions.has('products.read');
     const canWriteProducts = permissions.has('products.write');
     const canManageGateways = permissions.has('gateway_connections.manage');
-    const [payments, subscriptions, gateways, products, checkouts, refunds] = await Promise.all([
-        canReadPayments ? apiFetch<Payment[]>('/api/v1/payments') : Promise.resolve([]),
-        canReadSubscriptions
-            ? apiFetch<Subscription[]>('/api/v1/subscriptions')
-            : Promise.resolve([]),
-        canManageGateways
-            ? apiFetch<GatewayConnection[]>('/api/v1/gateway-connections')
-            : Promise.resolve([]),
-        canReadProducts ? apiFetch<Product[]>('/api/v1/products?limit=100') : Promise.resolve([]),
-        canReadProducts ? apiFetch<Checkout[]>('/api/v1/checkouts') : Promise.resolve([]),
-        canReadPayments ? apiFetch<Refund[]>('/api/v1/refunds') : Promise.resolve([]),
-    ]);
+    const payments = canReadPayments ? data[0] : [];
+    const subscriptions = canReadSubscriptions ? data[1] : [];
+    const gateways = canManageGateways ? data[2] : [];
+    const products = canReadProducts ? data[3] : [];
+    const checkouts = canReadProducts ? data[4] : [];
+    const refunds = canReadPayments ? data[5] : [];
 
     const approved = payments.filter((payment) => approvedStatuses.has(payment.status));
     const revenue = approved.reduce((sum, payment) => sum + capturedValue(payment), 0);

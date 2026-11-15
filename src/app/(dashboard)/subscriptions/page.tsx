@@ -1,9 +1,10 @@
 import { SubscriptionCreateAction } from '@/components/resources/create-actions';
 import { PageHeader } from '@/components/ui/page-header';
 import { ResourceTable, SummaryCard, date, money } from '@/components/ui/resource-table';
+import { apiFetchIfAllowed, pricesByProduct } from '@/lib/api/batched';
 import { apiFetch } from '@/lib/api/server';
 import { currentPermissions } from '@/lib/auth/permissions';
-import type { Customer, GatewayConnection, Price, Product, Subscription } from '@/lib/api/types';
+import type { Customer, GatewayConnection, Product, Subscription } from '@/lib/api/types';
 const activeStatuses = ['active', 'trialing'];
 
 export default async function SubscriptionsPage({
@@ -12,25 +13,28 @@ export default async function SubscriptionsPage({
     searchParams: Promise<{ q?: string; focus?: string }>;
 }) {
     const { q = '', focus } = await searchParams;
-    const permissions = await currentPermissions();
+    // Tudo numa leva só; as permissões decidem depois o que entra na tela.
+    const productsRequest = apiFetchIfAllowed<Product[]>('/api/v1/products?limit=100', []);
+    const [permissions, subscriptions, allCustomers, allProducts, prices, allGateways] =
+        await Promise.all([
+            currentPermissions(),
+            apiFetch<Subscription[]>('/api/v1/subscriptions'),
+            apiFetchIfAllowed<Customer[]>('/api/v1/customers', []),
+            productsRequest,
+            pricesByProduct(productsRequest),
+            apiFetchIfAllowed<GatewayConnection[]>('/api/v1/gateway-connections', []),
+        ]);
     const canReadProducts = permissions.has('products.read');
     const canManageGateways = permissions.has('gateway_connections.manage');
     const canCreate =
         permissions.has('subscriptions.create') && canReadProducts && canManageGateways;
-    const [subscriptions, customers, products, gateways] = await Promise.all([
-        apiFetch<Subscription[]>('/api/v1/subscriptions'),
-        canReadProducts ? apiFetch<Customer[]>('/api/v1/customers') : Promise.resolve([]),
-        canReadProducts ? apiFetch<Product[]>('/api/v1/products?limit=100') : Promise.resolve([]),
-        canManageGateways
-            ? apiFetch<GatewayConnection[]>('/api/v1/gateway-connections')
-            : Promise.resolve([]),
-    ]);
-    const priceGroups = await Promise.all(
-        products.map(async (product) => ({
-            product,
-            prices: await apiFetch<Price[]>(`/api/v1/products/${product.id}/prices`),
-        })),
-    );
+    const customers = canReadProducts ? allCustomers : [];
+    const products = canReadProducts ? allProducts : [];
+    const gateways = canManageGateways ? allGateways : [];
+    const priceGroups = products.map((product) => ({
+        product,
+        prices: prices.get(product.id) ?? [],
+    }));
     const recurringPrices = priceGroups.flatMap(({ product, prices }) =>
         prices
             .filter((price) => price.pricingType === 'recurring' && price.status === 'active')
