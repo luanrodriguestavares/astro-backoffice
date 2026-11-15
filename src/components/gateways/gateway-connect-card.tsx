@@ -327,15 +327,13 @@ function GatewayFields({
             <>
                 <Field name="secretKey" label="Secret key" secret required={!optional} />
                 <Field name="webhookSecret" label="Webhook secret" secret required={!optional} />
+                {/* Sem ela o checkout não mostra o cartão. O produto das assinaturas na
+                    Stripe é criado pelo Astro, espelhando o produto do catálogo. */}
                 <Field
                     name="publishableKey"
-                    label="Publishable key"
+                    label="Publishable key (pk_...)"
                     defaultValue={stringConfig(connection, 'publishableKey')}
-                />
-                <Field
-                    name="subscriptionProductId"
-                    label="Product ID para assinaturas"
-                    defaultValue={stringConfig(connection, 'subscriptionProductId')}
+                    required={!optional}
                 />
             </>
         );
@@ -346,19 +344,17 @@ function GatewayFields({
                 <Field name="webhookSecret" label="Webhook secret" secret required={!optional} />
                 <Field
                     name="publicKey"
-                    label="Public key (cartão no checkout)"
+                    label="Public key (necessária para cartão no checkout)"
                     defaultValue={stringConfig(connection, 'publicKey')}
                     required={false}
                 />
-                <Field
-                    name="notificationUrl"
-                    label="Notification URL"
-                    defaultValue={stringConfig(connection, 'notificationUrl')}
-                />
+                {/* As notificações chegam pelo webhook cadastrado no painel do Mercado Pago
+                    (passo a passo ao concluir), sem precisar de uma URL por conexão. */}
                 <Field
                     name="subscriptionBackUrl"
-                    label="URL de retorno"
+                    label="Página de retorno das assinaturas (opcional, HTTPS)"
                     defaultValue={stringConfig(connection, 'subscriptionBackUrl')}
+                    required={false}
                 />
             </>
         );
@@ -389,7 +385,7 @@ function GatewayFields({
                 <Field name="webhookId" label="Webhook ID" required={!optional} />
                 <Field
                     name="returnUrl"
-                    label="URL de retorno após o pagamento (HTTPS)"
+                    label="Página de retorno após o pagamento (HTTPS)"
                     defaultValue={stringConfig(connection, 'returnUrl')}
                 />
             </>
@@ -477,14 +473,12 @@ function payload(provider: GatewayConnection['provider'], form: FormData) {
         credentials.secretKey = value('secretKey');
         credentials.webhookSecret = value('webhookSecret');
         publicConfiguration.publishableKey = value('publishableKey');
-        publicConfiguration.subscriptionProductId = value('subscriptionProductId');
     }
     if (provider === 'mercado_pago') {
         credentials.accessToken = value('accessToken');
         credentials.webhookSecret = value('webhookSecret');
         // Sem a public key a conexão fica só com Pix; com ela, o checkout aceita cartão.
         publicConfiguration.publicKey = value('publicKey');
-        publicConfiguration.notificationUrl = value('notificationUrl');
         publicConfiguration.subscriptionBackUrl = value('subscriptionBackUrl');
     }
     if (provider === 'abacate_pay') {
