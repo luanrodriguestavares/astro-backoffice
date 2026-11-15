@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { applyDashboardThemeClasses } from '@/components/ui/theme-switch';
 import type { CurrentUser } from '@/lib/api/types';
+import { SUPPORT_CONTACT } from '@/lib/support-contact';
 
 export function ProfileMenu({
     user,
@@ -156,6 +157,46 @@ export function ProfileMenu({
                                     Perfil e configurações
                                 </Link>
                             )}
+                        </div>
+                        <div className="border-t border-border py-1.5">
+                            <p className="px-3 pb-1 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-muted">
+                                Fale com a gente
+                            </p>
+                            <a
+                                href={SUPPORT_CONTACT.whatsapp.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                role="menuitem"
+                                onClick={() => setOpen(false)}
+                                className="flex h-10 items-center gap-3 rounded-xl px-3 text-[11px] font-medium text-muted transition hover:bg-surface-muted hover:text-foreground"
+                            >
+                                <Icon name="message" className="size-4" />
+                                <span className="min-w-0 flex-1">
+                                    <span className="block">WhatsApp</span>
+                                    <span className="block truncate text-[9px] font-normal">
+                                        {SUPPORT_CONTACT.whatsapp.label}
+                                    </span>
+                                </span>
+                            </a>
+                            {SUPPORT_CONTACT.emails.map(({ label, email }) => (
+                                <a
+                                    key={email}
+                                    href={`mailto:${email}`}
+                                    role="menuitem"
+                                    onClick={() => setOpen(false)}
+                                    className="flex h-10 items-center gap-3 rounded-xl px-3 text-[11px] font-medium text-muted transition hover:bg-surface-muted hover:text-foreground"
+                                >
+                                    <Icon name="mail" className="size-4" />
+                                    <span className="min-w-0 flex-1">
+                                        <span className="block">{label}</span>
+                                        <span className="block truncate text-[9px] font-normal">
+                                            {email}
+                                        </span>
+                                    </span>
+                                </a>
+                            ))}
+                        </div>
+                        <div className="border-t border-border py-1.5">
                             <form action={logoutAction} method="post">
                                 <Button
                                     type="submit"
