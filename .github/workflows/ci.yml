@@ -22,8 +22,7 @@ jobs:
         working-directory: backoffice
     steps:
       # `@astro/checkout-renderer` é `file:../checkout-renderer`: os dois repositórios ficam lado a
-      # lado, como no desenvolvimento local. Se o renderer for privado, configure o segredo
-      # CHECKOUT_RENDERER_TOKEN com leitura nele.
+      # lado, como no desenvolvimento local.
       - uses: actions/checkout@v4
         with:
           path: backoffice
@@ -31,7 +30,8 @@ jobs:
         with:
           repository: luanrodriguestavares/astro-checkout-renderer
           path: checkout-renderer
-          token: ${{ secrets.CHECKOUT_RENDERER_TOKEN || github.token }}
+          # Deploy key só de leitura no astro-checkout-renderer (repositório privado).
+          ssh-key: ${{ secrets.CHECKOUT_RENDERER_SSH_KEY }}
       - uses: pnpm/action-setup@v4
         with:
           package_json_file: backoffice/package.json
@@ -55,3 +55,48 @@ jobs:
       - name: Build production image
         working-directory: .
         run: docker build -f backoffice/Dockerfile --build-arg NEXT_PUBLIC_CHECKOUT_URL=https://checkout.example.com -t astro-backoffice:${{ github.sha }} .
+
+  deploy:
+    name: Deploy no Cloudflare
+    # Push na main ou disparo manual (ex.: para publicar uma mudança do renderer), sempre depois
+    # da validação passar.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: [validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: backoffice-deploy-production
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: backoffice
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: backoffice
+      - uses: actions/checkout@v4
+        with:
+          repository: luanrodriguestavares/astro-checkout-renderer
+          path: checkout-renderer
+          # Deploy key só de leitura no astro-checkout-renderer (repositório privado).
+          ssh-key: ${{ secrets.CHECKOUT_RENDERER_SSH_KEY }}
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: backoffice/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            backoffice/pnpm-lock.yaml
+            checkout-renderer/pnpm-lock.yaml
+      - name: Install renderer dependencies
+        working-directory: checkout-renderer
+        run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
+      # As URLs de produção estão nos próprios scripts build:vinext/deploy:vinext.
+      - run: pnpm build:vinext
+      - run: pnpm deploy:vinext
